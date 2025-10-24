@@ -1,0 +1,146 @@
+/* ===== STILI PDF COMPATIBILI ===== */
+
+/* Reset base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    color: #000;
+    margin: 15px;
+    line-height: 1.3;
+}
+
+/* Titoli */
+h1, h2, h3, h4 {
+    color: #000;
+    margin: 12px 0 6px 0;
+    page-break-after: avoid;
+}
+
+h1 {
+    text-align: center;
+    font-size: 14pt;
+    border-bottom: 1px solid #000;
+    padding-bottom: 5px;
+    margin-top: 5px;
+}
+
+h2 {
+    font-size: 12pt;
+    margin-top: 18px;
+    background-color: #f5f5f5;
+    padding: 6px 8px;
+    border-left: 4px solid #003366;
+}
+
+h3 {
+    font-size: 11pt;
+    margin-top: 15px;
+    padding-bottom: 3px;
+}
+
+/* Tabelle */
+table {
+    width: 100%;
+    border: 1px solid #000;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+}
+
+th, td {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    vertical-align: top;
+}
+
+th {
+    background-color: #e9e9e9;
+    font-weight: bold;
+    text-align: left;
+}
+
+/* Checkbox semplificati */
+.checkbox-item {
+    margin-bottom: 6px;
+    padding-left: 18px;
+    position: relative;
+    font-size: 9pt;
+}
+
+.checkbox-item:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Evidenziazione informazioni */
+.info-highlight {
+    background-color: #f0f7ff;
+    border: 1px solid #4a90e2;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 9pt;
+}
+
+/* Box firme */
+.signature-box {
+    border: 1px solid #000;
+    height: 70px;
+    margin: 12px 0;
+    padding: 6px;
+    font-size: 9pt;
+    background-color: #f9f9f9;
+}
+
+/* Header e sezioni */
+.header-container {
+    display: block;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 15px;
+    text-align: center;
+}
+
+.section-header {
+    background: #ecf0f1;
+    padding: 12px 15px;
+    margin: 25px 0 15px 0;
+    border-left: 4px solid #3498db;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Stati */
+.status-complete {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.status-incomplete {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* Footer */
+.footer {
+    margin-top: 25px;
+    text-align: center;
+    font-size: 8pt;
+    border-top: 1px solid #000;
+    padding-top: 8px;
+    color: #666;
+}
+
+/* Page break */
+.page-break {
+    page-break-before: always;
+}

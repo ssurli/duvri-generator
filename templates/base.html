@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block document_title %}DUVRI – Parte Dinamica{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* STILI PER COOKIE BANNER - SEMPRE VISIBILE PER APPALTATORE */
+    .cookie-banner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      z-index: 10000;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .cookie-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+    }
+
+    .cookie-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      margin-top: 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .cookie-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Nascondi il contenuto principale quando il banner è visibile */
+    body.cookie-banner-visible main,
+    body.cookie-banner-visible header,
+    body.cookie-banner-visible footer {
+      filter: blur(3px);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+ <!-- HEADER CON LOGO -->
+  <header class="bg-primary text-white p-3 mb-4">
+    <div class="container">
+      <div class="row align-items-center">
+        <!-- Logo -->
+        <div class="col-auto">
+          <img src="{{ url_for('static', filename='logo.png') }}"
+     alt="Azienda USL Toscana Nord Ovest"
+     style="height: 80px; max-width: 200px; border: 2px solid white; padding: 2px; border-radius: 8px;"
+     class="img-fluid">
+        </div>
+        <!-- Testo -->
+        <div class="col">
+          <h1 class="h4 mb-0">Azienda USL Toscana Nord Ovest</h1>
+          <p class="mb-0">Sistema di Gestione della Salute e Sicurezza sul Lavoro</p>
+          <small>Documento di Valutazione dei Rischi Interferenti (DUVRI)</small>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="container flex-grow-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- COOKIE BANNER CENTRALE -->
+  <div id="cookie-banner" class="cookie-banner" style="display: none;">
+    <div class="cookie-content">
+      <h5>🍪 Utilizzo dei Cookie</h5>
+      <p>Questo sito utilizza <strong>cookie tecnici necessari</strong> per il funzionamento dell'applicazione.</p>
+      <p>Non utilizziamo cookie di tracciamento o marketing.</p>
+      <small><a href="/privacy-policy" onclick="openPrivacyPolicy(); return false;">Maggiori informazioni nella Privacy Policy</a></small>
+      <br>
+      <button onclick="acceptCookies()" class="cookie-btn">Accetta e continua</button>
+    </div>
+  </div>
+
+  <!-- Overlay di sfondo -->
+  <div id="cookie-overlay" class="cookie-overlay" style="display: none;"></div>
+
+  <script>
+    // Funzione per controllare i cookie in modo affidabile
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function acceptCookies() {
+      console.log('✅ Cookie accettati');
+      // Imposta cookie con durata 30 giorni
+      document.cookie = "cookies_accepted=true; max-age=" + (30*24*60*60) + "; path=/; SameSite=Lax";
+
+      hideCookieBanner();
+    }
+
+    function hideCookieBanner() {
+      document.getElementById('cookie-banner').style.display = 'none';
+      document.getElementById('cookie-overlay').style.display = 'none';
+      document.body.classList.remove('cookie-banner-visible');
+    }
+
+    function showCookieBanner() {
+      document.getElementById('cookie-banner').style.display = 'block';
+      document.getElementById('cookie-overlay').style.display = 'block';
+      document.body.classList.add('cookie-banner-visible');
+    }
+
+    function checkCookies() {
+      console.log('🔍 Controllo cookie...');
+
+      const cookiesAccepted = getCookie('cookies_accepted');
+      console.log('Cookie accettati?', cookiesAccepted);
+
+      // Controlla se siamo in modalità appaltatore
+      const isAppaltatore = window.location.pathname.includes('/appaltatore/') ||
+                           window.location.pathname.includes('/appaltatore_form/');
+                          window.location.pathname.includes('/compila_appaltatore');
+
+      console.log('Modalità appaltatore?', isAppaltatore);
+
+      if (isAppaltatore) {
+        // PER APPALTATORE: mostra il banner SOLO SE non ha ancora accettato
+        if (cookiesAccepted !== 'true') {
+          console.log('👷 Modalità Appaltatore - Mostro banner cookie (prima volta)');
+          setTimeout(() => {
+            showCookieBanner();
+          }, 1000);
+        } else {
+          console.log('✅ Appaltatore - Cookie già accettati in precedenza');
+        }
+      } else {
+        // PER ADMIN/COMMITTENTE: comportamento normale
+        if (cookiesAccepted !== 'true') {
+          console.log('👨‍💼 Modalità Admin - Mostro banner cookie');
+          setTimeout(() => {
+            showCookieBanner();
+          }, 1000);
+        } else {
+          console.log('✅ Admin - Cookie già accettati');
+        }
+      }
+    }
+
+    // Attendi che il DOM sia completamente caricato
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkCookies);
+    } else {
+      checkCookies();
+    }
+
+    // Debug utility
+    window.debugCookies = function() {
+      console.log('Cookie attuali:', document.cookie);
+      console.log('cookies_accepted:', getCookie('cookies_accepted'));
+    }
+
+    // 🔥 FUNZIONE PER IL POPUP PRIVACY
+    function openPrivacyPolicy() {
+      window.open('/privacy-policy', 'privacyPolicy', 'width=800,height=700,scrollbars=yes,resizable=yes');
+    }
+  </script>
+
+  <!-- FOOTER -->
+  <footer class="bg-light text-center p-3 mt-4">
+    <div class="container">
+      <small>
+        Revisione: 1.0 – {% block revision_status %}Sistema Web{% endblock %}<br>
+        © 2025 Azienda USL Toscana Nord Ovest - Sistema di Gestione della Salute e Sicurezza sul Lavoro<br>
+        Conforme al D.Lgs. 81/2008 e successive modifiche
+      </small>
+    </div>
+  </footer>
+
+</body>
+</html>

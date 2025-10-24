@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DUVRI - Documento Unico di Valutazione dei Rischi Interferenti</title>
+    <style>
+        /* Reset e impostazioni base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            margin: 15px;
+            line-height: 1.3;
+        }
+
+        /* Titoli */
+        h1, h2, h3, h4 {
+            color: #000;
+            margin: 12px 0 6px 0;
+            page-break-after: avoid;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 14pt;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-top: 5px;
+        }
+        
+        h2 {
+            font-size: 12pt;
+            margin-top: 18px;
+            background-color: #f5f5f5;
+            padding: 6px 8px;
+            border-left: 4px solid #003366;
+        }
+        
+        h3 {
+            font-size: 11pt;
+            margin-top: 15px;
+            padding-bottom: 3px;
+        }
+
+        /* Tabelle */
+        table {
+            width: 100%;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 9pt;
+            page-break-inside: avoid;
+        }
+        
+        th, td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            vertical-align: top;
+        }
+        
+        th {
+            background-color: #e9e9e9;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        /* Liste */
+        ul {
+            margin: 6px 0 10px 25px;
+        }
+        
+        li {
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        /* Firme */
+        .signature-box {
+            border: 1px solid #000;
+            height: 70px;
+            margin: 12px 0;
+            padding: 6px;
+            font-size: 9pt;
+            background-color: #f9f9f9;
+        }
+
+        /* Header */
+        .header-container {
+            display: block;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 15px;
+            text-align: center;
+        }
+
+        /* Checkbox semplificati per PDF */
+        .checkbox-item {
+            margin-bottom: 8px;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .checkbox-item:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        /* Page break */
+        .page-break {
+            page-break-before: always;
+        }
+
+        .info-highlight {
+            background-color: #f0f7ff;
+            border: 1px solid #4a90e2;
+            padding: 8px 12px;
+            margin: 8px 0;
+            font-size: 9pt;
+        }
+
+        .footer {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 8pt;
+            border-top: 1px solid #000;
+            padding-top: 8px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header semplificato -->
+<div class="header-container">
+    <div style="font-size: 10pt; color: #333; margin-bottom: 5px;">Sistema di gestione della Salute e sicurezza sul lavoro</div>
+    <div style="font-size: 14pt; font-weight: bold; color: #003366; margin-bottom: 10px;">Documento Unico di Valutazione dei Rischi Interferenti (DUVRI) – Parte Dinamica</div>
+    <div style="font-size: 10pt;">
+        <strong>Oggetto dell'appalto:</strong> 
+        fornitura in locazione di 2 colonne endoscopiche per l&#39;endoscopia del PO di Livorno
+    </div>
+    <div style="font-size: 8pt; color: #666; margin-top: 5px;">
+        Revisione: 1.0 - Data: 13/10/2025
+    </div>
+</div>
+
+<!-- SOMMARIO -->
+<div>
+    <h2>SOMMARIO</h2>
+    <div style="font-size: 9pt; line-height: 1.4;">
+        <p><strong>1 INTRODUZIONE AL DOCUMENTO</strong></p>
+        <p style="margin-left: 10px;">1.1 Piano delle revisioni</p>
+        <p style="margin-left: 10px;">1.2 Premessa</p>
+        <p style="margin-left: 10px;">1.3 Riferimenti</p>
+        <p style="margin-left: 10px;">1.4 Definizioni e abbreviazioni</p>
+        <p style="margin-left: 10px;">1.5 Organigramma aziendale della sicurezza</p>
+
+        <p><strong>2 DATI DELL'APPALTO</strong></p>
+        <p style="margin-left: 10px;">2.1 Anagrafica del committente</p>
+        <p style="margin-left: 10px;">2.2 Anagrafica appaltatore</p>
+        <p style="margin-left: 20px;">2.3.1 Oggetto e specifiche dell'appalto</p>
+        <p style="margin-left: 20px;">2.3.2 Organizzazione dell'appalto</p>
+        <p style="margin-left: 20px;">2.3.3 Misure preliminari di tutela dell'appaltatore</p>
+        <p style="margin-left: 10px;">2.4 Valutazione dei rischi da interferenze</p>
+        <p style="margin-left: 20px;">2.4.1 Misure generali di tutela dai rischi interferenti</p>
+        <p style="margin-left: 20px;">2.4.2 Misure specifiche di tutela dai rischi interferenti</p>
+        <p style="margin-left: 20px;">2.4.3 Altre misure di gestione dei rischi interferenziali</p>
+        <p style="margin-left: 10px;">2.5 Costi per la sicurezza</p>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- 1. INTRODUZIONE -->
+<div>
+    <h2>1. INTRODUZIONE AL DOCUMENTO</h2>
+
+    <h3>1.1 Piano delle revisioni</h3>
+    <table>
+        <tr>
+            <th style="width: 20%">Rev. n°</th>
+            <th style="width: 80%">Motivo revisione</th>
+        </tr>
+        <tr>
+            <td>1.0</td>
+            <td>Prima emissione</td>
+        </tr>
+    </table>
+
+    <h3>1.2 Premessa</h3>
+    <p>Il presente documento costituisce la parte dinamica richiamata nel "DUVRI -- Parte Statica" e, insieme ad essa, costituisce documento di valutazione unico di valutazione dei rischi interferenti ai sensi dell'articolo 26 comma 3, ovvero comma 3-ter in caso di contratto affidato mediante centrale di committenza, del D.Lgs. 81/08, relativamente ai lavori/servizi svolti presso le strutture dell'Azienda USL Toscana Nordovest.</p>
+
+    <h3>1.5 Organigramma della Sicurezza</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Ruolo</th>
+                <th>Nominativo</th>
+                <th>Riferimenti</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Datore di lavoro</td>
+                <td>Dr.ssa Maria Letizia Casani</td>
+                <td>Sede Legale: Via Cocchi n.7/9, 56121 loc. Ospedaletto (PI)<br>Email: dirgen@uslnordovest.toscana.it</td>
+            </tr>
+            <tr>
+                <td>RSPP Area Nord</td>
+                <td>Ing. Milena Pepe</td>
+                <td>milena.pepe@uslnordovest.toscana.it</td>
+            </tr>
+            <tr>
+                <td>RSPP Area Sud</td>
+                <td>Ing. Maria Rosaria Libone</td>
+                <td>mariarosaria.libone@uslnordovest.toscana.it</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- 2. DATI DELL'APPALTO -->
+<h2>2. DATI DELL'APPALTO</h2>
+
+<h3>2.1 Anagrafica Committente</h3>
+
+<table>
+    <tr><th>RUP/RES committente</th><td>dott. Luca Menichincheri</td></tr>
+    <tr><th>Codice Fiscale/P.IVA</th><td>02198590503</td></tr>
+    <tr><th>Indirizzo</th><td>Viale Vittorio Alfieri, 36, 57124 Livorno LI</td></tr>
+    <tr><th>DEC</th><td>non individuato</td></tr>
+    <tr><th>Email</th><td>direzione.uslnordovest@postacert.toscana.it</td></tr>
+    
+    <tr><th>Oggetto Servizio</th><td>fornitura in locazione di 2 colonne endoscopiche per l&#39;endoscopia del PO di Livorno</td></tr>
+    
+</table>
+
+
+<h3>2.2 Anagrafica Appaltatore</h3>
+
+<table>
+    <tr><th>Ragione sociale</th><td>Olympus Italia S.r.l.</td></tr>
+    <tr><th>Codice fiscale</th><td>10994940152</td></tr>
+    <tr><th>P.IVA</th><td>10994940152</td></tr>
+    <tr><th>Sede legale</th><td>Via San Bovio 1/3 Segrate (MI) - 20054</td></tr>
+    <tr><th>Email</th><td>ufficiogare@olympus-europa.com</td></tr>
+</table>
+
+
+<div class="info-highlight">
+    <p>
+        <strong>Committente:</strong> dott. Luca Menichincheri<br>
+        <strong>Impresa appaltatrice:</strong> Olympus Italia S.r.l.<br>
+        <strong>Oggetto dell'appalto:</strong> fornitura in locazione di 2 colonne endoscopiche per l&#39;endoscopia del PO di Livorno<br>
+        <strong>Data documento:</strong> 13/10/2025
+    </p>
+</div>
+
+<h3>2.3.3 Misure preliminari di tutela dell'appaltatore</h3>
+<p>Con la firma del presente documento, l'appaltatore dichiara di:</p>
+
+<div>
+    <div class="checkbox-item">Aver effettuato la valutazione dei rischi propri dell'attività ai sensi del D. Lgs. 81/2008 s.m.i.;</div>
+    <div class="checkbox-item">Aver provveduto ad effettuare un'adeguata informazione e formazione ai propri lavoratori in materia di salute e sicurezza;</div>
+    <div class="checkbox-item">Aver preso conoscenza dei rischi presenti e delle misure di prevenzione e protezione da adottare nelle strutture dell'Azienda USL Toscana Nord Ovest;</div>
+</div>
+
+<!-- RISCHI IDENTIFICATI -->
+<h3>2.4.2 Rischi interferenti identificati</h3>
+
+<p>Nessun rischio identificato</p>
+
+
+<!-- COSTI -->
+<h3>2.5 Costi per la sicurezza</h3>
+<table>
+    <tr>
+        <th>Descrizione</th>
+        <th style="text-align: right; width: 30%">Costo (€)</th>
+    </tr>
+    <tr>
+        <td>Incontri, riunioni, sopralluoghi</td>
+        <td style="text-align: right;">0.0</td>
+    </tr>
+    <tr>
+        <td>DPI specifici</td>
+        <td style="text-align: right;">0.0</td>
+    </tr>
+    <tr>
+        <td>Impiantistica ausiliaria</td>
+        <td style="text-align: right;">0.0</td>
+    </tr>
+    <tr style="background-color: #e9e9e9; font-weight: bold;">
+        <td>TOTALE</td>
+        <td style="text-align: right;">
+            
+                0.0
+             €
+        </td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<!-- FIRME -->
+<h2>3. SOTTOSCRIZIONE DEL DOCUMENTO</h2>
+<table style="width:100%; border:none;">
+    <tr>
+        <td style="width:50%; vertical-align: top;">
+            <div class="signature-box">
+                <strong>IL COMMITTENTE</strong><br>
+                
+                    dott. Luca Menichincheri<br>
+                
+                
+                    Firmato il 07/10/2025 alle 13:21:19
+                
+            </div>
+        </td>
+        <td style="width:50%; vertical-align: top;">
+            <div class="signature-box">
+                <strong>L'APPALTATORE</strong><br>
+                
+                    Olympus Italia S.r.l.<br>
+                
+                
+                    Firmato il 13/10/2025 alle 13:38:33
+                
+            </div>
+        </td>
+    </tr>
+</table>
+
+<div class="footer">
+    Documento generato il 13/10/2025 alle ore 14:04<br>
+    Conforme al D.Lgs. 81/2008 - Az. USL Toscana Nord Ovest
+</div>
+
+</body>
+</html>

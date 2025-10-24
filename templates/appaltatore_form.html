@@ -1,0 +1,384 @@
+<!-- templates/appaltatore_form.html -->
+{% extends "base.html" %}
+
+{% block document_title %}Compila Dati Appaltatore - DUVRI{% endblock %}
+{% block revision_status %}Compilazione Appaltatore{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="info-box">
+			<h3>Informazioni</h3>
+			<p>Questo form consente la compilazione della <strong>Parte Dinamica</strong> del DUVRI per forniture con installazione (ad es. apparecchiature HTA) presso le strutture dell'Azienda USL Toscana Nord Ovest.</p>
+			<p>La <strong>Parte Statica</strong> del DUVRI contiene le informazioni generali sui rischi e deve essere consultata preventivamente.</p>
+		</div>
+
+    <!-- SEZIONE DOWNLOAD PDF
+    <div class="pdf-buttons">
+    <a href="{{ url_for('download_pdf', filename='duvri_dinamico') }}"
+       class="btn-pdf" target="_blank">
+        📄 DUVRI Dinamico (Rev 1.0)
+    </a>-->
+		<a href="{{ url_for('download_pdf', filename='duvri_statico') }}"
+			class="btn-pdf" target="_blank">
+        📄 DUVRI Statico (Rev 1.0)
+    </a>
+	</div>
+        <p class="pdf-note"><small>Il documento si aprirà in una nuova finestra</small></p>
+    </div>
+		<div class="col-lg-10">
+            <h1 class="text-center mb-4">🏢 Dati Appaltatore</h1>
+            <p class="text-muted text-center mb-4">Ditta Esterna - Compilazione DUVRI</p>
+
+            <!-- Messaggi Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" action="">
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Riferimenti generali dell'appaltatore</legend>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ragione_sociale" class="form-label">Ragione sociale:</label>
+                                <input type="text" id="ragione_sociale" name="ragione_sociale" value="{{ data.get('ragione_sociale','') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cf" class="form-label">Codice fiscale:</label>
+                                <input type="text" id="cf" name="cf" value="{{ data.get('cf','') }}" required class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="piva" class="form-label">Partita IVA:</label>
+                                <input type="text" id="piva" name="piva" value="{{ data.get('piva','') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cciaa" class="form-label">N.ro iscrizione C.C.I.A.A.:</label>
+                                <input type="text" id="cciaa" name="cciaa" value="{{ data.get('cciaa','') }}" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="sede" class="form-label">Sede legale:</label>
+                        <input type="text" id="sede" name="sede" value="{{ data.get('sede','') }}" required class="form-control">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="telefono" class="form-label">Telefono:</label>
+                                <input type="tel" id="telefono" name="telefono" value="{{ data.get('telefono','') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="fax" class="form-label">Fax:</label>
+                                <input type="tel" id="fax" name="fax" value="{{ data.get('fax','') }}" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email:</label>
+                                <input type="email" id="email" name="email" value="{{ data.get('email','') }}" required class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="pec" class="form-label">PEC:</label>
+                        <input type="email" id="pec" name="pec" value="{{ data.get('pec','') }}" required class="form-control">
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Referenti generali appaltatore</legend>
+
+                    <div class="mb-4">
+                        <h5>Datore di lavoro</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="datore_lavoro_nome" class="form-label">Nominativo:</label>
+                                    <input type="text" id="datore_lavoro_nome" name="datore_lavoro_nome" value="{{ data.get('datore_lavoro_nome','') }}" required class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="datore_lavoro_rif" class="form-label">Riferimenti (tel/email):</label>
+                                    <input type="text" id="datore_lavoro_rif" name="datore_lavoro_rif" value="{{ data.get('datore_lavoro_rif','') }}" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>RSPP (Responsabile Servizio Prevenzione e Protezione)</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rspp_nome" class="form-label">Nominativo:</label>
+                                    <input type="text" id="rspp_nome" name="rspp_nome" value="{{ data.get('rspp_nome','') }}" required class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rspp_rif" class="form-label">Riferimenti (tel/email):</label>
+                                    <input type="text" id="rspp_rif" name="rspp_rif" value="{{ data.get('rspp_rif','') }}" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>Responsabile appalto presso il committente</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="resp_appalto_nome" class="form-label">Nominativo:</label>
+                                    <input type="text" id="resp_appalto_nome" name="resp_appalto_nome" value="{{ data.get('resp_appalto_nome','') }}" required class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="resp_appalto_rif" class="form-label">Riferimenti (tel/email):</label>
+                                    <input type="text" id="resp_appalto_rif" name="resp_appalto_rif" value="{{ data.get('resp_appalto_rif','') }}" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="max_addetti" class="form-label">Numero massimo addetti previsti contemporaneamente nell'area di lavoro:</label>
+                        <input type="number" id="max_addetti" name="max_addetti" value="{{ data.get('max_addetti','') }}" min="1" required class="form-control">
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Organizzazione dell'appalto</legend>
+
+                    <div class="mb-3">
+                        <label class="form-label">Orario durante il quale si svolgeranno le attività:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="orario_lavoro" value="07:00-19:00" {% if data.get('orario_lavoro') == '07:00-19:00' %}checked{% endif %}>
+                            <label class="form-check-label">07:00 - 19:00</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="orario_lavoro" value="19:00-07:00" {% if data.get('orario_lavoro') == '19:00-07:00' %}checked{% endif %}>
+                            <label class="form-check-label">19:00 - 07:00</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="orario_lavoro" value="altro" {% if data.get('orario_lavoro') == 'altro' %}checked{% endif %}>
+                            <label class="form-check-label">Altro:</label>
+                            <input type="text" name="orario_altro" value="{{ data.get('orario_altro','') }}" placeholder="Specificare orario" class="form-control mt-2" style="max-width: 300px;">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="oggetto" class="form-label">Oggetto dell'appalto (dettagliato):</label>
+                        <textarea id="oggetto" name="oggetto" rows="3" class="form-control">{{ data.get('oggetto','') }}</textarea>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Rischi interferenti identificati - Installazione Apparecchiature HTA</legend>
+                    <p class="text-muted">Seleziona le attività previste dall'appalto facendo riferimento ai paragrafi del DUVRI-Parte Statica:</p>
+
+                    <div class="mb-4">
+                        <h6>3.3.1 - 3.3.12: Attività con attrezzature e lavorazioni speciali</h6>
+                        <div class="row">
+                            {% for numero, descrizione in rischi_paragrafi.items() %}
+                                {% if numero.split('.')[2]|int <= 12 %}
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="rischi" value="{{ numero }} - {{ descrizione }}"
+                                               {% if (numero + " - " + descrizione) in data.get('rischi', []) %}checked{% endif %}>
+                                        <label class="form-check-label">{{ numero }} - {{ descrizione }}</label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>3.3.13 - 3.3.16: Movimentazione e lavori su impianti</h6>
+                        <div class="row">
+                            {% for numero, descrizione in rischi_paragrafi.items() %}
+                                {% if numero.split('.')[2]|int >= 13 and numero.split('.')[2]|int <= 16 %}
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="rischi" value="{{ numero }} - {{ descrizione }}"
+                                               {% if (numero + " - " + descrizione) in data.get('rischi', []) %}checked{% endif %}>
+                                        <label class="form-check-label">{{ numero }} - {{ descrizione }}</label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>3.3.17 - 3.3.25: Attività specialistiche e assistenziali</h6>
+                        <div class="row">
+                            {% for numero, descrizione in rischi_paragrafi.items() %}
+                                {% if numero.split('.')[2]|int >= 17 %}
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="rischi" value="{{ numero }} - {{ descrizione }}"
+                                               {% if (numero + " - " + descrizione) in data.get('rischi', []) %}checked{% endif %}>
+                                        <label class="form-check-label">{{ numero }} - {{ descrizione }}</label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Rischi specifici per apparecchiature HTA</h6>
+                        <div class="row">
+                            {% for rischio in rischi_hta %}
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="rischi" value="{{ rischio }}"
+                                           {% if rischio in data.get('rischi', []) %}checked{% endif %}>
+                                    <label class="form-check-label">{{ rischio }}</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Specifiche tecniche dell'apparecchiatura HTA</legend>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="marca_modello" class="form-label">Marca e modello dell'apparecchiatura HTA:</label>
+                                <input type="text" id="marca_modello" name="marca_modello" value="{{ data.get('marca_modello','') }}" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="potenza_kw" class="form-label">Potenza elettrica assorbita (kW):</label>
+                                <input type="number" id="potenza_kw" name="potenza_kw" value="{{ data.get('potenza_kw','') }}" step="0.1" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="peso_kg" class="form-label">Peso dell'apparecchiatura (kg):</label>
+                                <input type="number" id="peso_kg" name="peso_kg" value="{{ data.get('peso_kg','') }}" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="durata_giorni" class="form-label">Durata prevista installazione (giorni):</label>
+                                <input type="number" id="durata_giorni" name="durata_giorni" value="{{ data.get('durata_giorni','') }}" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="numero_tecnici" class="form-label">Numero tecnici coinvolti:</label>
+                                <input type="number" id="numero_tecnici" name="numero_tecnici" value="{{ data.get('numero_tecnici','') }}" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Note aggiuntive</legend>
+                    <div class="mb-3">
+                        <label for="note_rischi_struttura" class="form-label">Note aggiuntive sui rischi della struttura:</label>
+                        <textarea id="note_rischi_struttura" name="note_rischi_struttura" rows="4" class="form-control">{{ data.get('note_rischi_struttura','') }}</textarea>
+                    </div>
+                </fieldset>
+
+                <!-- PULSANTI DI INVIO -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        💾 Salva e Continua
+                    </button>
+
+                    <a href="{{ url_for('summary') }}" class="btn btn-secondary btn-lg">
+                        📊 Vai al Riepilogo
+                    </a>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+fieldset {
+    border: 2px solid #28a745;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 25px;
+    background: #f8f9fa;
+}
+legend {
+    font-weight: bold;
+    color: #28a745;
+    font-size: 1.2em;
+    padding: 0 15px;
+    width: auto;
+}
+.form-check-label {
+    font-weight: normal;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simple form submission - let the browser handle it normally
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Appaltatore form loaded successfully');
+
+    // DEBUG COOKIE BANNER PER APPALTATORE
+    console.log('🔍 DEBUG Appaltatore Cookie Banner');
+    console.log('URL corrente:', window.location.href);
+    console.log('Pathname:', window.location.pathname);
+
+    // Funzione per controllare i cookie
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    console.log('Cookie accettati:', getCookie('cookies_accepted'));
+    console.log('Tutti i cookie:', document.cookie);
+
+    // Verifica se siamo in modalità appaltatore
+    const isAppaltatore = window.location.pathname.includes('/appaltatore/') ||
+                         window.location.pathname.includes('/appaltatore_form/');
+    console.log('Modalità appaltatore?', isAppaltatore);
+});
+</script>
+{% endblock %}

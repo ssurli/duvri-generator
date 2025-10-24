@@ -1,0 +1,61 @@
+<!-- templates/upload_signed.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header {% if tipo_firma == 'committente' %}bg-primary{% else %}bg-success{% endif %} text-white">
+                    <h4 class="mb-0">
+                        {% if tipo_firma == 'committente' %}
+                        📤 Carica Firma Committente
+                        {% else %}
+                        📤 Carica Firma Appaltatore
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Informazioni importanti:</h5>
+                        <ul class="mb-0">
+                            <li>Carica il documento PDF <strong>firmato digitalmente</strong></li>
+                            <li>Il file deve contenere la firma digitale visibile</li>
+                            <li>Formato accettato: PDF con firma digitale</li>
+                            {% if tipo_firma == 'committente' %}
+                            <li><strong>Devi aver scaricato il PDF già firmato dall'appaltatore</strong></li>
+                            {% else %}
+                            <li><strong>Questo è il primo step di firma</strong></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="firmatario" class="form-label">Nome e cognome del firmatario *</label>
+                            <input type="text" class="form-control" id="firmatario" name="firmatario" 
+                                   placeholder="Inserisci nome e cognome" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="file" class="form-label">File PDF firmato digitalmente *</label>
+                            <input type="file" class="form-control" id="file" name="file" 
+                                   accept=".pdf" required>
+                            <div class="form-text">Solo file PDF con firma digitale</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn {% if tipo_firma == 'committente' %}btn-primary{% else %}btn-success{% endif %} btn-lg">
+                                📤 Carica Documento Firmato
+                            </button>
+                            <a href="{{ url_for('summary') }}" class="btn btn-secondary">
+                                ← Torna al Riepilogo
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

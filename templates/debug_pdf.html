@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug PDF Generation</title>
+    <style>
+        .success { color: green; }
+        .warning { color: orange; }
+        .error { color: red; }
+        .info { margin: 10px 0; padding: 10px; border-left: 3px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Debug PDF Generation</h1>
+    
+    <div class="info">
+        <h3>PDF Engines</h3>
+        <p>xhtml2pdf: <span class="{% if pdf_info.xhtml2pdf_available %}success{% else %}error{% endif %}">
+            {{ pdf_info.xhtml2pdf_available }}
+        </span></p>
+        <p>WeasyPrint: <span class="{% if pdf_info.weasyprint_available %}success{% else %}error{% endif %}">
+            {{ pdf_info.weasyprint_available }}
+        </span></p>
+    </div>
+
+    <div class="info">
+        <h3>Signatures</h3>
+        <p>Committente: {{ pdf_info.firme_committente or 'Mancante' }}</p>
+        <p>Appaltatore: {{ pdf_info.firme_appaltatore or 'Mancante' }}</p>
+    </div>
+
+    <div class="info">
+        <h3>Directories</h3>
+        <p>Output dir: {{ pdf_info.output_dir_exists }}</p>
+        <p>Allegati dir: {{ pdf_info.allegati_dir_exists }}</p>
+        <p>Allegati PDF: {{ pdf_info.num_allegati_pdf }}</p>
+        {% if pdf_info.allegati_list %}
+        <ul>
+            {% for allegato in pdf_info.allegati_list %}
+            <li>{{ allegato }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="info">
+        <h3>Actions</h3>
+        <a href="{{ url_for('generate_pdf') }}" class="button">Genera PDF</a>
+        <a href="{{ url_for('summary') }}" class="button">Torna al Riepilogo</a>
+    </div>
+</body>
+</html>

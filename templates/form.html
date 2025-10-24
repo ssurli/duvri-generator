@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Form {{ role|title }} - DUVRI{% endblock %}
+{% block document_title %}Compilazione DUVRI - {{ role|title }}{% endblock %}
+{% block revision_status %}Form dinamico{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="breadcrumb">
+        <a href="{{ url_for('index') }}" class="back-link">← Torna alla selezione</a>
+    </div>
+    
+    <h1>Dati {{ role|title }}</h1>
+    
+    <div class="progress-indicator">
+        <div class="step {% if role == 'committente' %}active{% endif %}">1. Committente</div>
+        <div class="step {% if role == 'appaltatore' %}active{% endif %}">2. Appaltatore</div>
+        <div class="step">3. Riepilogo</div>
+        <div class="step">4. PDF</div>
+    </div>
+    
+    <form method="post" class="duvri-form">
+        {% if role == "appaltatore" %}
+            {% include 'appaltatore_form.html' %}
+        {% elif role == "committente" %}
+            {% include 'committente_form.html' %}
+        {% endif %}
+        
+        <!-- PULSANTI DI INVIO <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                Salva e continua →
+            </button>
+        </div>-->
+    </form>
+</div>
+{% endblock %}

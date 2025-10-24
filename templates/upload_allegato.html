@@ -1,0 +1,57 @@
+<!-- templates/upload_allegato.html -->
+{% extends "base.html" %}
+
+{% block title %}Carica Allegato - DUVRI{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">📎 Carica Allegato</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Messaggi Flash -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="alert alert-info">
+                        <h5>Informazioni:</h5>
+                        <ul>
+                            <li>Carica documenti allegati al DUVRI (manuali, schede tecniche, certificazioni, etc.)</li>
+                            <li>Formati consentiti: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG</li>
+                            <li>Dimensione massima: 10MB per file</li>
+                            <li>I file verranno rinominati automaticamente come: <code>allegati_duvri_TIMESTAMP.estensione</code></li>
+                        </ul>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="allegato" class="form-label">Seleziona file:</label>
+                            <input type="file" class="form-control" id="allegato" name="allegato" required accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                📤 Carica Allegato
+                            </button>
+                            <a href="{{ url_for('summary') }}" class="btn btn-secondary btn-lg">
+                                ↩️ Torna al Riepilogo
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

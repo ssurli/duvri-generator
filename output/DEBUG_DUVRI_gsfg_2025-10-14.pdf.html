@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DUVRI - Documento Unico di Valutazione dei Rischi Interferenti</title>
+    <style>
+        /* Reset e impostazioni base */
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            margin: 15px;
+            line-height: 1.3;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        /* Titoli */
+        h1, h2, h3, h4 {
+            color: #000;
+            margin: 12px 0 6px 0;
+            page-break-after: avoid;
+        }
+        h1 {
+            text-align: center;
+            font-size: 14pt;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-top: 5px;
+        }
+        h2 {
+            font-size: 12pt;
+            margin-top: 18px;
+            background-color: #f5f5f5;
+            padding: 6px 8px;
+            border-left: 4px solid #003366;
+        }
+        h3 {
+            font-size: 11pt;
+            margin-top: 15px;
+            padding-bottom: 3px;
+        }
+        h4 {
+            font-size: 10pt;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+
+        /* Tabelle */
+        table {
+            width: 100%;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 9pt;
+            page-break-inside: avoid;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #e9e9e9;
+            font-weight: bold;
+            text-align: left;
+            width: 30%;
+        }
+        td {
+            width: 70%;
+        }
+
+        /* Tabelle specifiche */
+        .table-specs th {
+            width: 35%;
+            background-color: #f0f0f0;
+        }
+        .table-specs td {
+            width: 65%;
+        }
+
+        /* Liste */
+        ul {
+            margin: 6px 0 10px 20px;
+            padding-left: 5px;
+        }
+        li {
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        /* Firme */
+        .signature-box {
+            border: 1px solid #000;
+            height: 70px;
+            margin: 12px 0;
+            padding: 6px;
+            font-size: 9pt;
+            background-color: #f9f9f9;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 8pt;
+            border-top: 1px solid #000;
+            padding-top: 8px;
+            color: #666;
+        }
+
+        /* TABELLA RISCHI INTERFERENTI - SPECIFICA */
+        .risk-interference-table {
+            width: 100%;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+            margin: 12px 0;
+            table-layout: fixed;
+        }
+
+        .risk-interference-table th,
+        .risk-interference-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            vertical-align: top;
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .risk-interference-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .risk-interference-table th:first-child,
+        .risk-interference-table td:first-child {
+            width: 25%;
+            background-color: #f9f9f9;
+        }
+
+        .risk-interference-table th:last-child,
+        .risk-interference-table td:last-child {
+            width: 75%;
+        }
+
+        /* Stili per il contenuto interno della tabella */
+        .risk-subtitle {
+            font-weight: bold;
+            margin: 4px 0;
+            font-size: 9pt;
+        }
+
+        .risk-list {
+            margin: 4px 0;
+            padding-left: 15px;
+        }
+
+        .risk-list li {
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+
+
+          @media print {
+            /* Tabella più leggibile su carta / PDF */
+            .risk-interference-table {
+                font-size: 10pt;             /* carattere più grande per PDF */
+                page-break-inside: avoid;    /* evita di spezzare la tabella tra due pagine */
+                border: 1px solid #000;
+                table-layout: fixed;         /* rispetta le larghezze colonna */
+                width: 100%;
+            }
+
+            .risk-interference-table th,
+            .risk-interference-table td {
+                padding: 8px 10px;           /* più spazio interno per leggibilità */
+                vertical-align: top;
+                text-align: left;
+            }
+
+            /* Larghezze colonne fisse */
+            .risk-interference-table th:first-child,
+            .risk-interference-table td:first-child {
+                width: 25%;
+            }
+
+            .risk-interference-table th:last-child,
+            .risk-interference-table td:last-child {
+                width: 75%;
+            }
+
+            /* Elenchi più leggibili */
+            .risk-interference-table ul {
+                margin-left: 20px;
+            }
+
+            .risk-interference-table li {
+                margin-bottom: 4px;
+                line-height: 1.4;
+            }
+
+            .risk-interference-table p strong {
+                display: block;
+                margin-top: 6px;
+                margin-bottom: 3px;
+            }
+        }
+
+
+        /* Miglioramenti generali */
+        p {
+            margin: 6px 0;
+            text-align: justify;
+            line-height: 1.3;
+        }
+
+        .info-highlight {
+            background-color: #f0f7ff;
+            border-left: 4px solid #4a90e2;
+            padding: 8px 12px;
+            margin: 8px 0;
+            font-size: 10pt;
+        }
+
+        .total-row th, .total-row td {
+            background-color: #e9e9e9;
+            font-weight: bold;
+        }
+
+        /* Header */
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 15px;
+        }
+
+        /* CHECKBOX LIST MIGLIORATA */
+        .checkbox-list {
+            margin: 10px 0;
+            font-size: 9pt;
+        }
+
+        .checkbox-item {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .checkbox-item:before {
+            content: "☑";
+            position: absolute;
+            left: 0;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .checkbox-item ul {
+            margin: 4px 0 4px 20px;
+            font-size: 8.5pt;
+        }
+
+        .checkbox-item ul li {
+            margin-bottom: 2px;
+        }
+
+        /* Sezioni e sottosezioni */
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .subsection {
+            margin: 15px 0;
+        }
+
+        .subsubsection {
+            margin: 12px 0;
+        }
+
+        /* Page break */
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* Forzatura per adattamento PDF */
+        @media print {
+            body {
+                margin: 10px;
+                font-size: 9pt;
+            }
+            table {
+                font-size: 8pt;
+            }
+            .checkbox-item {
+                font-size: 8.5pt;
+            }
+        }
+    </style>
+</head>
+<body>
+
+
+
+
+<!-- Header con logo -->
+<div class="header-container">
+    <div class="logo-section">
+    <img src="static/logo.svg" alt="Azienda USL Toscana Nord Ovest" width="100" height="70"
+         onerror="this.style.display='none'; this.parentElement.classList.add('logo-fallback');">
+    </div>
+    <div style="flex-grow: 1; text-align: center; padding: 0 20px;">
+        <div style="font-size: 10pt; color: #333; margin-bottom: 5px;">Sistema di gestione della Salute e sicurezza sul lavoro</div>
+        <div style="font-size: 14pt; font-weight: bold; color: #003366; margin-bottom: 3px;">Documento Unico di Valutazione dei Rischi Interferenti (DUVRI) – Parte Dinamica</div>
+        <strong>Oggetto dell'appalto:</strong>consegna e installazione di n.1 LASER OLMIO 120W UROLOGIA di Pontedera<br>
+
+    </div>
+    <div style="flex: 0 0 120px; text-align: right;">
+        <div style="font-size: 8pt; color: #666;">Revisione: 1.0</div>
+        <div style="font-size: 8pt; color: #666;">Data: 14/10/2025</div>
+    </div>
+</div>
+
+<div class="section">
+    <h2>SOMMARIO</h2>
+    <div style="font-size: 9pt; line-height: 1.4;">
+        <p><strong>1 INTRODUZIONE AL DOCUMENTO</strong></p>
+        <p style="margin-left: 10px;">1.1 Piano delle revisioni</p>
+        <p style="margin-left: 10px;">1.2 Premessa</p>
+        <p style="margin-left: 10px;">1.3 Riferimenti</p>
+        <p style="margin-left: 10px;">1.4 Definizioni e abbreviazioni</p>
+        <p style="margin-left: 10px;">1.5 Organigramma aziendale della sicurezza</p>
+
+        <p><strong>2 DATI DELL'APPALTO</strong></p>
+        <p style="margin-left: 10px;">2.1 Anagrafica del committente</p>
+        <p style="margin-left: 10px;">2.2 Anagrafica appaltatore</p>
+        <p style="margin-left: 20px;">2.3.1 Oggetto e specifiche dell'appalto</p>
+        <p style="margin-left: 20px;">2.3.2 Organizzazione dell'appalto</p>
+        <p style="margin-left: 20px;">2.3.3 Misure preliminari di tutela dell'appaltatore</p>
+        <p style="margin-left: 10px;">2.4 Valutazione dei rischi da interferenze</p>
+        <p style="margin-left: 20px;">2.4.1 Misure generali di tutela dai rischi interferenti</p>
+        <p style="margin-left: 20px;">2.4.2 Misure specifiche di tutela dai rischi interferenti</p>
+        <p style="margin-left: 20px;">2.4.3 Altre misure di gestione dei rischi interferenziali</p>
+        <p style="margin-left: 10px;">2.5 Costi per la sicurezza</p>
+		<p style="margin-left: 10px;">2.5.1 Anagrafica sub-appaltatore</p>
+        <p style="margin-left: 10px;">2.6 Misure generali adottate per la gestione delle interferenze</p>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<div class="section">
+    <h2>1. INTRODUZIONE AL DOCUMENTO</h2>
+
+    <div class="subsection">
+        <h3>1.1 Piano delle revisioni</h3>
+        <table>
+            <tr>
+                <th style="width: 20%">Rev. n°</th>
+                <th style="width: 80%">Motivo revisione</th>
+            </tr>
+            <tr>
+                <td>1.0</td>
+                <td>Prima emissione</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="subsection">
+        <h3>1.2 Premessa</h3>
+        <p>Il presente documento costituisce la parte dinamica richiamata nel "DUVRI -- Parte Statica" e, insieme ad essa, costituisce documento di valutazione unico di valutazione dei rischi interferenti ai sensi dell'articolo 26 comma 3, ovvero comma 3-ter in caso di contratto affidato mediante centrale di committenza, del D.Lgs. 81/08, relativamente ai lavori/servizi svolti presso le strutture dell'Azienda USL Toscana Nordovest.</p>
+        <p>Conseguentemente, il presente documento condivide con il "DUVRI -- Parte Statica", i riferimenti normativi, le definizioni e le abbreviazioni, la metodologia di valutazione e il campo di applicazione limitatamente all'appalto specifico.</p>
+    </div>
+
+    <div class="subsection">
+        <h3>1.3 Riferimenti</h3>
+        <p>Ai fini del presente documento sono considerati gli stessi riferimenti normativi;</p>
+    </div>
+
+    <div class="subsection">
+        <h3>1.4 Definizioni e abbreviazioni</h3>
+        <p>Ai fini del presente documento sono consideratele le medesime definizioni e abbreviazioni già indicate nel "DUVRI -- Parte Statica".</p>
+    </div>
+</div>
+                    <!-- Punto 1.5 - Tabella Ruoli e Referenti -->
+                    <div class="mt-4">
+                        <h6 class="fw-bold">1.5 - Organigramma della Sicurezza</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ruolo</th>
+                                        <th>Nominativo</th>
+                                        <th>Riferimenti</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Datore di lavoro</td>
+                                        <td>Dr.ssa Maria Letizia Casani</td>
+                                        <td>Sede Legale: Via Cocchi n.7/9, 56121 loc. Ospedaletto (PI)<br>Email: dirgen@uslnordovest.toscana.it</td>
+                                    </tr>
+                                    <tr>
+                                        <td>RSPP Area Nord</td>
+                                        <td>Ing. Milena Pepe</td>
+                                        <td>milena.pepe@uslnordovest.toscana.it</td>
+                                    </tr>
+                                    <tr>
+                                        <td>RSPP Area Sud</td>
+                                        <td>Ing. Maria Rosaria Libone</td>
+                                        <td>mariarosaria.libone@uslnordovest.toscana.it</td>
+                                    </tr>
+                                    <tr>
+                                        <td>RTA</td>
+                                        <td>ing. G. Caccavelli</td>
+                                        <td>giuseppe.caccavelli@uslnordovest.toscana.it</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Coordinatore MC Area Nord</td>
+                                        <td>Dr.ssa Daniela Dodoli</td>
+                                        <td>daniela.dodoli@uslnordovest.toscana.it</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Coordinatore MC Area Sud</td>
+                                        <td>Dr.ssa Lucia Banchini</td>
+                                        <td>Lucia.banchini@uslnordovest.toscana.it</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Addetti alle emergenze</td>
+                                        <td colspan="2">I nominativi degli addetti alle gestione delle emergenze e al primo soccorso, considerata la complessità dell'organizzazione, possono essere richiesti ai responsabili di macrostruttura al momento dell'aggiudicazione dell'appalto.</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Rappresentanti dei Lavoratori per la Sicurezza</td>
+                                        <td colspan="2">Disponibili su sito intranet aziendale</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+<div class="page-break"></div>
+
+<h2>2. DATI DELL'APPALTO</h2>
+
+<h3>2.1 Anagrafica Committente</h3>
+
+<table>
+    <tr><th>RUP/RES committente</th><td>ing. Stefano Surlinelli</td></tr>
+    <tr><th>Codice Fiscale/P.IVA</th><td>02198590503</td></tr>
+    <tr><th>Indirizzo</th><td>via dell&#39;Ospedale 1 Lucca Campo di Marte</td></tr>
+    <tr><th>DEC</th><td>ing. Stefano Bellucci</td></tr>
+    <tr><th>Email</th><td>direzione.uslnordovest@postacert.toscana.it</td></tr>
+	
+    <tr><th>Oggetto Servizio</th><td>consegna e installazione di n.1 LASER OLMIO 120W UROLOGIA di Pontedera</td></tr>
+    
+    
+    <tr><th>Importo Servizio</th><td>€ 195000</td></tr>
+    
+    <tr><th>Tipologia struttura</th><td>Presidio Ospedaliero</td></tr>
+    <tr><th>Area installazione</th><td>Urologia Pontedera</td></tr>
+</table>
+
+
+<h3>2.2 Anagrafica Appaltatore</h3>
+
+<table>
+    <tr><th>Ragione sociale</th><td>gsfg</td></tr>
+    <tr><th>Codice fiscale</th><td>zsfsdfasdf</td></tr>
+    <tr><th>P.IVA</th><td>asdfdf</td></tr>
+    <tr><th>Sede legale</th><td>kiyoto</td></tr>
+    <tr><th>Email</th><td>s.suri@gmail.com</td></tr>
+    <tr><th>PEC</th><td>sd@sdfdf.it</td></tr>
+    <tr><th>Responsabile appalto</th><td>dfg</td></tr>
+    <tr><th>Max addetti contemporanei</th><td>2</td></tr>
+</table>
+
+<h4>Specifiche dell'apparecchiatura HTA</h4>
+<table class="table-specs">
+    <tr><th>Marca e modello</th><td></td></tr>
+    <tr><th>Potenza elettrica</th><td> kW</td></tr>
+    <tr><th>Peso apparecchiatura</th><td> kg</td></tr>
+    <tr><th>Dimensioni (LxPxA)</th><td></td></tr>
+    <tr><th>Tensione di alimentazione</th><td> V</td></tr>
+    <tr><th>Durata installazione</th><td> giorni</td></tr>
+    <tr><th>Numero tecnici</th><td></td></tr>
+    <tr><th>Tipo di installazione</th><td></td></tr>
+</table>
+
+
+<div class="info-highlight">
+    <p>
+        <strong>Committente:</strong> ing. Stefano Surlinelli<br>
+        <strong>Impresa appaltatrice:</strong> gsfg<br>
+        <strong>Oggetto dell'appalto:</strong> consegna e installazione di n.1 LASER OLMIO 120W UROLOGIA di Pontedera<br>
+        <strong>Luogo di esecuzione:</strong> via dell&#39;Ospedale 1 Lucca Campo di Marte - Urologia Pontedera<br>
+        <strong>Durata prevista:</strong>  giorni<br>
+        <strong>Data documento:</strong> 14/10/2025<br>
+    </p>
+</div>
+
+<h3>2.3.3 Misure preliminari di tutela dell'appaltatore</h3>
+<p>Con la firma del presente documento, l'appaltatore dichiara di:</p>
+
+<div class="checkbox-list">
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver effettuato la valutazione dei rischi propri dell'attività ai sensi del D. Lgs. 81/2008 s.m.i.;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver provveduto ad effettuare un'adeguata informazione e formazione ai propri lavoratori in materia di salute e sicurezza nei luoghi di lavoro, con particolare riferimento alle proprie mansioni inerenti all'esecuzione dell'appalto;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver preso conoscenza ai fini dell'applicazione del D.lgs. 81/08 dei rischi presenti e delle misure di prevenzione e protezione da adottare nelle strutture dell'Azienda USL Toscana Nord Ovest, attraverso il documento "INFORMAZIONI APPALTATORI" disponibile in formato elettronico nel sito web ESTAR al link https://www.estar.toscana.it/ns-fornitori/prevenzione-per-i-fornitori/1088-documenti-delle-aziende-sanitarie;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver preso conoscenza ai fini dell'applicazione del D.lgs. 81/08 dei rischi presenti e delle misure di prevenzione e protezione da adottare nelle strutture dell'Azienda USL Toscana Nord Ovest, attraverso il documento "DUVRI -- Parte Statica" a complemento del documento presente;</div>
+    </div>
+
+    <div class="checkbox-container">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver preso conoscenza che i propri lavoratori potrebbero accedere ad ambienti con presenza di radiazioni ionizzanti e non, ma non avendo nominato un proprio Esperto Qualificato, si assume la responsabilità di inviare lavoratori informati sul divieto di accesso a zone controllate e/o sorvegliate o con apparecchi portatili RX in funzione;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver effettuato un sopralluogo nelle aree ed ambienti in cui avrà luogo l'esecuzione dell'appalto per mezzo di personale aziendale, congiuntamente al personale aziendale e/o al personale Tecnologie Sanitarie (TS) e Information Communication Technology (ICT) ESTAR, al fine di:
+            <ul>
+                <li>verificarne l'adeguatezza in relazione alle attività affidate;</li>
+                <li>verificare in loco le modalità di svolgimento delle attività affidate ed i rischi di interferenza con le altre attività presenti;</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Impegnarsi a comunicare al RUP/RES aziendale ed al DEC, l'organico dei lavoratori ed ogni successiva variazione;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Impegnarsi a comunicare al RES ed al DEC dell'Azienda, ogni evento infortunistico avvenuto per l'esecuzione del presente appalto, fornendo una breve descrizione della dinamica di accadimento;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Aver preso atto e rispettare quanto descritto nel DUVRI e che i rischi specifici da interferenza presenti nei luoghi in cui verrà espletato l'appalto sono valutati nel presente documento e nel caso si rendano necessarie integrazioni, ne sarà concordato l'aggiornamento con il RUP/RES;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Impegnarsi a coordinarsi con il RUP/RES e/o DEC durante l'esecuzione dell'appalto, anche con eventuali incontri o sopralluoghi qualora si rendano necessari;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Assicurarsi che eventuali subappaltatori abbiano preso visione di quanto previsto dal presente documento affinché sia data attuazione alle azioni di cooperazione e coordinamento durante l'esecuzione dell'appalto;</div>
+    </div>
+
+    <div class="checkbox-container checkbox-checked">
+        <div class="checkbox-icon"></div>
+        <div class="checkbox-content">✅Impegnarsi a sovrintendere le attività al fine di verificare, per quanto di competenza, che queste siano svolte secondo quanto previsto nel DUVRI.</div>
+    </div>
+</div>
+
+<table class="risk-interference-table">
+    <thead>
+        <tr>
+            <th>Rischio</th>
+            <th>Misure di controllo</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Rischi derivanti dalla struttura e sistemazione dei luoghi di lavoro</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Manutenzione ordinaria e straordinaria dei luoghi di lavoro. Segnalazione di ostacoli diversi da quelli indicati nel successivo paragrafo 2.4.2.</li>
+                    <li>Se non direttamente legate all'appalto (§ 2.4.2), segnalazione di pavimentazioni bagnate o scivolose.</li>
+                    <li>Segnalazione delle porte trasparenti, utilizzo di materiali antisfondamento o pellicole di sicurezza.</li>
+                    <li>Informazione ai lavoratori ATNO che operano nell'area interessata dall'appalto circa l'esecuzione delle attività ad esso collegate e delle eventuali limitazioni all'accessibilità dei luoghi di lavoro.</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Prima di iniziare qualsiasi attività lavorativa, organizzare le aree di lavoro, spazi da adibire a deposito e spazi da destinare alle attrezzature, in maniera tale da consentire tutti gli spostamenti sul piano di lavoro in sicurezza.</li>
+                    <li>Ove possibile delimitare l'area di lavoro.</li>
+                    <li>Recintare con regolare parapetto o coprire con materiale solidamente fissato e di adeguata resistenza, le aperture nei solai accessibili a terzi.</li>
+                    <li>Recintare con regolare parapetto i luoghi oggetto dell'appalto, accessibili a terzi, che possono provocare rischio di caduta dall'alto o di sprofondamento.</li>
+                    <li>Al termine dei lavori proteggere sempre contro il rischio di caduta nel vuoto le aperture su vani ascensori, scale, cavedi e simili che possono essere accessibili a terzi.</li>
+                    <li>Fatto salvo quanto indicato anche al successivo paragrafo 2.4.2, laddove vengano effettuate lavorazioni che danno luogo alla proiezione di materiali o schegge, è obbligatorio predisporre opportuni mezzi di protezione a difesa dei lavoratori addetti e delle persone che sostano o transitano nelle vicinanze.</li>
+                    <li>Fatto salvo quanto indicato anche al successivo paragrafo 2.4.2, durante i lavori in elevazione assicurarsi che al di sotto non stazionino persone ed evitare materiali ed attrezzature in luoghi non sicuri, da cui potrebbero facilmente cadere.</li>
+                    <li>Nelle lavorazioni che possono provocare la produzione di polveri, ove possibile delimitare le aree e comunque, durante le lavorazioni, adottare adeguate misure tecniche preventive per evitarne, o comunque ridurne al minimo, la diffusione.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi derivanti da impianti e attrezzature elettriche</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Realizzazione di impianti elettrici a regola d'arte, manutenzione.</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Affidamento dei lavori elettrici a personale esperto adeguatamente formato.</li>
+                    <li>Fatto salvo quanto indicato anche al successivo paragrafo 2.4.2, quando devono essere svolti lavori in ambienti molto umidi (luoghi conduttori ristretti), predisporre un sistema di sicurezza diversificato sia per l'impianto elettrico che per gli attrezzi.</li>
+                    <li>Prima dell'utilizzo delle macchine elettriche, è opportuno controllare che i relativi cavi di alimentazione e di derivazione provvisoria non abbiano parti logorate. Proteggere i cavi elettrici, i relativi attacchi e gli interruttori.</li>
+                    <li>Attenersi alle norme di uso di impianti riportati nel documento di informazioni ad uso delle ditte in appalto.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischio incendio e di esplosione</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Corretto stoccaggio di materiali combustibili.</li>
+                    <li>Adeguatezza dei luoghi a specifico rischio d'incendio.</li>
+                    <li>Procedure di emergenza, segnaletica e designazione dei lavoratori addetti a compiti speciali ex. Art. 43 del D.Lgs. 81/08</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Osservanza di quanto previsto dalla vigente normativa antincendio ed in particolare tutte le possibili misure di tipo organizzativo e gestionale come:</li>
+                    <li style="margin-left: 20px; margin-bottom: 3px;">- rispetto dell'ordine e della pulizia;</li>
+                    <li style="margin-left: 20px; margin-bottom: 3px;">- controlli sulle misure di sicurezza;</li>
+                    <li style="margin-left: 20px; margin-bottom: 3px;">- predisposizione di un regolamento interno sulle misure di sicurezza da osservare;</li>
+                    <li style="margin-left: 20px; margin-bottom: 3px;">- informazione, formazione dei lavoratori e designazione dei lavoratori addetti a compiti speciali ex. Art. 43 del D.Lgs. 81/08.</li>
+                    <li>Prima di procedere all'esecuzione dei lavori è obbligatorio verificare che non vi siano cavi, tubazioni o altro interrati e interessati dal passaggio di acqua, gas, corrente elettrica, ecc.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi da sollevamento e trasporto dei materiali</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Regolamentazione sull'uso delle attrezzature per il trasporto e sollevamento di materiali e persone.</li>
+                    <li>Regolamentazione dell'accesso e la sosta di mezzi all'interno dei luoghi di lavoro.</li>
+                    <li>Disposizioni relative alle vie di circolazione e transito</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Scelta di mezzi conformi alle norme di sicurezza e manutenzione.</li>
+                    <li>Segnalazione di pericoli connessi all'uso della macchina.</li>
+                    <li>Rispetto delle procedures specifiche per la circolazione nelle aree di lavoro interne.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi da esposizione al rumore</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Segnaletica di sicurezza, uso di dpi nelle aree con L<sub>aeq</sub> > 85,0 dB(A).</li>
+                    <li>Sfasamento temporale delle lavorazioni in aree con presenza di L<sub>aeq</sub> > 85,0 dB(A) durante il normale orario di lavoro.</li>
+                    <li>Informazione dei lavoratori sul rischio specifico.</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Uso delle macchine e attrezzature in conformità alle istruzioni del fabbricante.</li>
+                    <li>Limitazione dell'accesso a personale estraneo in caso di lavorazioni che comportino Livelli equivalenti di rumore superiori a 85 dB(A).</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi da esposizione a campi elettromagnetici<br>Rischi da esposizione a radiazioni ottiche artificiali<br>Radiazioni ionizzanti</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Permessi di lavoro per l'accesso a locali a rischio.</li>
+                    <li>Segnaletica di sicurezza.</li>
+                    <li>Procedure per l'eventuale decontaminazione.</li>
+                    <li>Ove possibile, sfasamento temporale delle lavorazioni che comportano l'emissione di radiazioni non ionizzanti.</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Se i lavori hanno la potenzialità di influenzare, direttamente o indirettamente, i locali dove si effettuano attività di Risonanza Magnetica o attività con uso di radioisotopi e/o radiazioni ionizzanti, iniziare il lavoro solo dopo averne verificato la fattibilità con il Medico Responsabile.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi da esposizione ad agenti chimici</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Ove possibile, sfasamento delle lavorazioni che comportano l'uso di agenti chimici pericolosi nel medesimo ambiente da parte di personale afferente a imprese diverse.</li>
+                    <li>Etichettatura dei contenitori di sostanze chimiche, misure di controllo per il rischio specifico (aspirazione).</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Uso limitato degli agenti chimici alle quantità strettamente necessarie alla riuscita dell'intervento.</li>
+                    <li>Adozione di tecniche di lavorazione atte a limitare la dispersione degli agenti chimici.</li>
+                    <li>Disponibilità delle schede di sicurezza dei prodotti in uso.</li>
+                    <li>Ove possibile, delimitazione delle aree esterne ove si effettuano trattamenti con sistemi di irrorazione. Quando non è possibile, durante le lavorazioni, adottare adeguate misure tecniche preventive per evitarne, o comunque ridurne al minimo, la diffusione.</li>
+                    <li>Disponibilità di tutte le informazioni da fornire al RUP/RES affinchè questi, se del caso, possa fornirle al Gestore di area, al Delegato dal Datore di lavoro e al Servizio di Prevenzione e Protezione per eventuali precauzioni da osservare, ivi compreso l'uso di specifici dpi.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi derivante dall'esposizione ad amianto</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Censimento materiali contenenti amianto;</li>
+                    <li>Comunicazione preventiva della presenza di materiali contenenti amianto.</li>
+                    <li>Affidamento lavori e smaltimento materiali a ditte autorizzate.</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Immediata segnalazione al committente di eventuali materiali contenenti amianto o sospetti al fine di attuare le conseguenti misure di prevenzione e protezione</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischi da esposizione ad agenti biologici</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Limitazione di accesso alle aree a rischio.</li>
+                    <li>Informazione preliminare dei lavoratori sulle norme generali e precauzioni per il rischio di infezioni.</li>
+                    <li>Procedure di decontaminazione in caso di incidenti.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Rischio ATEX</td>
+            <td>
+                <p class="risk-subtitle">Committente:</p>
+                <ul class="risk-list">
+                    <li>Segnaletica di sicurezza;</li>
+                    <li>Limitazioni di accesso al personale non autorizzato;</li>
+                </ul>
+                <p class="risk-subtitle">Appaltatore:</p>
+                <ul class="risk-list">
+                    <li>Adozione di procedure e utilizzo di attrezzature idonee per un ambiente di lavoro classificato ai fini ATEX (Titolo XI D.Lgs. 81/08</li>
+                </ul>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+            <div class="subsubsection">
+                <div class="section-title">2.4.2 Misure specifiche di tutela dai rischi interferenti</div>
+                <p>Dato atto delle misure generali di cui ai paragrafi precedenti, le misure specifiche per la riduzione dei rischi interferenti sono, per ogni attività sottoelencata, ricavabili dal corrispettivo paragrafo del documento "DUVRI-Parte statica".</p>
+
+                <p>Nel caso l'appalto fosse caratterizzato da attività non contemplate nella sopracitata lista, in apposita riunione di coordinamento il RUP/RES aziendale e l'appaltatore nella figura del datore di lavoro o suo delegato o lavoratore autonomo, eventualmente coadiuvati dai referenti dei rispettivi sevizi di prevenzione e protezione, valutano i rischi mediante la compilazione del modello (allegato 3.1), costruito in maniera del tutto analoga alle valutazioni di cui al "DUVRI -- Parte statica". Gli eventuali modelli compilati, sono allegati al "DUVRI -- Parte dinamica" quale parte integrante.</p>
+
+                <p>I criteri utilizzati per l'individuazione delle misure di prevenzione e protezione sono quelli di consentire l'eliminazione (ove possibile) o la riduzione del rischio interferente individuato attraverso l'analisi dei rischi dovuti a situazioni ambientali o di attività svolte sia dall'azienda sia di previsione dell'appaltatore, così come indicato nel citato "DUVRI-Parte statica".</p>
+
+                <p>Nel caso di gara da parte di Estar si prende atto del documento nel quale vengono indicati i rischi interferenziali che qui si richiamano integralmente - Duvri ricognitivo.</p>
+
+
+    <h3>2.4.2 Rischi interferenti identificati dall'appaltatore</h3>
+    
+    <table>
+        <tr><th style="width: 70%">Attività identificata</th><th style="width: 30%">Paragrafo DUVRI-Parte statica</th></tr>
+        
+        <tr>
+            <td>3.3.19 - Refilling Azoto e fluidi criogenici</td>
+            <td>
+                
+                    3.3.19
+                
+            </td>
+        </tr>
+        
+    </table>
+    
+
+    
+
+
+    <div class="page-break"></div>
+
+    <h3>2.5 Costi per la sicurezza</h3>
+	<div class="section-title"> CRITERI DI CALCOLO COSTI (i costi si calcolano SOLO SE vengono identificati rischi specifici interferenti)</div>
+                <p>I rischi che generano costi sono stati identificati in Rischio elettrico, Rischio caduta/altezza, Rischio radiazioni ionizzanti e non, Rischio chimico, Rischio rumore/vibrazioni, Rischio incendio, Rischio biologico/pazienti)</p>
+				<p>- INCONTRI, RIUNIONI, SOPRALLUOGHI</p>
+				<p>- DPI PER RISCHI SPECIFICI: Rischio elettrico , Rischio caduta dall'alto, Rischio chimico , Rischio radiazioni ionizzanti e non ionizzanti, Rischio rumore , Rischio biologico </p>
+ 				<p>- MODIFICHE IMPIANTISTICHE PER ALCUNE TIPOLOGIE DI RISCHIO <p>
+				<p>- SEGNALETICA E DELIMITAZIONI: Rischio caduta dall'alto , Rischio incendio ecc.. </p>
+				<p>- PRESIDI ANTINCENDIO/PRIMO SOCCORSO </p>
+				<p>- CONTROLLI SANITARI SPECIFICI: Rischio chimico , Rischio rumore , Rischio biologico ecc..</p>
+
+				<p>I rischi che non generano di norma costi sono ad es.:Pulizia ordinaria, Utilizzo utensili base, Movimentazione manuale leggera, Lavori su impianti idrici, Attività assistenziali non critiche</p>
+
+    <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-size: 9pt;">
+        <tr>
+            <th style="border: 1px solid #000; padding: 6px; background-color: #e9e9e9; text-align: center; width: 8%;">Costi legati alla categoria di rischio individuata che genera interferenze</th>
+            <th style="border: 1px solid #000; padding: 6px; background-color: #e9e9e9; text-align: left; width: 72%;">Descrizione</th>
+            <th style="border: 1px solid #000; padding: 6px; background-color: #e9e9e9; text-align: right; width: 20%;">Costo (€)</th>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">1</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">Incontri, riunioni, sopralluoghi</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">2</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">DPI specifici</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">3</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">Impiantistica ausiliaria</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">4</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">Segnaletica e delimitazioni</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">5</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">Presidi antincendio/primo soccorso</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">6</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">Controlli sanitari specifici</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">7</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: left;">Altre misure</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: right;">0.0</td>
+        </tr>
+        <tr style="background-color: #e9e9e9; font-weight: bold;">
+            <th style="border: 1px solid #000; padding: 6px; text-align: left;" colspan="2">TOTALE</th>
+            <th style="border: 1px solid #000; padding: 6px; text-align: right;">
+                
+                    0.0
+                 €
+            </th>
+        </tr>
+    </table>
+
+    
+
+
+        <div class="subsection">
+            <div class="section-title">2.5.1 Anagrafica sub-appaltatore (nel caso di attività che siano oggetto di subappalto)</div>
+
+                    <!-- I dati del sub-appaltatore verranno inseriti dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2>2.6 Misure generali adottate per la gestione delle interferenze</h2>
+    <ul>
+        <li>Riunione preliminare tra RSPP, preposti e referenti delle parti</li>
+        <li>Sopralluogo congiunto dell'area di installazione</li>
+        <li>Coordinamento giornaliero con referente struttura</li>
+        <li>Accesso regolato secondo procedure ASL</li>
+        <li>Rispetto degli orari concordati</li>
+        <li>Informazione del personale esterno sulle procedure interne</li>
+        <li>Utilizzo DPI specifici per ambiente sanitario</li>
+        <li>Segnalazione immediata anomalie/incidenti</li>
+        <li>Rispetto protocolli di emergenza della struttura</li>
+        <li>Protezione aree di lavoro per evitare interferenze</li>
+        <li>Gestione controllata materiali di scarto</li>
+        <li>Test funzionali coordinati con personale ASL</li>
+    </ul>
+
+    <h2>3. SOTTOSCRIZIONE DEL DOCUMENTO</h2>
+    <table style="width:100%; border:none;">
+        <tr>
+            <td style="width:50%; border:none; vertical-align: top;">
+                <div class="signature-box">
+                    <strong>IL COMMITTENTE</strong><br>
+                    
+                        ing. Stefano Surlinelli<br>
+                    
+                    
+                        Firmato il 06/10/2025 alle 11:09:58
+                    
+                </div>
+            </td>
+            <td style="width:50%; border:none; vertical-align: top;">
+                <div class="signature-box">
+                    <strong>L'APPALTATORE</strong><br>
+                    
+                        gsfg<br>
+                    
+                    
+                        Firmato il 13/10/2025 alle 10:18:50
+                    
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <h2>4. ALLEGATI OBBLIGATORI</h2>
+    <ul>
+        <p>1. Documento di valutazione dei rischi dell'appaltatore (se non già inviato in fase di gara)</p>
+        <p>2. Piano operativo di sicurezza (POS) o piano di sicurezza e coordinamento (PSC) se previsto</p>
+        <p>3. Elenco dei lavoratori e loro formazione</p>
+        <p>4. Dichiarazione di conformità degli impianti e delle attrezzature utilizzate</p>
+        <p>5. Altri documenti specifici richiesti per l'appalto:</p>
+		<li>Cronoprogramma dettagliato dell'installazione HTA</li>
+        <li>Planimetria area con percorsi accesso evidenziati</li>
+        <li>Schede tecniche complete apparecchiatura e certificato CE</li>
+        <li>Schema elettrico collegamenti e specifiche tecniche</li>
+        <li>Documentazione formazione tecnici specializzati</li>
+        <li>Certificazioni conformità strumenti utilizzati</li>
+        <li>Protocolli test, collaudo e accettazione</li>
+        <li>Manuale d'uso e procedure manutenzione</li>
+        <li>Documentazione per registrazione inventario ASL</li>
+        <li>Piano manutenzione programmata</li>
+    </ul>
+
+<!-- Sezione Allegati nel PDF -->
+
+<div class="section">
+    <h3>Documenti Allegati</h3>
+    <table class="table-allegati">
+        <thead>
+            <tr>
+                <th>Documento</th>
+                <th>Data Caricamento</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <tr>
+                <td>DUVRI_gsfg_2025-10-14_PER_FIRMA_APPALTATORE.pdf</td>
+                <td>14/10/2025 12:58</td>
+            </tr>
+            
+        </tbody>
+    </table>
+    <p><em>I documenti allegati sono disponibili nella versione digitale del DUVRI.</em></p>
+</div>
+
+
+    <div class="footer">
+        Documento generato il 14/10/2025 alle ore 13:02<br>
+        Conforme al D.Lgs. 81/2008 - Az. USL Toscana Nord Ovest
+    </div>
+
+</body>
+</html>

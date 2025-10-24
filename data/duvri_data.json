@@ -1,0 +1,29 @@
+{
+  "committente": {
+    "nome": "hghsgs",
+    "codice_fiscale": "ffee",
+    "indirizzo": "fae",
+    "referente": "ara",
+    "email": "francesca.gini@uslnodo.it",
+    "tipologia_struttura": "Ospedale",
+    "area_installazione": "arar",
+    "presenza_pazienti": "Si",
+    "alimentazione_disponibile": "Si",
+    "tipo_pavimento": "Piastrelle",
+    "altezza_soffitto": "5224",
+    "larghezza_accesso": "",
+    "orari_lavori": "",
+    "referente_tecnico": "",
+    "note_rischi_struttura": "",
+    "costo_correzione": "0",
+    "rischi_struttura": [
+      "Presenza di gas medicinali (ossigeno, azoto, ecc.)",
+      "Aree con radioattività (medicina nucleare)"
+    ],
+    "mezzi_non_applicabile": false
+  },
+  "appaltatore": {},
+  "signatures": {
+    "committente": "29/09/2025 alle 15:03:50"
+  }
+}

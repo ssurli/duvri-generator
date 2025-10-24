@@ -1,0 +1,241 @@
+<!-- templates/committente_form.html -->
+{% extends "base.html" %}
+
+{% block document_title %}Compila Dati Committente - DUVRI{% endblock %}
+{% block revision_status %}Compilazione Committente{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="text-center mb-4">📋 Dati Committente</h1>
+            <p class="text-muted text-center mb-4">Azienda USL Toscana Nord Ovest - Compilazione DUVRI</p>
+
+            <!-- Messaggi Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" action="{{ url_for('compila_committente', duvri_id=duvri_id) }}">
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Dati Committente - Azienda USL Toscana Nord Ovest</legend>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">RUP/RES Committente:</label>
+                                <input type="text" id="nome" name="nome" value="{{ data.get('nome','') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="codice_fiscale" class="form-label">Codice fiscale/P.IVA:</label>
+                                <input type="text" id="codice_fiscale" name="codice_fiscale" value="{{ data.get('codice_fiscale','') }}" required class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="indirizzo" class="form-label">Indirizzo:</label>
+                        <input type="text" id="indirizzo" name="indirizzo" value="{{ data.get('indirizzo','') }}" required class="form-control">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="referente" class="form-label">DEC:</label>
+                                <input type="text" id="referente" name="referente" value="{{ data.get('referente','') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email:</label>
+                                <input type="email" id="email" name="email" value="{{ data.get('email','') }}" required class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Informazioni sulla struttura (installazione HTA)</legend>
+
+					<div class="row">
+							<div class="col-md-9">
+								<div class="mb-3">
+									<label for="oggetto" class="form-label">Oggetto del servizio:</label>
+									<input type="text" id="oggetto" name="oggetto" value="{{ data.get('oggetto','') }}"
+										   class="form-control" placeholder="Descrizione del servizio...">
+										   <!-- Messaggio di sincronizzazione -->
+											{% if not data.get('oggetto') and duvri_list.get(current_duvri_id, {}).get('dati_appaltatore', {}).get('oggetto') %}
+											<small class="form-text text-info">
+												💡 <strong>Suggerimento:</strong> L'appaltatore ha inserito:
+												"{{ duvri_list.get(current_duvri_id, {}).get('dati_appaltatore', {}).get('oggetto') }}"
+											</small>
+											{% endif %}
+								</div>
+							</div>
+							<div class="col-md-3">
+								<div class="mb-3">
+									<label for="importo" class="form-label">Importo del servizio/appalto (€):</label>
+									<input type="number" id="importo" name="importo" value="{{ data.get('importo','') }}"
+										   step="any" min="0" class="form-control" placeholder="0,00" required>
+								</div>
+							</div>
+						</div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tipologia_struttura" class="form-label">Tipologia struttura:</label>
+                                <select id="tipologia_struttura" name="tipologia_struttura" required class="form-select">
+                                    <option value="">Seleziona...</option>
+                                    <option value="Presidio Ospedaliero" {% if data.get('tipologia_struttura') == 'Presidio Ospedaliero' %}selected{% endif %}>Presidio Ospedaliero</option>
+                                    <option value="Casa di comunità" {% if data.get('tipologia_struttura') == 'Casa di comunità' %}selected{% endif %}>Casa di comunità</option>
+                                    <option value="Distretto Socio Sanitario" {% if data.get('tipologia_struttura') == 'Distretto Socio Sanitario' %}selected{% endif %}>Distretto Socio Sanitario</option>
+                                    <option value="Centro diurno" {% if data.get('tipologia_struttura') == 'Centro diurno' %}selected{% endif %}>Centro diurno</option>
+                                    <option value="Struttura sanitaria territoriale" {% if data.get('tipologia_struttura') == 'Struttura sanitaria territoriale' %}selected{% endif %}>Struttura sanitaria territoriale</option>
+                                    <option value="Altro" {% if data.get('tipologia_struttura') == 'Altro' %}selected{% endif %}>Altro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="area_installazione" class="form-label">Reparto/Area di installazione:</label>
+                                <input type="text" id="area_installazione" name="area_installazione" value="{{ data.get('area_installazione','') }}" required class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="presenza_pazienti" class="form-label">Presenza di pazienti durante i lavori:</label>
+                                <select id="presenza_pazienti" name="presenza_pazienti" required class="form-select">
+                                    <option value="">Seleziona...</option>
+                                    <option value="Si" {% if data.get('presenza_pazienti') == 'Si' %}selected{% endif %}>Sì</option>
+                                    <option value="No" {% if data.get('presenza_pazienti') == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Parziale" {% if data.get('presenza_pazienti') == 'Parziale' %}selected{% endif %}>Parziale</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="alimentazione_disponibile" class="form-label">Alimentazione elettrica dedicata:</label>
+                                <select id="alimentazione_disponibile" name="alimentazione_disponibile" class="form-select">
+                                    <option value="">Seleziona...</option>
+                                    <option value="Si" {% if data.get('alimentazione_disponibile') == 'Si' %}selected{% endif %}>Sì</option>
+                                    <option value="No" {% if data.get('alimentazione_disponibile') == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Da verificare" {% if data.get('alimentazione_disponibile') == 'Da verificare' %}selected{% endif %}>Da verificare</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="tipo_pavimento" class="form-label">Tipologia di pavimento:</label>
+                                <select id="tipo_pavimento" name="tipo_pavimento" class="form-select">
+                                    <option value="">Seleziona...</option>
+                                    <option value="Piastrelle" {% if data.get('tipo_pavimento') == 'Piastrelle' %}selected{% endif %}>Piastrelle</option>
+                                    <option value="Linoleum-pvc" {% if data.get('tipo_pavimento') == 'Linoleum-pvc' %}selected{% endif %}>Linoleum-pvc</option>
+                                    <option value="Resina" {% if data.get('tipo_pavimento') == 'Resina' %}selected{% endif %}>Resina</option>
+                                    <option value="Sopraelevato" {% if data.get('tipo_pavimento') == 'Sopraelevato' %}selected{% endif %}>Sopraelevato</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="altezza_soffitto" class="form-label">Altezza soffitto (metri):</label>
+                                <input type="number" id="altezza_soffitto" name="altezza_soffitto" value="{{ data.get('altezza_soffitto','') }}" step="0.1" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="larghezza_accesso" class="form-label">Larghezza accesso minima (cm):</label>
+                                <input type="number" id="larghezza_accesso" name="larghezza_accesso" value="{{ data.get('larghezza_accesso','') }}" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="referente_tecnico" class="form-label">Referente tecnico struttura:</label>
+                                <input type="text" id="referente_tecnico" name="referente_tecnico" value="{{ data.get('referente_tecnico','') }}" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="orari_lavori" class="form-label">Orari preferibili per i lavori:</label>
+                        <input type="text" id="orari_lavori" name="orari_lavori" value="{{ data.get('orari_lavori','') }}" placeholder="es. 14:00-18:00, weekend" class="form-control">
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="fw-bold fs-5">Rischi specifici della struttura committente</legend>
+                    <p class="text-muted">Indicare i rischi presenti nella struttura che potrebbero interferire con l'installazione HTA:</p>
+
+                    <div class="row">
+                        {% for rischio in rischi_committente %}
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="rischi_struttura" value="{{ rischio }}"
+                                       {% if rischio in data.get('rischi_struttura', []) %}checked{% endif %}>
+                                <label class="form-check-label">{{ rischio }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="note_rischi_struttura" class="form-label">Note aggiuntive sui rischi della struttura:</label>
+                        <textarea id="note_rischi_struttura" name="note_rischi_struttura" rows="4" class="form-control">{{ data.get('note_rischi_struttura','') }}</textarea>
+                    </div>
+                </fieldset>
+
+                <!-- PULSANTI DI INVIO -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        💾 Salva e Continua
+                    </button>
+
+                    <a href="{{ url_for('summary') }}" class="btn btn-secondary btn-lg">
+                        📊 Vai al Riepilogo
+                    </a>
+
+					<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                        🏠 Torna alla Dashboard
+                    </a>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+fieldset {
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 25px;
+    background: #f8f9fa;
+}
+legend {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 1.2em;
+    padding: 0 15px;
+    width: auto;
+}
+.form-check-label {
+    font-weight: normal;
+}
+</style>
+{% endblock %}

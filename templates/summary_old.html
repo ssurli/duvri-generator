@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Riepilogo DUVRI{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Riepilogo DUVRI</h1>
+
+    <!-- Alert per DUVRI non completato -->
+    {% if not data.committente or not data.appaltatore %}
+    <div class="alert alert-warning">
+        <h4>⚠️ DUVRI Incompleto</h4>
+        <p>Per generare il PDF, entrambe le parti devono compilare i propri dati.</p>
+
+        <div class="mt-3">
+            {% if not data.committente %}
+            <a href="{{ url_for('compila_committente') }}" class="btn btn-primary me-2">Compila dati committente</a>
+            {% endif %}
+
+            {% if not data.appaltatore %}
+                {% if duvri_list and current_duvri_id %}
+                    {% set duvri = duvri_list[current_duvri_id] %}
+                    <div class="mt-3">
+                        <a href="{{ url_for('compila_appaltatore', duvri_id=current_duvri_id) }}"
+                           class="btn btn-primary me-2">
+                           📝 Compila dati appaltatore (Admin)
+                        </a>
+                        <a href="{{ url_for('appaltatore_form', link_univoco=duvri.link_appaltatore) }}"
+                           class="btn btn-success" target="_blank">
+                           🔗 Link per appaltatore esterno
+                        </a>
+                    </div>
+                {% else %}
+                    <span class="text-muted">Nessun DUVRI selezionato</span>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sezione Committente -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Committente</h3>
+        </div>
+        <div class="card-body">
+            {% if data.committente and data.committente.nome %}
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Nome:</strong> {{ data.committente.nome }}</p>
+                    <p><strong>Codice Fiscale:</strong> {{ data.committente.codice_fiscale }}</p>
+                    <p><strong>Indirizzo:</strong> {{ data.committente.indirizzo }}</p>
+                    <p><strong>Referente:</strong> {{ data.committente.referente }}</p>
+                    <p><strong>Email:</strong> {{ data.committente.email }}</p>
+                    {% if data.committente.importo %}
+                    <p><strong>Importo Servizio:</strong> € {{ data.committente.importo }}</p>
+                    {% endif %}
+                    {% if data.committente.oggetto %}
+                    <p><strong>Oggetto Servizio:</strong> {{ data.committente.oggetto }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Tipologia Struttura:</strong> {{ data.committente.tipologia_struttura }}</p>
+                    <p><strong>Area Installazione:</strong> {{ data.committente.area_installazione }}</p>
+                    <p><strong>Presenza Pazienti:</strong> {{ data.committente.presenza_pazienti }}</p>
+                    <p><strong>Alimentazione Disponibile:</strong> {{ data.committente.alimentazione_disponibile }}</p>
+                </div>
+            </div>
+
+            <!-- Rischi Struttura -->
+            {% if data.committente.rischi_struttura %}
+            <div class="mt-3">
+                <h5>Rischi Identificati nella Struttura:</h5>
+                <ul>
+                    {% for rischio in data.committente.rischi_struttura %}
+                    <li>{{ rischio }}</li>
+                    {% endfor %}
+                </ul>
+                {% if data.committente.note_rischi_struttura %}
+                <p><strong>Note:</strong> {{ data.committente.note_rischi_struttura }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Firma -->
+            {% if data.signatures and data.signatures.committente %}
+            <div class="alert alert-success mt-3">
+                <strong>✓ Completato il:</strong> {{ data.signatures.committente }}
+            </div>
+            {% else %}
+            <a href="{{ url_for('sign', role='committente') }}" class="btn btn-success mt-3">Firma come Committente</a>
+            {% endif %}
+
+            {% else %}
+            <p class="text-muted">Dati committente non ancora compilati.</p>
+            <a href="{{ url_for('compila_committente') }}" class="btn btn-primary">Compila dati committente</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sezione Appaltatore -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h3 class="mb-0">Appaltatore</h3>
+        </div>
+        <div class="card-body">
+            {% if data.appaltatore and data.appaltatore.ragione_sociale %}
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Ragione Sociale:</strong> {{ data.appaltatore.ragione_sociale }}</p>
+                    <p><strong>Codice Fiscale:</strong> {{ data.appaltatore.cf }}</p>
+                    <p><strong>Partita IVA:</strong> {{ data.appaltatore.piva }}</p>
+                    <p><strong>Sede Legale:</strong> {{ data.appaltatore.sede }}</p>
+                    <p><strong>Telefono:</strong> {{ data.appaltatore.telefono }}</p>
+                    <p><strong>Email:</strong> {{ data.appaltatore.email }}</p>
+                    <p><strong>PEC:</strong> {{ data.appaltatore.pec }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Datore di Lavoro:</strong> {{ data.appaltatore.datore_lavoro_nome }}</p>
+                    <p><strong>Riferimenti Datore:</strong> {{ data.appaltatore.datore_lavoro_rif }}</p>
+                    <p><strong>RSPP:</strong> {{ data.appaltatore.rspp_nome }}</p>
+                    <p><strong>Riferimenti RSPP:</strong> {{ data.appaltatore.rspp_rif }}</p>
+                    <p><strong>Responsabile Appalto:</strong> {{ data.appaltatore.resp_appalto_nome }}</p>
+                    <p><strong>Riferimenti Resp. Appalto:</strong> {{ data.appaltatore.resp_appalto_rif }}</p>
+                    <p><strong>Max Addetti:</strong> {{ data.appaltatore.max_addetti }}</p>
+                </div>
+            </div>
+
+            <!-- Rischi Lavorazione -->
+            {% if data.appaltatore.rischi %}
+            <div class="mt-3">
+                <h5>Rischi di Lavorazione Identificati:</h5>
+                <ul>
+                    {% for rischio in data.appaltatore.rischi %}
+                    <li>{{ rischio }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Costi di Sicurezza -->
+            {% if data.appaltatore.costi_presenti %}
+            <div class="mt-4">
+                <h5>Costi di Sicurezza</h5>
+                {% set costi_totali = (data.appaltatore.get('costo_incontri', 0)|float + data.appaltatore.get('costo_dpi', 0)|float + data.appaltatore.get('costo_impiantistica', 0)|float + data.appaltatore.get('costo_segnaletica', 0)|float + data.appaltatore.get('costo_presidi', 0)|float + data.appaltatore.get('costo_controlli', 0)|float + data.appaltatore.get('costo_altre_misure', 0)|float) %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Incontri di coordinamento:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_incontri', 0)|float) }}</p>
+                        <p><strong>DPI:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_dpi', 0)|float) }}</p>
+                        <p><strong>Impiantistica sicurezza:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_impiantistica', 0)|float) }}</p>
+                        <p><strong>Segnaletica:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_segnaletica', 0)|float) }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Presidi antincendio:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_presidi', 0)|float) }}</p>
+                        <p><strong>Controlli periodici:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_controlli', 0)|float) }}</p>
+                        <p><strong>Altre misure:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_altre_misure', 0)|float) }}</p>
+                        <p><strong class="text-primary">TOTALE:</strong> € {{ "%.2f"|format(costi_totali) }}</p>
+                    </div>
+                </div>
+
+                {% if data.appaltatore.note_costi_sicurezza %}
+                <p><strong>Note:</strong> {{ data.appaltatore.note_costi_sicurezza }}</p>
+                {% endif %}
+
+                <!-- Form modifica costi -->
+                <form method="POST" action="{{ url_for('salva_costi') }}" class="mt-3">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label>Incontri</label>
+                            <input type="number" step="0.01" name="costo_incontri"
+                                   value="{{ data.appaltatore.get('costo_incontri', 0) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>DPI</label>
+                            <input type="number" step="0.01" name="costo_dpi"
+                                   value="{{ data.appaltatore.get('costo_dpi', 0) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Impiantistica</label>
+                            <input type="number" step="0.01" name="costo_impiantistica"
+                                   value="{{ data.appaltatore.get('costo_impiantistica', 0) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Segnaletica</label>
+                            <input type="number" step="0.01" name="costo_segnaletica"
+                                   value="{{ data.appaltatore.get('costo_segnaletica', 0) }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-3">
+                            <label>Presidi</label>
+                            <input type="number" step="0.01" name="costo_presidi"
+                                   value="{{ data.appaltatore.get('costo_presidi', 0) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Controlli</label>
+                            <input type="number" step="0.01" name="costo_controlli"
+                                   value="{{ data.appaltatore.get('costo_controlli', 0) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Altre misure</label>
+                            <input type="number" step="0.01" name="costo_altre_misure"
+                                   value="{{ data.appaltatore.get('costo_altre_misure', 0) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Note</label>
+                            <input type="text" name="note_costi_sicurezza"
+                                   value="{{ data.appaltatore.get('note_costi_sicurezza', '') }}" class="form-control"
+                                   placeholder="Note sui costi">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning mt-3">Salva Costi</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="costi-actions mt-3">
+                <form action="{{ url_for('ricalcola_costi') }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-warning btn-sm">
+                        🔄 Ricalcola Automaticamente
+                    </button>
+                </form>
+
+                <form action="{{ url_for('reset_costi') }}" method="post" class="d-inline ms-2">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                        🗑️ Reset Costi
+                    </button>
+                </form>
+
+                {% if data.appaltatore and data.appaltatore.costi_calcolati_auto %}
+                <span class="badge bg-info ms-2">Costi Calcolati Automaticamente</span>
+                {% endif %}
+            </div>
+
+					<!-- Sezione Allegati -->
+					<div class="card mt-4">
+						<div class="card-header bg-info text-white">
+							<h5 class="mb-0">📎 Documenti Allegati</h5>
+						</div>
+						<div class="card-body">
+							{% if data.appaltatore and data.appaltatore.allegati %}
+							<div class="table-responsive">
+								<table class="table table-striped">
+									<thead>
+										<tr>
+											<th>Nome File</th>
+											<th>Data Upload</th>
+											<th>Dimensione</th>
+											<th>Azioni</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for allegato in data.appaltatore.allegati %}
+										<tr>
+											<td>{{ allegato.nome_originale }}</td>
+											<td>{{ allegato.data_upload }}</td>
+											<td>{{ "%.1f"|format(allegato.dimensione / 1024) }} KB</td>
+											<td>
+												<a href="{{ url_for('download_allegato', allegato_index=loop.index0) }}" 
+												   class="btn btn-sm btn-outline-primary">
+												   📥 Scarica
+												</a>
+												<form method="post" action="{{ url_for('elimina_allegato', allegato_index=loop.index0) }}" 
+													  class="d-inline" onsubmit="return confirm('Sei sicuro di voler eliminare questo allegato?')">
+													<button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Elimina</button>
+												</form>
+											</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+							{% else %}
+							<p class="text-muted">Nessun allegato caricato.</p>
+							{% endif %}
+							
+							<div class="text-center mt-3">
+								<a href="{{ url_for('upload_allegato') }}" class="btn btn-success">
+									📎 Carica Nuovo Allegato
+								</a>
+							</div>
+						</div>
+					</div>
+
+            <!-- Firma -->
+            {% if data.signatures and data.signatures.appaltatore %}
+            <div class="alert alert-success mt-3">
+                <strong>✓ Completato il:</strong> {{ data.signatures.appaltatore }}
+            </div>
+            {% else %}
+            <a href="{{ url_for('sign', role='appaltatore') }}" class="btn btn-success mt-3">Firma come Appaltatore</a>
+            {% endif %}
+
+            {% else %}
+            <p class="text-muted">Dati appaltatore non ancora compilati.</p>
+            {% if duvri_list and current_duvri_id %}
+                {% set duvri = duvri_list[current_duvri_id] %}
+                <a href="{{ url_for('appaltatore_form', link_univoco=duvri.link_appaltatore) }}"
+                   class="btn btn-primary" target="_blank">
+                   Compila dati appaltatore
+                </a>
+            {% else %}
+                <span class="text-muted">Nessun DUVRI selezionato</span>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Azioni Finali -->
+    <div class="card">
+        <div class="card-body text-center">
+            {% if data.signatures and data.signatures.committente and data.signatures.appaltatore %}
+            <div class="alert alert-success">
+                <h4>✅ DUVRI Completato</h4>
+                <p>Entrambe le parti hanno completato il documento.</p>
+            </div>
+
+            <!-- Genera PDF -->
+            <div class="mb-3">
+                {% if WEASYPRINT_AVAILABLE or XHTML2PDF_AVAILABLE %}
+                <a href="{{ url_for('generate_pdf') }}" class="btn btn-success btn-lg">
+                    📄 Genera PDF Definitivo
+                </a>
+                {% else %}
+                <div class="alert alert-warning">
+                    <p>Impossibile generare PDF. Installa WeasyPrint o xhtml2pdf.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Upload versione firmata
+            {% if data.appaltatore and data.appaltatore.ragione_sociale %}
+            <a href="{{ url_for('upload_signed', tipo_firma='committente') }}"
+               class="btn btn-info">
+               📤 Carica Versione Firmata (con firma digitale)
+            </a>
+            {% endif %}
+
+            {% else %}
+            <div class="alert alert-info">
+                <h4>⏳ DUVRI in Attesa di Firma</h4>
+                <p>Per generare il PDF, entrambe le parti devono firmare il documento.</p>
+            </div>
+            {% endif %}-->
+
+			<!-- Per il flusso di firma sequenziale -->
+			<div class="card mt-4">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0">📝 Firma Digitale del Documento</h5>
+				</div>
+				<div class="card-body">
+					<!-- STEP 1: Appaltatore -->
+					<div class="row mb-4">
+						<div class="col-md-12">
+							<h6>1. Firma Appaltatore</h6>
+							<div class="card {% if duvri_list[current_duvri_id].get('firme_digitali', {}).appaltatore %}border-success{% else %}border-warning{% endif %}">
+								<div class="card-body">
+									{% if duvri_list[current_duvri_id].get('firme_digitali', {}).appaltatore %}
+									<div class="alert alert-success">
+										<strong>✅ Firmato digitalmente</strong><br>
+										Da: {{ duvri_list[current_duvri_id].firme_digitali.appaltatore.firmatario }}<br>
+										Il: {{ duvri_list[current_duvri_id].firme_digitali.appaltatore.data_firma }}
+									</div>
+									{% else %}
+									<div class="row">
+										<div class="col-md-6">
+											<a href="{{ url_for('download_per_firma', tipo_firma='appaltatore') }}"
+											   class="btn btn-outline-success">
+											   📥 Scarica per Firma
+											</a>
+											<small class="d-block text-muted mt-1">Scarica il PDF da firmare digitalmente</small>
+										</div>
+										<div class="col-md-6">
+											<a href="{{ url_for('upload_signed', tipo_firma='appaltatore') }}"
+											   class="btn btn-success">
+											   📤 Carica Firmato
+											</a>
+											<small class="d-block text-muted mt-1">Carica il PDF con la tua firma digitale</small>
+										</div>
+									</div>
+									{% endif %}
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- STEP 2: Committente -->
+					<div class="row">
+						<div class="col-md-12">
+							<h6>2. Firma Committente</h6>
+							<div class="card {% if duvri_list[current_duvri_id].get('firme_digitali', {}).committente %}border-success{% else %}{% if not duvri_list[current_duvri_id].get('firme_digitali', {}).appaltatore %}border-light{% else %}border-primary{% endif %}{% endif %}">
+								<div class="card-body">
+									{% if duvri_list[current_duvri_id].get('firme_digitali', {}).committente %}
+									<div class="alert alert-success">
+										<strong>✅ Firmato digitalmente</strong><br>
+										Da: {{ duvri_list[current_duvri_id].firme_digitali.committente.firmatario }}<br>
+										Il: {{ duvri_list[current_duvri_id].firme_digitali.committente.data_firma }}
+									</div>
+									{% else %}
+									{% if not duvri_list[current_duvri_id].get('firme_digitali', {}).appaltatore %}
+									<div class="alert alert-info">
+										⏳ In attesa della firma dell'appaltatore
+									</div>
+									{% else %}
+									<div class="row">
+										<div class="col-md-6">
+											<a href="{{ url_for('download_per_firma', tipo_firma='committente') }}"
+											   class="btn btn-outline-primary">
+											   📥 Scarica per Firma
+											</a>
+											<small class="d-block text-muted mt-1">Scarica il PDF già firmato dall'appaltatore</small>
+										</div>
+										<div class="col-md-6">
+											<a href="{{ url_for('upload_signed', tipo_firma='committente') }}"
+											   class="btn btn-primary">
+											   📤 Carica Firmato
+											</a>
+											<small class="d-block text-muted mt-1">Carica il PDF con entrambe le firme</small>
+										</div>
+									</div>
+									{% endif %}
+									{% endif %}
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Download finale -->
+					{% if duvri_list[current_duvri_id].get('firme_digitali', {}).appaltatore and duvri_list[current_duvri_id].get('firme_digitali', {}).committente %}
+					<div class="text-center mt-4 p-3 bg-success text-white rounded">
+						<h6>✅ Documento Completamente Firmato</h6>
+						<a href="{{ url_for('download_duvri_completo') }}" class="btn btn-light btn-lg">
+							📄 Scarica DUVRI Definitivo
+						</a>
+						<small class="d-block text-white mt-2">
+							Documento con firme digitali di entrambe le parti
+						</small>
+					</div>
+					{% endif %}
+				</div>
+			</div>
+
+            <!-- PULSANTI DI CHIUSURA -->
+            <div class="text-center mt-5 p-4 border-top bg-light rounded">
+                <!-- PULSANTE PRINCIPALE (Admin/Appaltatore) -->
+                <div class="mb-3">
+                    {% if session.get('from_appaltatore_link') %}
+                        <!-- APPALTATORE: esce con conferma finale -->
+                        <a href="{{ url_for('logout') }}" class="btn btn-success btn-lg">
+                            ✅ Completato - Esci dal Sistema
+                        </a>
+                        <small class="d-block text-muted mt-2">Grazie per aver compilato il DUVRI</small>
+                    {% else %}
+                        <!-- ADMIN: torna alla dashboard -->
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg">
+                            🏠 Torna alla Dashboard
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- RESET (solo per Admin) -->
+                {% if not session.get('from_appaltatore_link') %}
+                <div class="mt-3">
+                    <a href="{{ url_for('reset_data') }}" class="btn btn-outline-danger btn-sm"
+                       onclick="return confirm('Sei sicuro di voler resettare tutti i dati? Questa azione è irreversibile.')">
+                       🔄 Nuova Compilazione
+                    </a>
+                    <small class="d-block text-muted mt-1">Cancella tutto e ricomincia</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
