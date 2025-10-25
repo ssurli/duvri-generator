@@ -23,7 +23,7 @@
                 {% endif %}
             {% endwith %}
 
-            <form method="post" action="{{ url_for('compila_committente', duvri_id=duvri_id) }}">
+            <form method="POST" action="{{ url_for('compila_committente') }}" enctype="multipart/form-data">
                 <fieldset class="mb-4">
                     <legend class="fw-bold fs-5">Dati Committente - Azienda USL Toscana Nord Ovest</legend>
 
@@ -86,9 +86,180 @@
 									<label for="importo" class="form-label">Importo del servizio/appalto (€):</label>
 									<input type="number" id="importo" name="importo" value="{{ data.get('importo','') }}"
 										   step="any" min="0" class="form-control" placeholder="0,00" required>
+										   <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="percentuale_costo_base" class="form-label">
+                                    Percentuale Costo Base (%)
+                                    <span class="text-muted" data-bs-toggle="tooltip" title="Percentuale dell'importo appalto da considerare come costo base di sicurezza (min 0%, max 3%)">ℹ️</span>
+                                </label>
+                                <input type="number" 
+                                       id="percentuale_costo_base" 
+                                       name="percentuale_costo_base" 
+                                       value="{{ data.get('percentuale_costo_base', '2') }}" 
+                                       class="form-control" 
+                                       step="0.1" 
+                                       min="0" 
+                                       max="3"
+                                       placeholder="2.0">
+                                <small class="text-muted">
+                                    Default: 2% | Range: 0-3%
+                                </small>
+                            </div>
+                        </div>
 								</div>
 							</div>
 						</div>
+<!-- 🆕 INFORMAZIONI GARA E APPALTO -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2 mb-3">📋 Informazioni Gara e Appalto</h5>
+                            
+                            <div class="alert alert-info">
+                                <strong>ℹ️ Nota:</strong> Se l'appalto è stato aggiudicato da centrale committenza (es. ESTAR) 
+                                con DUVRI ricognitivo, indicare le informazioni della gara.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Tipo DUVRI -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tipo_duvri" class="form-label">Tipo DUVRI *</label>
+                                <select id="tipo_duvri" name="tipo_duvri" class="form-control" required>
+                                    <option value="operativo" {% if data.get('tipo_duvri') == 'operativo' or not data.get('tipo_duvri') %}selected{% endif %}>
+                                        Operativo (post-aggiudicazione)
+                                    </option>
+                                    <option value="ricognitivo" {% if data.get('tipo_duvri') == 'ricognitivo' %}selected{% endif %}>
+                                        Ricognitivo (per documenti gara)
+                                    </option>
+                                </select>
+                                <small class="text-muted">
+                                    • Ricognitivo: da allegare ai documenti di gara<br>
+                                    • Operativo: dopo aggiudicazione, con condizioni reali
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Fase Appalto -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="fase_appalto" class="form-label">Fase Appalto</label>
+                                <select id="fase_appalto" name="fase_appalto" class="form-control">
+                                    <option value="pre_gara" {% if data.get('fase_appalto') == 'pre_gara' %}selected{% endif %}>
+                                        Pre-gara (preparazione bando)
+                                    </option>
+                                    <option value="post_gara" {% if data.get('fase_appalto') == 'post_gara' %}selected{% endif %}>
+                                        Post-gara (aggiudicato, non ancora esecutivo)
+                                    </option>
+                                    <option value="esecuzione" {% if data.get('fase_appalto') == 'esecuzione' or not data.get('fase_appalto') %}selected{% endif %}>
+                                        In esecuzione
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Importo Gara -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="importo_gara_base" class="form-label">Importo Gara Base (€)</label>
+                                <input type="number" 
+                                       id="importo_gara_base" 
+                                       name="importo_gara_base" 
+                                       value="{{ data.get('importo_gara_base', '') }}" 
+                                       class="form-control" 
+                                       step="0.01" 
+                                       min="0"
+                                       placeholder="0,00">
+                                <small class="text-muted">Importo complessivo aggiudicato (IVA esclusa)</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Checkbox Costi Inclusi -->
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" 
+                                           id="costi_inclusi_gara" 
+                                           name="costi_inclusi_gara" 
+                                           class="form-check-input"
+                                           {% if data.get('costi_inclusi_gara') %}checked{% endif %}
+                                           onchange="toggleCostiGara()">
+                                    <label for="costi_inclusi_gara" class="form-check-label">
+                                        <strong>Costi della sicurezza da interferenze già inclusi nei documenti di gara</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted">
+                                    Selezionare se ESTAR (o altra centrale) ha già stimato e incluso costi sicurezza nel bando
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sezione Costi Gara (mostra solo se checkbox attivata) -->
+                    <div id="sezione_costi_gara" style="display: {% if data.get('costi_inclusi_gara') %}block{% else %}none{% endif %}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="costi_sicurezza_gara" class="form-label">
+                                        Importo Costi Sicurezza da Gara (€) *
+                                    </label>
+                                    <input type="number" 
+                                           id="costi_sicurezza_gara" 
+                                           name="costi_sicurezza_gara" 
+                                           value="{{ data.get('costi_sicurezza_gara', '') }}" 
+                                           class="form-control" 
+                                           step="0.01" 
+                                           min="0"
+                                           placeholder="0,00">
+                                    <small class="text-muted">
+                                        Importo esatto indicato nel DUVRI/documenti di gara
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload DUVRI ESTAR -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="duvri_estar_file" class="form-label">
+                                        📎 Allega DUVRI Ricognitivo ESTAR (opzionale)
+                                    </label>
+                                    <input type="file" 
+                                           id="duvri_estar_file" 
+                                           name="duvri_estar_file" 
+                                           class="form-control"
+                                           accept=".pdf,.doc,.docx">
+                                    <small class="text-muted">
+                                        PDF o Word del DUVRI allegato ai documenti di gara dalla centrale committenza
+                                    </small>
+                                    
+                                    {% if data.get('duvri_estar_filename') %}
+                                    <div class="mt-2">
+                                        <span class="badge bg-success">
+                                            ✅ File caricato: {{ data.get('duvri_estar_filename') }}
+                                        </span>
+                                        <a href="{{ url_for('scarica_duvri_estar', duvri_id=session.get('current_duvri_id')) }}" 
+                                           class="btn btn-sm btn-outline-primary ms-2">
+                                            📥 Scarica
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Attenzione:</strong> I costi indicati qui saranno considerati come 
+                            <strong>vincolanti</strong> e non soggetti a ribasso. In fase operativa, eventuali 
+                            costi aggiuntivi richiederanno una procedura di integrazione contrattuale.
+                        </div>
+                    </div>
 
                     <div class="row">
                         <div class="col-md-6">
@@ -198,7 +369,150 @@
                         <textarea id="note_rischi_struttura" name="note_rischi_struttura" rows="4" class="form-control">{{ data.get('note_rischi_struttura','') }}</textarea>
                     </div>
                 </fieldset>
-
+<!-- 🆕 SEZIONE COSTI MANUALI (OPZIONALE) - Solo per committente -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">💰 Definizione Costi Sicurezza da Interferenze (Opzionale)</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <strong>ℹ️ Per il RUP/Responsabile:</strong><br>
+                                    • Se <strong>NON</strong> compili questa sezione, i costi saranno <strong>calcolati automaticamente</strong> in base a importo, lavoratori, durata e rischi.<br>
+                                    • Se <strong>compili i campi</strong>, potrai definire analiticamente i costi da interferenze.<br>
+                                    • I costi inseriti manualmente devono essere <strong>congrui e documentabili</strong>.<br>
+                                    • Per <strong>forzare calcolo automatico</strong>, lascia tutti i campi vuoti.
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input type="checkbox" 
+                                           id="usa_costi_manuali" 
+                                           name="usa_costi_manuali" 
+                                           class="form-check-input"
+                                           {% if data.get('usa_costi_manuali') %}checked{% endif %}
+                                           onchange="toggleCostiManualiCommittente()">
+                                    <label for="usa_costi_manuali" class="form-check-label">
+                                        <strong>Definisci costi manualmente (sostituisce calcolo automatico)</strong>
+                                    </label>
+                                </div>
+                                
+                                <div id="sezione_costi_manuali_committente" style="display: {% if data.get('usa_costi_manuali') %}block{% else %}none{% endif %}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_incontri_manuale" class="form-label">Incontri Coordinamento (€)</label>
+                                                <input type="number" 
+                                                       id="costo_incontri_manuale" 
+                                                       name="costo_incontri_manuale" 
+                                                       value="{{ data.get('costo_incontri_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_dpi_manuale" class="form-label">DPI (€)</label>
+                                                <input type="number" 
+                                                       id="costo_dpi_manuale" 
+                                                       name="costo_dpi_manuale" 
+                                                       value="{{ data.get('costo_dpi_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_impiantistica_manuale" class="form-label">Impiantistica Sicurezza (€)</label>
+                                                <input type="number" 
+                                                       id="costo_impiantistica_manuale" 
+                                                       name="costo_impiantistica_manuale" 
+                                                       value="{{ data.get('costo_impiantistica_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_segnaletica_manuale" class="form-label">Segnaletica (€)</label>
+                                                <input type="number" 
+                                                       id="costo_segnaletica_manuale" 
+                                                       name="costo_segnaletica_manuale" 
+                                                       value="{{ data.get('costo_segnaletica_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_presidi_manuale" class="form-label">Presidi Antincendio (€)</label>
+                                                <input type="number" 
+                                                       id="costo_presidi_manuale" 
+                                                       name="costo_presidi_manuale" 
+                                                       value="{{ data.get('costo_presidi_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_controlli_manuale" class="form-label">Controlli Periodici (€)</label>
+                                                <input type="number" 
+                                                       id="costo_controlli_manuale" 
+                                                       name="costo_controlli_manuale" 
+                                                       value="{{ data.get('costo_controlli_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="costo_altre_misure_manuale" class="form-label">Altre Misure (€)</label>
+                                                <input type="number" 
+                                                       id="costo_altre_misure_manuale" 
+                                                       name="costo_altre_misure_manuale" 
+                                                       value="{{ data.get('costo_altre_misure_manuale', '') }}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="Lascia vuoto per calcolo automatico">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-warning">
+                                        <strong>⚠️ Attenzione:</strong> I costi inseriti manualmente devono essere <strong>analitici, congrui e documentabili</strong>. 
+                                        Verranno riportati nel DUVRI come costi da interferenze ai sensi del D.Lgs. 81/08 art. 26.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- PULSANTI DI INVIO -->
                 <div class="text-center mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">
@@ -238,4 +552,57 @@ legend {
     font-weight: normal;
 }
 </style>
+<script>
+// Toggle sezione costi gara
+function toggleCostiGara() {
+    const checkbox = document.getElementById('costi_inclusi_gara');
+    const sezione = document.getElementById('sezione_costi_gara');
+    const inputCosti = document.getElementById('costi_sicurezza_gara');
+    
+    if (checkbox.checked) {
+        sezione.style.display = 'block';
+        inputCosti.required = true;
+    } else {
+        sezione.style.display = 'none';
+        inputCosti.required = false;
+        inputCosti.value = '';
+    }
+}
+
+// Avviso cambio tipo DUVRI
+document.getElementById('tipo_duvri').addEventListener('change', function() {
+    if (this.value === 'ricognitivo') {
+        alert('ℹ️ DUVRI Ricognitivo: da utilizzare per preparare i documenti di gara. ' +
+              'I costi calcolati saranno quelli da includere nel bando.');
+    } else {
+        alert('ℹ️ DUVRI Operativo: da compilare dopo l\'aggiudicazione, con le condizioni reali. ' +
+              'Eventuali differenze rispetto ai costi di gara richiederanno una procedura di integrazione.');
+    }
+});
+
+// Esegui al caricamento
+document.addEventListener('DOMContentLoaded', function() {
+    toggleCostiGara();
+});
+function toggleCostiManualiCommittente() {
+    const checkbox = document.getElementById('usa_costi_manuali');
+    const sezione = document.getElementById('sezione_costi_manuali_committente');
+    
+    if (checkbox.checked) {
+        sezione.style.display = 'block';
+    } else {
+        sezione.style.display = 'none';
+        // Pulisci i campi quando disattivi
+        const inputs = sezione.querySelectorAll('input[type="number"]');
+        inputs.forEach(input => input.value = '');
+    }
+}
+
+// Esegui al caricamento
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('usa_costi_manuali')) {
+        toggleCostiManualiCommittente();
+    }
+});
+</script>
 {% endblock %}

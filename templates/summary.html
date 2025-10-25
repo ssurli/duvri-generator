@@ -148,6 +148,65 @@
             {% if data.appaltatore.costi_presenti %}
             <div class="mt-4">
                 <h5>💰 Costi di Sicurezza</h5>
+				<!-- 🆕 BOX CONFRONTO COSTI -->
+                {% if confronto_costi %}
+                <div class="alert alert-{{ confronto_costi.alert_type }} mb-3">
+                    <h6 class="alert-heading">
+                        {% if confronto_costi.stato == 'EXTRA_COSTI' %}
+                            ⚠️ Extra-Costi Rilevati
+                        {% elif confronto_costi.stato == 'RISPARMIO' %}
+                            ✅ Risparmio sui Costi di Gara
+                        {% elif confronto_costi.stato == 'CONFERMATO' %}
+                            ✅ Costi Confermati
+                        {% elif confronto_costi.stato == 'PRIMO_CALCOLO_OPERATIVO' %}
+                            ℹ️ Primo Calcolo Operativo
+                        {% elif confronto_costi.stato == 'PRIMO_CALCOLO' %}
+                            ℹ️ Calcolo per Documenti Gara
+                        {% endif %}
+                    </h6>
+                    
+                    <p class="mb-2"><strong>{{ confronto_costi.messaggio }}</strong></p>
+                    
+                    {% if confronto_costi.tipo == 'OPERATIVO_CON_BASE' %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">Costi da Gara:</small><br>
+                            <strong>€ {{ "{:,.2f}".format(confronto_costi.costi_gara) }}</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Costi Operativi:</small><br>
+                            <strong>€ {{ "{:,.2f}".format(confronto_costi.totale_operativo) }}</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Differenza:</small><br>
+                            <strong class="{% if confronto_costi.stato == 'EXTRA_COSTI' %}text-danger{% else %}text-success{% endif %}">
+                                {% if confronto_costi.stato == 'EXTRA_COSTI' %}
+                                    +€ {{ "{:,.2f}".format(confronto_costi.delta) }}
+                                    (+{{ "{:.1f}".format(confronto_costi.percentuale_delta) }}%)
+                                {% else %}
+                                    -€ {{ "{:,.2f}".format(confronto_costi.delta) }}
+                                    (-{{ "{:.1f}".format(confronto_costi.percentuale_delta) }}%)
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if confronto_costi.richiede_azione %}
+                    <hr>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-2">
+                        <a href="{{ url_for('gestione_extra_costi', duvri_id=session.get('current_duvri_id')) }}" 
+                           class="btn btn-warning">
+                            📋 Gestisci Integrazione Contrattuale
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#infoExtraCosti">
+                            ℹ️ Informazioni
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
                 {% set costi_totali = (
                     data.appaltatore.get('costo_incontri', 0)|float + 
                     data.appaltatore.get('costo_dpi', 0)|float + 

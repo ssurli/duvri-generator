@@ -49,6 +49,37 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
     MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max upload
 )
+# =============================================
+# CONFIGURAZIONE UPLOAD DUVRI ESTAR
+# =============================================
+UPLOAD_FOLDER_DUVRI_ESTAR = os.path.join(BASE_DIR, 'uploads_duvri_estar')
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+app.config['UPLOAD_FOLDER_DUVRI_ESTAR'] = UPLOAD_FOLDER_DUVRI_ESTAR
+
+# Crea cartella se non esiste
+if not os.path.exists(UPLOAD_FOLDER_DUVRI_ESTAR):
+    os.makedirs(UPLOAD_FOLDER_DUVRI_ESTAR)
+    print(f"✅ Creata cartella: {UPLOAD_FOLDER_DUVRI_ESTAR}")
+
+def allowed_file(filename):
+    """Verifica se il file ha estensione permessa"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def salva_duvri_estar(file, duvri_id):
+    """Salva il file DUVRI ESTAR e restituisce il nome file"""
+    if file and allowed_file(file.filename):
+        # Nome file sicuro
+        filename = secure_filename(file.filename)
+        # Aggiungi prefisso DUVRI ID per evitare conflitti
+        safe_filename = f"{duvri_id}_{filename}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER_DUVRI_ESTAR'], safe_filename)
+        
+        # Salva file
+        file.save(filepath)
+        print(f"✅ DUVRI ESTAR salvato: {safe_filename}")
+        
+        return safe_filename
+    return None
 
 # =============================================
 # PERCORSI ASSOLUTI (PythonAnywhere compatibili)
@@ -156,13 +187,31 @@ def get_db_connection():
 
 def init_db():
     """Inizializza il database per multipli DUVRI"""
-    conn = get_db_connection()
+    print("🔧 Inizializzazione database...")
+    
+    try:
+        conn = get_db_connection()
+        print("✅ Connessione database OK")
+    except Exception as e:
+        print(f"❌ Errore connessione: {e}")
+        import traceback
+        traceback.print_exc()
+        return
+    
     c = conn.cursor()
+    
+    # Crea tabella principale
     c.execute('''
         CREATE TABLE IF NOT EXISTS duvri (
             id TEXT PRIMARY KEY,
             nome_progetto TEXT,
             link_appaltatore TEXT,
+            tipo_duvri TEXT DEFAULT 'operativo',
+            fase_appalto TEXT DEFAULT 'esecuzione',
+            importo_gara_base REAL,
+            costi_inclusi_gara INTEGER DEFAULT 0,
+            costi_sicurezza_gara REAL,
+            duvri_estar_filename TEXT,
             committente_data TEXT,
             appaltatore_data TEXT,
             signatures TEXT,
@@ -172,17 +221,55 @@ def init_db():
         )
     ''')
     conn.commit()
+    print("✅ Tabella duvri verificata")
     
-    # 🆕 Aggiungi colonna se non esiste (per database esistenti)
-    try:
-        c.execute("ALTER TABLE duvri ADD COLUMN link_appaltatore TEXT")
-        conn.commit()
-        print("✅ Colonna link_appaltatore aggiunta")
-    except:
-        pass  # Colonna già esiste
+    # Aggiungi colonne se non esistono (per database esistenti)
+    colonne_da_aggiungere = [
+        ("link_appaltatore", "TEXT"),
+        ("tipo_duvri", "TEXT DEFAULT 'operativo'"),
+        ("fase_appalto", "TEXT DEFAULT 'esecuzione'"),
+        ("importo_gara_base", "REAL"),
+        ("costi_inclusi_gara", "INTEGER DEFAULT 0"),
+        ("costi_sicurezza_gara", "REAL"),
+        ("duvri_estar_filename", "TEXT")
+    ]
+    
+    for colonna, tipo in colonne_da_aggiungere:
+        try:
+            c.execute(f"ALTER TABLE duvri ADD COLUMN {colonna} {tipo}")
+            conn.commit()
+            print(f"✅ Colonna {colonna} aggiunta")
+        except sqlite3.OperationalError as e:
+            if 'duplicate column name' in str(e).lower():
+                print(f"ℹ️ Colonna {colonna} già esistente")
+            else:
+                print(f"⚠️ Errore ALTER TABLE {colonna}: {e}")
+        except Exception as e:
+            print(f"⚠️ Errore generico {colonna}: {e}")
+    
+    # 🆕 Tabella per extra-costi (preparazione Fase 2)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS extra_costi_sicurezza (
+            id TEXT PRIMARY KEY,
+            duvri_id TEXT REFERENCES duvri(id),
+            importo REAL,
+            descrizione TEXT,
+            stato TEXT DEFAULT 'bozza',
+            validato_spp_data TIMESTAMP,
+            validato_spp_firma TEXT,
+            approvato_rup_data TIMESTAMP,
+            determina_numero TEXT,
+            determina_data TIMESTAMP,
+            fonte_copertura TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    print("✅ Tabella extra_costi_sicurezza verificata")
     
     conn.close()
-
+    print("✅ Database inizializzato")
 def get_current_duvri_data():
     """Ottiene i dati del DUVRI corrente"""
     duvri_id = session.get('current_duvri_id')
@@ -208,6 +295,45 @@ def get_current_duvri_data():
     except Exception as e:
         print(f"❌ ERRORE get_current_duvri_data: {e}")
         return {"committente": {}, "appaltatore": {}, "signatures": {}}
+
+def save_current_duvri_data(data):
+    """Salva i dati del DUVRI corrente"""
+    duvri_id = session.get('current_duvri_id')
+
+    if not duvri_id:
+        return False
+
+    try:
+        conn = get_db_connection()
+        
+        # Salva anche link_appaltatore se presente in memoria
+        link_appaltatore = None
+        if duvri_id in duvri_list:
+            link_appaltatore = duvri_list[duvri_id].get('link_appaltatore')
+        
+        conn.execute(
+            '''UPDATE duvri SET
+               committente_data = ?, appaltatore_data = ?, signatures = ?, 
+               link_appaltatore = ?, updated_at = ?
+               WHERE id = ?''',
+            (
+                json.dumps(data.get('committente', {})),
+                json.dumps(data.get('appaltatore', {})),
+                json.dumps(data.get('signatures', {})),
+                link_appaltatore,
+                datetime.now(),
+                duvri_id
+            )
+        )
+        conn.commit()
+        conn.close()
+
+        sync_db_to_memory(duvri_id)
+        return True
+
+    except Exception as e:
+        print(f"❌ ERRORE save_current_duvri_data: {e}")
+        return False
 
 def save_current_duvri_data(data):
     """Salva i dati del DUVRI corrente"""
@@ -255,13 +381,22 @@ def sync_db_to_memory(duvri_id):
         duvri_db = conn.execute('SELECT * FROM duvri WHERE id = ?', (duvri_id,)).fetchone()
         conn.close()
 
-        if duvri_db and duvri_id in duvri_list:
+        if not duvri_db:
+            return
+
+        if duvri_id in duvri_list:
+            # Aggiorna solo i dati serializzati
             duvri_list[duvri_id]['dati_committente'] = json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {}
             duvri_list[duvri_id]['dati_appaltatore'] = json.loads(duvri_db['appaltatore_data']) if duvri_db['appaltatore_data'] else {}
             duvri_list[duvri_id]['signatures'] = json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
-    except Exception as e:
-        print(f"❌ ERRORE sync_db_to_memory: {e}")
+            duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
+            print(f"✅ Sincronizzato DUVRI {duvri_id} da DB a memoria")
 
+    except Exception as e:
+        print(f"❌ Errore sync_db_to_memory: {e}")
+
+
+        
 def sync_all_duvri_from_db():
     """Sincronizza TUTTI i DUVRI dal database alla memoria"""
     try:
@@ -370,8 +505,9 @@ def processa_form_(request):
         'durata_giorni': request.form.get('durata_giorni'),
         'numero_tecnici': request.form.get('numero_tecnici'),
         'note_rischi_struttura': request.form.get('note_rischi_struttura'),
-        'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M')
-    }
+        'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M'),
+      
+}
 
 def trova_duvri_per_link(link_univoco):
     """Trova un DUVRI tramite il link appaltatore"""
@@ -500,6 +636,122 @@ def get_allegati_list(duvri_id):
 # =============================================
 # FUNZIONE COSTI
 # =============================================
+def calcola_e_confronta_costi(duvri_id):
+    """
+    Calcola costi operativi e confronta con quelli di gara.
+    Restituisce dizionario con analisi completa.
+    """
+    
+    data = get_current_duvri_data()
+    committente = data.get('committente', {})
+    appaltatore = data.get('appaltatore', {})
+    
+    # Informazioni gara
+    tipo_duvri = committente.get('tipo_duvri', 'operativo')
+    costi_inclusi = committente.get('costi_inclusi_gara', False)
+    costi_gara = float(committente.get('costi_sicurezza_gara', 0))
+    importo_gara = float(committente.get('importo_gara_base', 0))
+    
+    print(f"\n💰 CONFRONTO COSTI - DUVRI {duvri_id}")
+    print(f"   Tipo DUVRI: {tipo_duvri}")
+    print(f"   Costi inclusi in gara: {costi_inclusi}")
+    print(f"   Costi da gara: €{costi_gara:,.2f}")
+    
+    # Calcola costi operativi
+    try:
+        costi_operativi_dict = calcola_costi_sicurezza(data)
+        totale_operativo = sum([v for k, v in costi_operativi_dict.items() 
+                               if k.startswith('costo_') and isinstance(v, (int, float))])
+    except Exception as e:
+        print(f"⚠️ Errore calcolo costi: {e}")
+        totale_operativo = 0
+        costi_operativi_dict = {}
+    
+    print(f"   Costi operativi: €{totale_operativo:,.2f}")
+    
+    # LOGICA DECISIONALE
+    
+    if tipo_duvri == 'ricognitivo':
+        # DUVRI per documenti gara - primo calcolo
+        return {
+            'tipo': 'RICOGNITIVO',
+            'stato': 'PRIMO_CALCOLO',
+            'totale_operativo': totale_operativo,
+            'costi_operativi_dict': costi_operativi_dict,
+            'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+            'messaggio': f'Costi stimati per documenti gara: €{totale_operativo:,.2f}',
+            'alert_type': 'info',
+            'richiede_azione': False
+        }
+    
+    elif not costi_inclusi or costi_gara == 0:
+        # DUVRI operativo senza costi di gara previsti
+        return {
+            'tipo': 'OPERATIVO_SENZA_BASE',
+            'stato': 'PRIMO_CALCOLO_OPERATIVO',
+            'totale_operativo': totale_operativo,
+            'costi_operativi_dict': costi_operativi_dict,
+            'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+            'messaggio': f'Primo calcolo operativo (nessun costo previsto in gara): €{totale_operativo:,.2f}',
+            'alert_type': 'info',
+            'richiede_azione': False
+        }
+    
+    else:
+        # DUVRI operativo CON costi di gara - CONFRONTO
+        delta = totale_operativo - costi_gara
+        percentuale_delta = (delta / costi_gara * 100) if costi_gara > 0 else 0
+        
+        print(f"   Delta: €{delta:,.2f} ({percentuale_delta:+.1f}%)")
+        
+        if delta > 0:
+            # EXTRA-COSTI rilevati
+            return {
+                'tipo': 'OPERATIVO_CON_BASE',
+                'stato': 'EXTRA_COSTI',
+                'costi_gara': costi_gara,
+                'totale_operativo': totale_operativo,
+                'costi_operativi_dict': costi_operativi_dict,
+                'delta': delta,
+                'percentuale_delta': percentuale_delta,
+                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                'messaggio': f'⚠️ ATTENZIONE: Rilevati extra-costi per €{delta:,.2f} (+{percentuale_delta:.1f}%)',
+                'alert_type': 'warning',
+                'richiede_azione': True,
+                'azione_richiesta': 'integrazione_contrattuale'
+            }
+        
+        elif delta < 0:
+            # RISPARMIO (raro ma possibile)
+            return {
+                'tipo': 'OPERATIVO_CON_BASE',
+                'stato': 'RISPARMIO',
+                'costi_gara': costi_gara,
+                'totale_operativo': totale_operativo,
+                'costi_operativi_dict': costi_operativi_dict,
+                'delta': abs(delta),
+                'percentuale_delta': abs(percentuale_delta),
+                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                'messaggio': f'✅ Risparmio: €{abs(delta):,.2f} (-{abs(percentuale_delta):.1f}%) rispetto ai costi di gara',
+                'alert_type': 'success',
+                'richiede_azione': False
+            }
+        
+        else:
+            # PERFETTA CORRISPONDENZA (rarissimo)
+            return {
+                'tipo': 'OPERATIVO_CON_BASE',
+                'stato': 'CONFERMATO',
+                'costi_gara': costi_gara,
+                'totale_operativo': totale_operativo,
+                'costi_operativi_dict': costi_operativi_dict,
+                'delta': 0,
+                'percentuale_delta': 0,
+                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                'messaggio': '✅ Costi operativi corrispondono esattamente ai costi di gara',
+                'alert_type': 'success',
+                'richiede_azione': False
+            }
 
 def calcola_costi_sicurezza(data):
     """
@@ -552,11 +804,14 @@ def calcola_costi_sicurezza(data):
     # 1. COSTO BASE (% su importo)
     # ========================================
     
-    percentuale_base = 0.02
-    costo_base = max(importo_appalto * percentuale_base, 500)
+    # 🆕 Leggi percentuale dal committente (default 2%)
+    percentuale_base = float(committente.get('percentuale_costo_base', 2.0)) / 100
+    percentuale_base = max(0, min(percentuale_base, 0.03))  # Limita tra 0% e 3%
+    
+    costo_base = max(importo_appalto * percentuale_base, 500) if percentuale_base > 0 else 0
     
     print(f"\n1️⃣ COSTO BASE:")
-    print(f"   {percentuale_base*100}% di €{importo_appalto:,.2f} = €{costo_base:,.2f}")
+    print(f"   {percentuale_base*100:.1f}% di €{importo_appalto:,.2f} = €{costo_base:,.2f}")
     
     # ========================================
     # 2. COSTI PER LAVORATORE
@@ -690,7 +945,63 @@ def calcola_costi_sicurezza(data):
         print(f"   ⚠️ Percentuale alta (>20%)")
     else:
         print(f"   ✅ Percentuale nel range normale (3-20%)")
+    # ========================================
+    # 🆕 OVERRIDE CON VALORI MANUALI (se presenti)
+    # ========================================
     
+    if committente.get('usa_costi_manuali'):
+        print(f"\n🖊️ OVERRIDE MANUALE ATTIVO")
+        
+        # Sostituisci solo i valori manuali forniti
+        if committente.get('costo_incontri_manuale'):
+            costo_incontri_orig = costo_incontri
+            costo_incontri = float(committente.get('costo_incontri_manuale'))
+            print(f"   Incontri: €{costo_incontri_orig:,.2f} → €{costo_incontri:,.2f} (manuale)")
+        
+        if committente.get('costo_dpi_manuale'):
+            costo_dpi_totale_orig = costo_dpi_totale
+            costo_dpi_totale = float(committente.get('costo_dpi_manuale'))
+            print(f"   DPI: €{costo_dpi_totale_orig:,.2f} → €{costo_dpi_totale:,.2f} (manuale)")
+        
+        if committente.get('costo_impiantistica_manuale'):
+            costo_impiantistica_orig = costo_impiantistica
+            costo_impiantistica = float(committente.get('costo_impiantistica_manuale'))
+            print(f"   Impiantistica: €{costo_impiantistica_orig:,.2f} → €{costo_impiantistica:,.2f} (manuale)")
+        
+        if committente.get('costo_segnaletica_manuale'):
+            costo_segnaletica_orig = costo_segnaletica
+            costo_segnaletica = float(committente.get('costo_segnaletica_manuale'))
+            print(f"   Segnaletica: €{costo_segnaletica_orig:,.2f} → €{costo_segnaletica:,.2f} (manuale)")
+        
+        if committente.get('costo_presidi_manuale'):
+            costo_presidi_orig = costo_presidi
+            costo_presidi = float(committente.get('costo_presidi_manuale'))
+            print(f"   Presidi: €{costo_presidi_orig:,.2f} → €{costo_presidi:,.2f} (manuale)")
+        
+        if committente.get('costo_controlli_manuale'):
+            costo_controlli_orig = costo_controlli
+            costo_controlli = float(committente.get('costo_controlli_manuale'))
+            print(f"   Controlli: €{costo_controlli_orig:,.2f} → €{costo_controlli:,.2f} (manuale)")
+        
+        if committente.get('costo_altre_misure_manuale'):
+            costo_altre_misure_base_orig = costo_altre_misure + costo_base
+            costo_altre_misure = float(committente.get('costo_altre_misure_manuale'))
+            costo_base = 0  # Annulla costo base se manuale
+            print(f"   Altre misure: €{costo_altre_misure_base_orig:,.2f} → €{costo_altre_misure:,.2f} (manuale)")
+        
+        # Ricalcola totale con valori manuali
+        totale_generale = (costo_incontri + 
+                          costo_dpi_totale + 
+                          costo_impiantistica + 
+                          costo_controlli + 
+                          costo_segnaletica + 
+                          costo_presidi + 
+                          costo_altre_misure +
+                          (costo_base if not committente.get('costo_altre_misure_manuale') else 0))
+        
+        percentuale_su_appalto = (totale_generale / importo_appalto * 100) if importo_appalto > 0 else 0
+        
+        print(f"\n💰 TOTALE CON VALORI MANUALI: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}%)")
     # ========================================
     # RETURN
     # ========================================
@@ -711,7 +1022,7 @@ def calcola_costi_sicurezza(data):
 # =============================================
 # CONFIGURAZIONE UPLOAD FILE
 # =============================================
-ALLOWED_EXTENSIONS = {"pdf"}
+ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
 def allowed_file(filename):
     """Verifica se il file ha un'estensione permessa"""
@@ -757,6 +1068,34 @@ def admin_dashboard():
                          duvri_list=duvri_list,
                          current_duvri_id=session.get('current_duvri_id'))
 
+@app.route('/scarica_duvri_estar/<duvri_id>')
+def scarica_duvri_estar(duvri_id):
+    """Scarica il DUVRI ESTAR allegato"""
+    
+    # Verifica accesso
+    if session.get('current_duvri_id') != duvri_id:
+        flash('Accesso negato', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Recupera filename dal database
+    conn = get_db_connection()
+    duvri = conn.execute('SELECT duvri_estar_filename FROM duvri WHERE id = ?', 
+                         (duvri_id,)).fetchone()
+    conn.close()
+    
+    if not duvri or not duvri['duvri_estar_filename']:
+        flash('File non trovato', 'warning')
+        return redirect(url_for('committente_form'))
+    
+    filename = duvri['duvri_estar_filename']
+    filepath = os.path.join(app.config['UPLOAD_FOLDER_DUVRI_ESTAR'], filename)
+    
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    else:
+        flash('File non trovato sul server', 'danger')
+        return redirect(url_for('committente_form'))
+        
 @app.route('/nuovo_duvri')
 def nuovo_duvri():
     """Crea un nuovo DUVRI con link univoco per l'appaltatore"""
@@ -832,14 +1171,81 @@ def compila_committente():
             'note_rischi_struttura': request.form.get('note_rischi_struttura'),
             'costo_correzione': request.form.get('costo_correzione', '0'),
             'importo': request.form.get('importo', ''),
-            'oggetto': request.form.get('oggetto', ''),
-            'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M')
-        }
+            'percentuale_costo_base': request.form.get('percentuale_costo_base', '2'),
+            'percentuale_costo_base': request.form.get('percentuale_costo_base', '2'),
 
-        # Salva i dati
+            # 🆕 COSTI MANUALI
+            'usa_costi_manuali': 'usa_costi_manuali' in request.form,
+            'costo_incontri_manuale': request.form.get('costo_incontri_manuale', ''),
+            'costo_dpi_manuale': request.form.get('costo_dpi_manuale', ''),
+            'costo_impiantistica_manuale': request.form.get('costo_impiantistica_manuale', ''),
+            'costo_segnaletica_manuale': request.form.get('costo_segnaletica_manuale', ''),
+            'costo_presidi_manuale': request.form.get('costo_presidi_manuale', ''),
+            'costo_controlli_manuale': request.form.get('costo_controlli_manuale', ''),
+            'costo_altre_misure_manuale': request.form.get('costo_altre_misure_manuale', ''),
+            'oggetto': request.form.get('oggetto', ''),
+            'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            
+            # 🆕 NUOVI CAMPI GARA
+            'tipo_duvri': request.form.get('tipo_duvri', 'operativo'),
+            'fase_appalto': request.form.get('fase_appalto', 'esecuzione'),
+            'importo_gara_base': request.form.get('importo_gara_base', ''),
+            'costi_inclusi_gara': 'costi_inclusi_gara' in request.form,
+            'costi_sicurezza_gara': request.form.get('costi_sicurezza_gara', '0')
+        }
+        
+        # 🆕 GESTIONE UPLOAD DUVRI ESTAR
+        duvri_estar_filename = None
+        if 'duvri_estar_file' in request.files:
+            file = request.files['duvri_estar_file']
+            if file.filename != '':
+                duvri_estar_filename = salva_duvri_estar(file, duvri_id)
+                if duvri_estar_filename:
+                    dati_committente['duvri_estar_filename'] = duvri_estar_filename
+                    flash('✅ DUVRI ESTAR caricato con successo', 'success')
+
+        # Salva i dati in memoria
         duvri['dati_committente'] = dati_committente
         current_data = get_current_duvri_data()
         current_data['committente'] = dati_committente
+        
+        # 🆕 SALVA NEL DATABASE con i nuovi campi
+        try:
+            conn = get_db_connection()
+            conn.execute('''
+                UPDATE duvri SET 
+                    tipo_duvri = ?,
+                    fase_appalto = ?,
+                    importo_gara_base = ?,
+                    costi_inclusi_gara = ?,
+                    costi_sicurezza_gara = ?,
+                    duvri_estar_filename = ?,
+                    committente_data = ?,
+                    updated_at = ?
+                WHERE id = ?
+            ''', (
+                dati_committente.get('tipo_duvri', 'operativo'),
+                dati_committente.get('fase_appalto', 'esecuzione'),
+                float(dati_committente.get('importo_gara_base') or 0),
+                1 if dati_committente.get('costi_inclusi_gara') else 0,
+                float(dati_committente.get('costi_sicurezza_gara') or 0),
+                duvri_estar_filename,
+                json.dumps(dati_committente),
+                datetime.now(),
+                duvri_id
+            ))
+            conn.commit()
+            conn.close()
+            
+            print(f"✅ Dati committente salvati - DUVRI {duvri_id}")
+            print(f"   Tipo: {dati_committente.get('tipo_duvri')}")
+            print(f"   Costi gara: €{dati_committente.get('costi_sicurezza_gara', 0)}")
+            
+        except Exception as e:
+            print(f"❌ Errore salvataggio committente: {e}")
+            flash('Errore nel salvataggio', 'danger')
+            return redirect(url_for('compila_committente', duvri_id=duvri_id))
+        
         save_current_duvri_data(current_data)
 
         # Aggiorna stato
@@ -1145,13 +1551,46 @@ def summary():
             data['appaltatore'].update(costi_calcolati)
             save_current_duvri_data(data)
 
+    # 🆕 CONFRONTO COSTI (solo se appaltatore ha compilato)
+    confronto_costi = None
+    if data.get('appaltatore') and data['appaltatore'].get('max_addetti'):
+        try:
+            confronto_costi = calcola_e_confronta_costi(duvri_id)
+            print(f"✅ Confronto costi: {confronto_costi['stato']}")
+        except Exception as e:
+            print(f"⚠️ Errore confronto costi: {e}")
+            import traceback
+            traceback.print_exc()
+
     return render_template('summary.html',
                          data=data,
+                         confronto_costi=confronto_costi,  # 🆕 Passa confronto
                          duvri_list=duvri_list,
                          current_duvri_id=duvri_id,
                          WEASYPRINT_AVAILABLE=WEASYPRINT_AVAILABLE,
                          XHTML2PDF_AVAILABLE=XHTML2PDF_AVAILABLE)
-
+@app.route('/gestione_extra_costi/<duvri_id>')
+def gestione_extra_costi(duvri_id):
+    """
+    Pagina gestione extra-costi e integrazione contrattuale.
+    PLACEHOLDER per Fase 2 - per ora mostra solo info
+    """
+    
+    if session.get('current_duvri_id') != duvri_id:
+        flash('Accesso negato', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    confronto = calcola_e_confronta_costi(duvri_id)
+    
+    if not confronto.get('richiede_azione'):
+        flash('Nessun extra-costo rilevato', 'info')
+        return redirect(url_for('summary'))
+    
+    # Per ora mostra solo il confronto
+    # Fase 2: qui ci sarà il workflow completo
+    return render_template('extra_costi_placeholder.html',
+                         duvri_id=duvri_id,
+                         confronto=confronto)
 # =============================================
 # ROUTES SECONDARIE E LEGACY
 # =============================================
