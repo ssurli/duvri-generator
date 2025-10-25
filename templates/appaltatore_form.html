@@ -168,7 +168,30 @@
                     <div class="mb-3">
                         <label for="max_addetti" class="form-label">Numero massimo addetti previsti contemporaneamente nell'area di lavoro:</label>
                         <input type="number" id="max_addetti" name="max_addetti" value="{{ data.get('max_addetti','') }}" min="1" required class="form-control">
+                        <small class="text-muted">Utilizzato per calcolo DPI, formazione e sorveglianza sanitaria</small>
                     </div>
+                    
+                    <!-- 🆕 DURATA LAVORI -->
+                    <div class="col-md-6">
+                        <label for="durata_giorni" class="form-label">Durata prevista dei lavori (giorni):</label>
+                        <input type="number" id="durata_giorni" name="durata_giorni" value="{{ data.get('durata_giorni','') }}" min="1" max="365" required class="form-control">
+                        <small class="text-muted">Utilizzato per calcolo incontri coordinamento e controlli periodici</small>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <strong>ℹ️ Calcolo Automatico Costi Sicurezza</strong><br>
+                        I costi di sicurezza saranno calcolati automaticamente in conformità all'art. 26 D.Lgs. 81/08, 
+                        utilizzando i parametri forniti:
+                        <ul class="mb-0 mt-1">
+                            <li><strong>Importo appalto</strong>: fornito dal committente (€{{ dati_committente.get('importo', 'N/D') if dati_committente else 'N/D' }})</li>
+                            <li><strong>Numero lavoratori</strong>: da indicare sopra</li>
+                            <li><strong>Durata lavori</strong>: da indicare sopra</li>
+                            <li><strong>Rischi</strong>: quelli che selezionerai più avanti nel form</li>
+                        </ul>
+                    </small>
+                </div>
                 </fieldset>
 
                 <fieldset class="mb-4">
@@ -196,6 +219,40 @@
                         <textarea id="oggetto" name="oggetto" rows="3" class="form-control">{{ data.get('oggetto','') }}</textarea>
                     </div>
                 </fieldset>
+
+                <!-- 🆕 SEZIONE RISCHI COMMITTENTE -->
+                {% if dati_committente and dati_committente.rischi_struttura %}
+                <fieldset class="mb-4" style="background-color: #f0f8ff; border-color: #17a2b8;">
+                    <legend class="fw-bold fs-5" style="color: #17a2b8;">ℹ️ Rischi della Struttura già Identificati dal Committente</legend>
+                    <p class="text-muted">Il committente ha già identificato i seguenti rischi presenti nella struttura. <strong>Considera questi rischi quando selezioni i tuoi rischi di lavorazione</strong> per identificare le possibili interferenze:</p>
+                    
+                    <div class="alert alert-info">
+                        <strong>📍 Struttura:</strong> {{ dati_committente.get('tipologia_struttura', 'N/D') }} - {{ dati_committente.get('area_installazione', 'N/D') }}<br>
+                        <strong>👥 Presenza pazienti durante i lavori:</strong> {{ dati_committente.get('presenza_pazienti', 'N/D') }}
+                        {% if dati_committente.get('importo') %}
+                        <br><strong>💰 Importo servizio:</strong> € {{ dati_committente.get('importo') }}
+                        {% endif %}
+                    </div>
+                    
+                    <h6 class="fw-bold mt-3">⚠️ Rischi Identificati:</h6>
+                    <div class="row">
+                        {% for rischio in dati_committente.rischi_struttura %}
+                        <div class="col-md-6 mb-2">
+                            <div class="alert alert-warning mb-0 py-2">
+                                <small>⚠️ <strong>{{ rischio }}</strong></small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if dati_committente.note_rischi_struttura %}
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <strong>📝 Note aggiuntive del committente:</strong>
+                        <p class="text-muted fst-italic mb-0 mt-2">{{ dati_committente.note_rischi_struttura }}</p>
+                    </div>
+                    {% endif %}
+                </fieldset>
+                {% endif %}
 
                 <fieldset class="mb-4">
                     <legend class="fw-bold fs-5">Rischi interferenti identificati - Installazione Apparecchiature HTA</legend>

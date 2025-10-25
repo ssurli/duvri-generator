@@ -138,101 +138,85 @@
             </div>
             {% endif %}
 
-            <!-- Costi di Sicurezza -->
+ <!-- ============================================
+   SEZIONE COSTI PULITA - SOLO VISUALIZZAZIONE
+   File: templates/summary.html
+   Linea: circa 141-233
+   ============================================ -->
+
+            <!-- Costi di Sicurezza (SOLO VISUALIZZAZIONE) -->
             {% if data.appaltatore.costi_presenti %}
             <div class="mt-4">
-                <h5>Costi di Sicurezza</h5>
-                {% set costi_totali = (data.appaltatore.get('costo_incontri', 0)|float + data.appaltatore.get('costo_dpi', 0)|float + data.appaltatore.get('costo_impiantistica', 0)|float + data.appaltatore.get('costo_segnaletica', 0)|float + data.appaltatore.get('costo_presidi', 0)|float + data.appaltatore.get('costo_controlli', 0)|float + data.appaltatore.get('costo_altre_misure', 0)|float) %}
+                <h5>💰 Costi di Sicurezza</h5>
+                {% set costi_totali = (
+                    data.appaltatore.get('costo_incontri', 0)|float + 
+                    data.appaltatore.get('costo_dpi', 0)|float + 
+                    data.appaltatore.get('costo_impiantistica', 0)|float + 
+                    data.appaltatore.get('costo_segnaletica', 0)|float + 
+                    data.appaltatore.get('costo_presidi', 0)|float + 
+                    data.appaltatore.get('costo_controlli', 0)|float + 
+                    data.appaltatore.get('costo_altre_misure', 0)|float
+                ) %}
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Incontri di coordinamento:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_incontri', 0)|float) }}</p>
-                        <p><strong>DPI:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_dpi', 0)|float) }}</p>
-                        <p><strong>Impiantistica sicurezza:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_impiantistica', 0)|float) }}</p>
-                        <p><strong>Segnaletica:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_segnaletica', 0)|float) }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Presidi antincendio:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_presidi', 0)|float) }}</p>
-                        <p><strong>Controlli periodici:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_controlli', 0)|float) }}</p>
-                        <p><strong>Altre misure:</strong> € {{ "%.2f"|format(data.appaltatore.get('costo_altre_misure', 0)|float) }}</p>
-                        <p><strong class="text-primary">TOTALE:</strong> € {{ "%.2f"|format(costi_totali) }}</p>
-                    </div>
-                </div>
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Voce di Costo</th>
+                            <th class="text-end">Importo (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Incontri di coordinamento</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_incontri', 0)|float) }}</td>
+                        </tr>
+                        <tr>
+                            <td>DPI e protezioni individuali</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_dpi', 0)|float) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Impiantistica sicurezza</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_impiantistica', 0)|float) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Segnaletica e delimitazioni</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_segnaletica', 0)|float) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Presidi antincendio</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_presidi', 0)|float) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Controlli e verifiche periodiche</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_controlli', 0)|float) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Altre misure e costo base</td>
+                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_altre_misure', 0)|float) }}</td>
+                        </tr>
+                        <tr class="table-success fw-bold">
+                            <td>TOTALE COSTI SICUREZZA</td>
+                            <td class="text-end">{{ "%.2f"|format(costi_totali) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
 
                 {% if data.appaltatore.note_costi_sicurezza %}
-                <p><strong>Note:</strong> {{ data.appaltatore.note_costi_sicurezza }}</p>
+                <div class="alert alert-info">
+                    <strong>ℹ️ Dettagli calcolo:</strong><br>
+                    {{ data.appaltatore.note_costi_sicurezza }}
+                </div>
                 {% endif %}
 
-                <!-- Form modifica costi -->
-                <form method="POST" action="{{ url_for('salva_costi') }}" class="mt-3">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label>Incontri</label>
-                            <input type="number" step="0.01" name="costo_incontri"
-                                   value="{{ data.appaltatore.get('costo_incontri', 0) }}" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label>DPI</label>
-                            <input type="number" step="0.01" name="costo_dpi"
-                                   value="{{ data.appaltatore.get('costo_dpi', 0) }}" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label>Impiantistica</label>
-                            <input type="number" step="0.01" name="costo_impiantistica"
-                                   value="{{ data.appaltatore.get('costo_impiantistica', 0) }}" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label>Segnaletica</label>
-                            <input type="number" step="0.01" name="costo_segnaletica"
-                                   value="{{ data.appaltatore.get('costo_segnaletica', 0) }}" class="form-control">
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-3">
-                            <label>Presidi</label>
-                            <input type="number" step="0.01" name="costo_presidi"
-                                   value="{{ data.appaltatore.get('costo_presidi', 0) }}" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label>Controlli</label>
-                            <input type="number" step="0.01" name="costo_controlli"
-                                   value="{{ data.appaltatore.get('costo_controlli', 0) }}" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label>Altre misure</label>
-                            <input type="number" step="0.01" name="costo_altre_misure"
-                                   value="{{ data.appaltatore.get('costo_altre_misure', 0) }}" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label>Note</label>
-                            <input type="text" name="note_costi_sicurezza"
-                                   value="{{ data.appaltatore.get('note_costi_sicurezza', '') }}" class="form-control"
-                                   placeholder="Note sui costi">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-warning mt-3">Salva Costi</button>
-                </form>
+                <!-- Badge -->
+                <div class="mt-2">
+                    {% if data.appaltatore and data.appaltatore.costi_calcolati_auto %}
+                    <span class="badge bg-success">✅ Calcolati Automaticamente</span>
+                    <span class="badge bg-info">Conformi D.Lgs. 81/08 art. 26</span>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
-
-            <div class="costi-actions mt-3">
-                <form action="{{ url_for('ricalcola_costi') }}" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-warning btn-sm">
-                        🔄 Ricalcola Automaticamente
-                    </button>
-                </form>
-
-                <form action="{{ url_for('reset_costi') }}" method="post" class="d-inline ms-2">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">
-                        🗑️ Reset Costi
-                    </button>
-                </form>
-
-                {% if data.appaltatore and data.appaltatore.costi_calcolati_auto %}
-                <span class="badge bg-info ms-2">Costi Calcolati Automaticamente</span>
-                {% endif %}
-            </div>
-
 
 
             <!-- Firma -->

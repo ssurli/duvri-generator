@@ -146,12 +146,13 @@ RISCHI_COMMITTENTE = [
 # =============================================
 # FUNZIONI DATABASE SQLite
 # =============================================
-
 def get_db_connection():
+    """Crea connessione al database SQLite"""
     db_path = os.path.join(BASE_DIR, 'duvri.db')
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 def init_db():
     """Inizializza il database per multipli DUVRI"""
@@ -161,6 +162,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS duvri (
             id TEXT PRIMARY KEY,
             nome_progetto TEXT,
+            link_appaltatore TEXT,
             committente_data TEXT,
             appaltatore_data TEXT,
             signatures TEXT,
@@ -170,6 +172,15 @@ def init_db():
         )
     ''')
     conn.commit()
+    
+    # 🆕 Aggiungi colonna se non esiste (per database esistenti)
+    try:
+        c.execute("ALTER TABLE duvri ADD COLUMN link_appaltatore TEXT")
+        conn.commit()
+        print("✅ Colonna link_appaltatore aggiunta")
+    except:
+        pass  # Colonna già esiste
+    
     conn.close()
 
 def get_current_duvri_data():
@@ -207,14 +218,22 @@ def save_current_duvri_data(data):
 
     try:
         conn = get_db_connection()
+        
+        # 🆕 Salva anche link_appaltatore se presente in memoria
+        link_appaltatore = None
+        if duvri_id in duvri_list:
+            link_appaltatore = duvri_list[duvri_id].get('link_appaltatore')
+        
         conn.execute(
             '''UPDATE duvri SET
-               committente_data = ?, appaltatore_data = ?, signatures = ?, updated_at = ?
+               committente_data = ?, appaltatore_data = ?, signatures = ?, 
+               link_appaltatore = ?, updated_at = ?
                WHERE id = ?''',
             (
                 json.dumps(data.get('committente', {})),
                 json.dumps(data.get('appaltatore', {})),
                 json.dumps(data.get('signatures', {})),
+                link_appaltatore,
                 datetime.now(),
                 duvri_id
             )
@@ -258,7 +277,7 @@ def sync_all_duvri_from_db():
                 duvri_list[duvri_id] = {
                     'id': duvri_id,
                     'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Senza Nome',
-                    'link_appaltatore': str(uuid.uuid4()),
+                    'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # ✅ CARICA DA DB
                     'stato': duvri_db['stato'] or 'bozza',
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -356,10 +375,57 @@ def processa_form_(request):
 
 def trova_duvri_per_link(link_univoco):
     """Trova un DUVRI tramite il link appaltatore"""
+    
+    # 1. Cerca in memoria (veloce)
     for duvri_id, duvri in duvri_list.items():
         if duvri.get('link_appaltatore') == link_univoco:
+            print(f"✅ DUVRI trovato in memoria: {duvri_id}")
             return duvri, duvri_id
-    return None, None
+    
+    # 2. Cerca nel database
+    print(f"🔍 Cerco nel database link: {link_univoco}")
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 🆕 Cerca nella colonna link_appaltatore
+        cursor.execute("""
+            SELECT * FROM duvri 
+            WHERE link_appaltatore = ?
+        """, (link_univoco,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            duvri_id = row['id']
+            print(f"✅ DUVRI trovato nel DB: {duvri_id}")
+            
+            # Carica in memoria
+            if duvri_id not in duvri_list:
+                duvri_list[duvri_id] = {
+                    'id': duvri_id,
+                    'nome_progetto': row['nome_progetto'] or 'DUVRI',
+                    'link_appaltatore': row['link_appaltatore'],
+                    'stato': row['stato'] or 'bozza',
+                    'created_at': row['created_at'],
+                    'dati_committente': json.loads(row['committente_data']) if row['committente_data'] else {},
+                    'dati_appaltatore': json.loads(row['appaltatore_data']) if row['appaltatore_data'] else {},
+                    'signatures': json.loads(row['signatures']) if row['signatures'] else {}
+                }
+                print(f"💾 DUVRI caricato in memoria")
+            
+            return duvri_list[duvri_id], duvri_id
+        else:
+            print(f"❌ Link non trovato nel database")
+            return None, None
+            
+    except Exception as e:
+        print(f"❌ Errore: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None
 
 def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     """Salva i dati dell'appaltatore in modo unificato"""
@@ -370,6 +436,32 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     # Salva nel database
     current_data = get_current_duvri_data()
     current_data['appaltatore'] = dati_appaltatore
+    
+    # 🆕 CALCOLO AUTOMATICO COSTI SICUREZZA
+    # Verifica che ci siano tutti i parametri necessari
+    ha_importo = current_data.get('committente', {}).get('importo')
+    ha_lavoratori = dati_appaltatore.get('max_addetti')
+    ha_durata = dati_appaltatore.get('durata_giorni')
+    
+    if ha_importo and ha_lavoratori and ha_durata:
+        print("\n🔢 Calcolo costi sicurezza parametrico...")
+        try:
+            costi_calcolati = calcola_costi_sicurezza(current_data)
+            current_data['appaltatore'].update(costi_calcolati)
+            dati_appaltatore.update(costi_calcolati)
+            print(f"✅ Costi calcolati e salvati")
+        except Exception as e:
+            print(f"❌ Errore calcolo costi: {e}")
+    else:
+        print(f"⚠️ Parametri mancanti per calcolo costi:")
+        print(f"   - Importo committente: {'✅' if ha_importo else '❌'}")
+        print(f"   - Max addetti: {'✅' if ha_lavoratori else '❌'}")
+        print(f"   - Durata giorni: {'✅' if ha_durata else '❌'}")
+    
+    # Aggiorna anche in memoria
+    if duvri_id in duvri_list:
+        duvri_list[duvri_id]['dati_appaltatore'] = dati_appaltatore
+    
     save_current_duvri_data(current_data)
 
     # Aggiorna stato
@@ -410,78 +502,211 @@ def get_allegati_list(duvri_id):
 # =============================================
 
 def calcola_costi_sicurezza(data):
-    """Calcola automaticamente i costi basati sui rischi identificati"""
-    costi = {
-        'costo_incontri': 0.00,
-        'costo_dpi': 0.00,
-        'costo_impiantistica': 0.00,
-        'costo_segnaletica': 0.00,
-        'costo_presidi': 0.00,
-        'costo_controlli': 0.00,
-        'costo_altre_misure': 0.00,
-        'costi_presenti': False
+    """
+    Calcola i costi di sicurezza in modo parametrico usando CAMPI ESISTENTI.
+    
+    Parametri utilizzati:
+    - committente.importo → Importo appalto
+    - appaltatore.max_addetti → Numero lavoratori
+    - appaltatore.durata_giorni → Durata lavori (NUOVO campo)
+    - committente.rischi_struttura → Rischi committente
+    - appaltatore.rischi → Rischi appaltatore
+    """
+    
+    # ========================================
+    # PARAMETRI DA DATI ESISTENTI
+    # ========================================
+    
+    appaltatore = data.get('appaltatore', {})
+    committente = data.get('committente', {})
+    
+    # 🆕 Usa campi esistenti
+    importo_appalto = float(committente.get('importo', 0))
+    numero_lavoratori = int(appaltatore.get('max_addetti', 1))
+    durata_giorni = int(appaltatore.get('durata_giorni', 1))
+    
+    rischi_committente = committente.get('rischi_struttura', [])
+    rischi_appaltatore = appaltatore.get('rischi', [])
+    
+    print(f"\n💰 CALCOLO COSTI PARAMETRICO")
+    print(f"📊 Importo appalto (committente): €{importo_appalto:,.2f}")
+    print(f"👷 Lavoratori (appaltatore.max_addetti): {numero_lavoratori}")
+    print(f"📅 Durata (appaltatore.durata_giorni): {durata_giorni} giorni")
+    print(f"⚠️ Rischi committente: {len(rischi_committente)}")
+    print(f"⚠️ Rischi appaltatore: {len(rischi_appaltatore)}")
+    
+    # Validazione
+    if importo_appalto <= 0:
+        print("⚠️ ATTENZIONE: Importo appalto non valido, uso minimo €5.000")
+        importo_appalto = 5000
+    
+    if numero_lavoratori <= 0:
+        print("⚠️ ATTENZIONE: Numero lavoratori non valido, uso 1")
+        numero_lavoratori = 1
+    
+    if durata_giorni <= 0:
+        print("⚠️ ATTENZIONE: Durata non valida, uso 5 giorni")
+        durata_giorni = 5
+    
+    # ========================================
+    # 1. COSTO BASE (% su importo)
+    # ========================================
+    
+    percentuale_base = 0.02
+    costo_base = max(importo_appalto * percentuale_base, 500)
+    
+    print(f"\n1️⃣ COSTO BASE:")
+    print(f"   {percentuale_base*100}% di €{importo_appalto:,.2f} = €{costo_base:,.2f}")
+    
+    # ========================================
+    # 2. COSTI PER LAVORATORE
+    # ========================================
+    
+    costo_dpi_base = 150
+    costo_dpi_rischi = 0
+    
+    DPI_RISCHI = {
+        'biologico': 100,
+        'chimico': 120,
+        'radiologico': 150,
+        'elettric': 80,  # Cattura "elettrico", "elettrici"
+        'caduta': 120,
+        'quota': 120,    # Cattura "lavori in quota"
+        'rumore': 40,
+        'vibrazioni': 30,
     }
-
-    # Lista di tutti i rischi identificati (committente + appaltatore)
-    tutti_rischi = []
-    if data.get('committente', {}).get('rischi_struttura'):
-        tutti_rischi.extend(data['committente']['rischi_struttura'])
-    if data.get('appaltatore', {}).get('rischi'):
-        tutti_rischi.extend(data['appaltatore']['rischi'])
-
-    if not tutti_rischi:
-        return costi
-
-    rischi_con_costi = False
-
-    for rischio in tutti_rischi:
-        rischio_lower = rischio.lower()
-        rischio_ha_costi = False
-
-        if any(term in rischio_lower for term in ['elettric', 'tensione', 'corrente']):
-            costi['costo_dpi'] += 200.00
-            costi['costo_impiantistica'] += 300.00
-            rischio_ha_costi = True
-
-        if any(term in rischio_lower for term in ['caduta', 'altezza', 'scale']):
-            costi['costo_dpi'] += 250.00
-            costi['costo_segnaletica'] += 150.00
-            rischio_ha_costi = True
-
-        if any(term in rischio_lower for term in ['chimic', 'gas', 'inalazione']):
-            costi['costo_dpi'] += 300.00
-            costi['costo_controlli'] += 200.00
-            rischio_ha_costi = True
-
-        if any(term in rischio_lower for term in ['rumore', 'vibrazioni']):
-            costi['costo_dpi'] += 150.00
-            costi['costo_controlli'] += 180.00
-            rischio_ha_costi = True
-
-        if any(term in rischio_lower for term in ['incendio', 'fuoco']):
-            costi['costo_presidi'] += 400.00
-            costi['costo_segnaletica'] += 100.00
-            rischio_ha_costi = True
-
-        if any(term in rischio_lower for term in ['biologico', 'contagio', 'pazienti']):
-            costi['costo_dpi'] += 350.00
-            costi['costo_controlli'] += 250.00
-            rischio_ha_costi = True
-
-        if any(term in rischio_lower for term in ['radiazioni', 'radiologico', 'ionizzanti', 'non ionizzanti', 'elettromagnetici']):
-            costi['costo_dpi'] += 400.00
-            costi['costo_controlli'] += 300.00
-            rischio_ha_costi = True
-
-        if rischio_ha_costi:
-            costi['costo_incontri'] += 150.00
-            costi['costo_altre_misure'] += 100.00
-            rischi_con_costi = True
-
-    costi_totali = sum([costi[key] for key in costi if key.startswith('costo_') and not key == 'costi_presenti'])
-    costi['costi_presenti'] = costi_totali > 0 and rischi_con_costi
-
-    return costi
+    
+    tutti_rischi = rischi_committente + rischi_appaltatore
+    
+    for rischio_str in tutti_rischi:
+        rischio_lower = rischio_str.lower()
+        for chiave, costo in DPI_RISCHI.items():
+            if chiave in rischio_lower:
+                costo_dpi_rischi += costo
+                break
+    
+    costo_formazione = 200
+    
+    ha_rischi_sanitari = any(
+        keyword in rischio_str.lower()
+        for rischio_str in tutti_rischi
+        for keyword in ['biologico', 'chimico', 'radiologico', 'rumore', 'vibrazioni']
+    )
+    costo_sorveglianza = 150 if ha_rischi_sanitari else 0
+    
+    costo_per_lavoratore = (costo_dpi_base + costo_dpi_rischi + 
+                            costo_formazione + costo_sorveglianza)
+    costo_totale_lavoratori = costo_per_lavoratore * numero_lavoratori
+    
+    print(f"\n2️⃣ COSTI PER LAVORATORE:")
+    print(f"   DPI base: €{costo_dpi_base}")
+    print(f"   DPI rischi specifici: €{costo_dpi_rischi}")
+    print(f"   Formazione: €{costo_formazione}")
+    print(f"   Sorveglianza sanitaria: €{costo_sorveglianza}")
+    print(f"   → Per lavoratore: €{costo_per_lavoratore}")
+    print(f"   → Totale ({numero_lavoratori} lavoratori): €{costo_totale_lavoratori:,.2f}")
+    
+    # ========================================
+    # 3. COSTI SPECIFICI PER RISCHI
+    # ========================================
+    
+    COSTI_RISCHIO = {
+        'biologico': {'impiantistica': 500, 'controlli': 300},
+        'chimico': {'impiantistica': 600, 'controlli': 400},
+        'radiologico': {'impiantistica': 800, 'controlli': 500},
+        'elettric': {'impiantistica': 400, 'controlli': 200},
+        'caduta': {'impiantistica': 600, 'segnaletica': 300},
+        'quota': {'impiantistica': 600, 'segnaletica': 300},
+        'incendio': {'impiantistica': 500, 'presidi': 400},
+        'rumore': {'controlli': 300},
+        'pazient': {'segnaletica': 400, 'altre_misure': 300},
+    }
+    
+    costo_impiantistica = 0
+    costo_controlli = 0
+    costo_segnaletica = 0
+    costo_presidi = 0
+    costo_altre_misure = 0
+    
+    for rischio_str in tutti_rischi:
+        rischio_lower = rischio_str.lower()
+        for chiave, valori in COSTI_RISCHIO.items():
+            if chiave in rischio_lower:
+                costo_impiantistica += valori.get('impiantistica', 0)
+                costo_controlli += valori.get('controlli', 0)
+                costo_segnaletica += valori.get('segnaletica', 0)
+                costo_presidi += valori.get('presidi', 0)
+                costo_altre_misure += valori.get('altre_misure', 0)
+                break
+    
+    print(f"\n3️⃣ COSTI SPECIFICI RISCHI:")
+    print(f"   Impiantistica: €{costo_impiantistica:,.2f}")
+    print(f"   Controlli: €{costo_controlli:,.2f}")
+    print(f"   Segnaletica: €{costo_segnaletica:,.2f}")
+    print(f"   Presidi: €{costo_presidi:,.2f}")
+    print(f"   Altre misure: €{costo_altre_misure:,.2f}")
+    
+    # ========================================
+    # 4. COSTI LEGATI ALLA DURATA
+    # ========================================
+    
+    numero_incontri = max(1, durata_giorni // 5)
+    costo_per_incontro = 250
+    costo_incontri = numero_incontri * costo_per_incontro
+    
+    numero_controlli_periodici = max(1, durata_giorni // 10)
+    costo_per_controllo = 200
+    costo_controlli_periodici = numero_controlli_periodici * costo_per_controllo
+    
+    costo_controlli += costo_controlli_periodici
+    
+    print(f"\n4️⃣ COSTI DURATA ({durata_giorni} giorni):")
+    print(f"   Incontri coordinamento: {numero_incontri} × €{costo_per_incontro} = €{costo_incontri:,.2f}")
+    print(f"   Controlli periodici: {numero_controlli_periodici} × €{costo_per_controllo} = €{costo_controlli_periodici:,.2f}")
+    
+    # ========================================
+    # 5. TOTALE
+    # ========================================
+    
+    costo_dpi_totale = costo_dpi_base * numero_lavoratori + costo_dpi_rischi * numero_lavoratori
+    
+    totale_generale = (costo_base + 
+                      costo_totale_lavoratori + 
+                      costo_impiantistica + 
+                      costo_controlli + 
+                      costo_segnaletica + 
+                      costo_presidi + 
+                      costo_altre_misure + 
+                      costo_incontri)
+    
+    percentuale_su_appalto = (totale_generale / importo_appalto * 100) if importo_appalto > 0 else 0
+    
+    print(f"\n💰 TOTALE COSTI SICUREZZA:")
+    print(f"   €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% dell'appalto)")
+    
+    if percentuale_su_appalto < 3:
+        print(f"   ⚠️ Percentuale bassa (<3%)")
+    elif percentuale_su_appalto > 20:
+        print(f"   ⚠️ Percentuale alta (>20%)")
+    else:
+        print(f"   ✅ Percentuale nel range normale (3-20%)")
+    
+    # ========================================
+    # RETURN
+    # ========================================
+    
+    return {
+        'costo_incontri': round(costo_incontri, 2),
+        'costo_dpi': round(costo_dpi_totale, 2),
+        'costo_impiantistica': round(costo_impiantistica, 2),
+        'costo_segnaletica': round(costo_segnaletica, 2),
+        'costo_presidi': round(costo_presidi, 2),
+        'costo_controlli': round(costo_controlli, 2),
+        'costo_altre_misure': round(costo_altre_misure + costo_base, 2),
+        'costi_presenti': True,
+        'costi_calcolati_auto': True,
+        'note_costi_sicurezza': f'Calcolati parametricamente: importo €{importo_appalto:,.2f}, {numero_lavoratori} lavoratori, {durata_giorni} giorni, {len(tutti_rischi)} rischi. Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto).'
+    }
 
 # =============================================
 # CONFIGURAZIONE UPLOAD FILE
@@ -662,8 +887,11 @@ def compila_appaltatore():
 
     # GET: mostra form con dati esistenti
     data = duvri.get('dati_appaltatore', {})
+    dati_committente = duvri.get('dati_committente', {})  # 🆕 Aggiungi dati committente
+    
     return render_template('appaltatore_form.html',
                          data=data,
+                         dati_committente=dati_committente,  # 🆕 Passa al template
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
                          duvri_id=duvri_id)
@@ -693,8 +921,11 @@ def appaltatore_form(link_univoco):
             # ✅ 2. In caso di errori, RIMANI sul form
             for errore in errori:
                 flash(errore, 'danger')
+            dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕
+            
             return render_template('appaltatore_form.html',
-                                 data=request.form,  # ✅ Mantieni dati inseriti
+                                 data=request.form,
+                                 dati_committente=dati_committente,  # 🆕 Nuovo parametro
                                  rischi_paragrafi=RISCHI_PARAGRAFI,
                                  rischi_hta=RISCHI_HTA,
                                  duvri_id=duvri_id)
@@ -704,12 +935,15 @@ def appaltatore_form(link_univoco):
         salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
 
         flash('✅ Dati salvati correttamente!', 'success')
-        return redirect(url_for('summary', link_univoco=link_univoco))
+        return redirect(url_for('summary'))
 
     # GET: mostra form con dati esistenti
     data = duvri_trovato.get('dati_appaltatore', {})
+    dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕 Passa dati committente
+    
     return render_template('appaltatore_form.html',
                          data=data,
+                         dati_committente=dati_committente,  # 🆕 Nuovo parametro
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
                          duvri_id=duvri_id)
@@ -826,28 +1060,48 @@ def emergency_recover():
 @app.route('/ricalcola_costi', methods=['POST'])
 def ricalcola_costi():
     """Ricalcola i costi di sicurezza"""
+    print("\n🔄 RICALCOLA COSTI")
+    
     duvri_id = session.get('current_duvri_id')
+    print(f"📊 DUVRI ID: {duvri_id}")
 
     if not duvri_id:
         flash("Nessun DUVRI selezionato", "warning")
         return redirect(url_for('summary'))
 
     data = get_current_duvri_data()
+    print(f"📊 Appaltatore presente: {bool(data.get('appaltatore'))}")
 
     if data.get('appaltatore'):
+        # Rimuove flag modifiche manuali
+        if 'costi_modificati_manualmente' in data['appaltatore']:
+            del data['appaltatore']['costi_modificati_manualmente']
+            print("✅ Flag modifiche manuali rimosso")
+        
         # Calcola nuovi costi
         costi_calcolati = calcola_costi_sicurezza(data)
+        print(f"💰 TOTALE calcolato: {sum([v for k,v in costi_calcolati.items() if k.startswith('costo_') and isinstance(v, (int, float))])}")
 
-        # Mantiene le note se esistono
+        # Mantiene le note
         note_esistenti = data['appaltatore'].get('note_costi_sicurezza', '')
         costi_calcolati['note_costi_sicurezza'] = note_esistenti
+        costi_calcolati['costi_calcolati_auto'] = True
 
-        # Aggiorna i dati
+        # 🆕 AGGIORNA anche in memoria (duvri_list)
+        if duvri_id in duvri_list:
+            if 'dati_appaltatore' not in duvri_list[duvri_id]:
+                duvri_list[duvri_id]['dati_appaltatore'] = {}
+            duvri_list[duvri_id]['dati_appaltatore'].update(costi_calcolati)
+            print("✅ Aggiornato in memoria (duvri_list)")
+
+        # Aggiorna i dati e salva
         data['appaltatore'].update(costi_calcolati)
         save_current_duvri_data(data)
+        print("✅ Salvato nel database")
 
         flash("✅ Costi ricalcolati con successo!", "success")
     else:
+        print("❌ Nessun appaltatore")
         flash("⚠️ Nessun dato appaltatore trovato", "warning")
 
     return redirect(url_for('summary'))
@@ -1778,72 +2032,6 @@ def _genera_pdf_base(duvri_id, destinazione):
         as_attachment=True,
         download_name=f"DUVRI_da_firmare.pdf"
     )
-
-@app.route('/salva_costi', methods=['POST'])
-def salva_costi():
-    """Salva i costi manualmente"""
-    data = get_current_duvri_data()
-
-    if 'appaltatore' not in data:
-        data['appaltatore'] = {}
-
-     # Recupera e converti i valori
-    try:
-        data['appaltatore']['costo_incontri'] = float(request.form.get('costo_incontri', '0') or '0')
-        data['appaltatore']['costo_dpi'] = float(request.form.get('costo_dpi', '0') or '0')
-        data['appaltatore']['costo_impiantistica'] = float(request.form.get('costo_impiantistica', '0') or '0')
-        data['appaltatore']['costo_segnaletica'] = float(request.form.get('costo_segnaletica', '0') or '0')
-        data['appaltatore']['costo_presidi'] = float(request.form.get('costo_presidi', '0') or '0')
-        data['appaltatore']['costo_controlli'] = float(request.form.get('costo_controlli', '0') or '0')
-        data['appaltatore']['costo_altre_misure'] = float(request.form.get('costo_altre_misure', '0') or '0')
-    except ValueError:
-        flash('Errore: inserire valori numerici validi per i costi', 'error')
-        return redirect(url_for('summary'))
-
-    data['appaltatore']['note_costi_sicurezza'] = request.form.get('note_costi_sicurezza', '')
-
-    # Segnala che questi sono costi manuali (non automatici)
-    data['appaltatore']['costi_calcolati_auto'] = False
-
-    save_current_duvri_data(data)
-    flash('Costi salvati correttamente!', 'success')
-    return redirect(url_for('summary'))
-
-@app.route('/reset_costi', methods=['POST'])
-def reset_costi():
-    """Resetta i costi e forza il ricalcolo automatico - VERSIONE CORRETTA"""
-    duvri_id = session.get('current_duvri_id')
-
-    if not duvri_id:
-        flash("Nessun DUVRI selezionato", "warning")
-        return redirect(url_for('summary'))
-
-    data = get_current_duvri_data()
-
-    if data.get('appaltatore'):
-        # PULISCE COMPLETAMENTE i campi costi esistenti
-        campi_costi = [
-            'costo_incontri', 'costo_dpi', 'costo_impiantistica',
-            'costo_segnaletica', 'costo_presidi', 'costo_controlli',
-            'costo_altre_misure', 'costi_presenti'
-        ]
-
-        for campo in campi_costi:
-            if campo in data['appaltatore']:
-                del data['appaltatore'][campo]
-
-        # Rimuove anche i flag
-        if 'costi_calcolati_auto' in data['appaltatore']:
-            del data['appaltatore']['costi_calcolati_auto']
-
-        # SALVA i dati puliti
-        save_current_duvri_data(data)
-
-        flash("✅ Costi resettati con successo! Saranno ricalcolati automaticamente.", "success")
-    else:
-        flash("⚠️ Nessun dato appaltatore trovato", "warning")
-
-    return redirect(url_for('summary'))
 
 @app.route("/logout")
 def logout():

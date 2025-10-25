@@ -9,3 +9,6 @@ venv/
 *.sqlite3
 .env
 *.log
+output/ 
+Download/ 
+*.db 
