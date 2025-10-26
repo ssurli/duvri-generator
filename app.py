@@ -49,6 +49,7 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
     MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max upload
 )
+
 # =============================================
 # CONFIGURAZIONE UPLOAD DUVRI ESTAR
 # =============================================
@@ -174,6 +175,19 @@ RISCHI_COMMITTENTE = [
     "Presenza di pazienti immunodepressi"
 ]
 
+# ========================================
+# FUNZIONI HELPER
+# ========================================
+
+def safe_float(value, default=0.0):
+    """Converte un valore in float in modo sicuro"""
+    if value is None or value == '':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
 # =============================================
 # FUNZIONI DATABASE SQLite
 # =============================================
@@ -247,26 +261,57 @@ def init_db():
         except Exception as e:
             print(f"⚠️ Errore generico {colonna}: {e}")
     
-    # 🆕 Tabella per extra-costi (preparazione Fase 2)
+# Tabella per extra-costi con workflow completo
     c.execute('''
         CREATE TABLE IF NOT EXISTS extra_costi_sicurezza (
             id TEXT PRIMARY KEY,
             duvri_id TEXT REFERENCES duvri(id),
             importo REAL,
             descrizione TEXT,
-            stato TEXT DEFAULT 'bozza',
+            
+            -- Stati workflow
+            stato TEXT DEFAULT 'rilevato',
+            
+            -- Validazione SPP
+            validato_spp INTEGER DEFAULT 0,
             validato_spp_data TIMESTAMP,
-            validato_spp_firma TEXT,
+            validato_spp_nome TEXT,
+            validato_spp_note TEXT,
+            
+            -- Approvazione RUP
+            approvato_rup INTEGER DEFAULT 0,
             approvato_rup_data TIMESTAMP,
+            approvato_rup_nome TEXT,
+            approvato_rup_note TEXT,
+            
+            -- Copertura finanziaria
+            fonte_copertura TEXT,
+            cig TEXT,
+            capitolo_bilancio TEXT,
+            
+            -- Determina
             determina_numero TEXT,
             determina_data TIMESTAMP,
-            fonte_copertura TEXT,
+            determina_importo REAL,
+            
+            -- Comunicazione impresa
+            comunicato_impresa INTEGER DEFAULT 0,
+            comunicato_impresa_data TIMESTAMP,
+            
+            -- Audit
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT,
+            
+            -- Documenti generati
+            doc_nota_tecnica TEXT,
+            doc_prospetto_costi TEXT,
+            doc_determina TEXT,
+            doc_clausola TEXT
         )
     ''')
     conn.commit()
-    print("✅ Tabella extra_costi_sicurezza verificata")
+    print("✅ Tabella extra_costi_sicurezza aggiornata")
     
     conn.close()
     print("✅ Database inizializzato")
@@ -455,6 +500,80 @@ def load_all_duvri_from_db():
 
 # Chiama questa funzione DOPO init_db() nel main
 
+def crea_extra_costo(duvri_id, importo, descrizione):
+    """Crea un nuovo record di extra-costo"""
+    extra_costo_id = str(uuid.uuid4())[:8]
+    
+    try:
+        conn = get_db_connection()
+        conn.execute('''
+            INSERT INTO extra_costi_sicurezza 
+            (id, duvri_id, importo, descrizione, stato, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'rilevato', ?, ?)
+        ''', (extra_costo_id, duvri_id, importo, descrizione, datetime.now(), datetime.now()))
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Extra-costo creato: {extra_costo_id} - €{importo:,.2f}")
+        return extra_costo_id
+    except Exception as e:
+        print(f"❌ Errore creazione extra-costo: {e}")
+        return None
+
+def get_extra_costo(duvri_id):
+    """Recupera l'extra-costo per un DUVRI (assume 1 per DUVRI)"""
+    try:
+        conn = get_db_connection()
+        extra = conn.execute('''
+            SELECT * FROM extra_costi_sicurezza 
+            WHERE duvri_id = ? 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        ''', (duvri_id,)).fetchone()
+        conn.close()
+        
+        if extra:
+            return dict(extra)
+        return None
+    except Exception as e:
+        print(f"❌ Errore recupero extra-costo: {e}")
+        return None
+
+def aggiorna_extra_costo(duvri_id, **kwargs):
+    """Aggiorna campi dell'extra-costo"""
+    extra = get_extra_costo(duvri_id)
+    if not extra:
+        return False
+    
+    # Costruisci query dinamica
+    campi = []
+    valori = []
+    
+    for campo, valore in kwargs.items():
+        campi.append(f"{campo} = ?")
+        valori.append(valore)
+    
+    if not campi:
+        return False
+    
+    campi.append("updated_at = ?")
+    valori.append(datetime.now())
+    valori.append(extra['id'])
+    
+    query = f"UPDATE extra_costi_sicurezza SET {', '.join(campi)} WHERE id = ?"
+    
+    try:
+        conn = get_db_connection()
+        conn.execute(query, valori)
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Extra-costo aggiornato: {extra['id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Errore aggiornamento extra-costo: {e}")
+        return False
+
 # =============================================
 # NOTIFICA EMAIL DUVRI CARICATO APPALTATORE
 # =============================================
@@ -489,11 +608,6 @@ def processa_form_(request):
         'email': request.form.get('email'),
         'pec': request.form.get('pec'),
         'datore_lavoro_nome': request.form.get('datore_lavoro_nome'),
-        'datore_lavoro_rif': request.form.get('datore_lavoro_rif'),
-        'rspp_nome': request.form.get('rspp_nome'),
-        'rspp_rif': request.form.get('rspp_rif'),
-        'resp_appalto_nome': request.form.get('resp_appalto_nome'),
-        'resp_appalto_rif': request.form.get('resp_appalto_rif'),
         'max_addetti': request.form.get('max_addetti'),
         'orario_lavoro': request.form.get('orario_lavoro'),
         'orario_altro': request.form.get('orario_altro'),
@@ -649,8 +763,22 @@ def calcola_e_confronta_costi(duvri_id):
     # Informazioni gara
     tipo_duvri = committente.get('tipo_duvri', 'operativo')
     costi_inclusi = committente.get('costi_inclusi_gara', False)
-    costi_gara = float(committente.get('costi_sicurezza_gara', 0))
-    importo_gara = float(committente.get('importo_gara_base', 0))
+    costi_gara = safe_float(committente.get('costi_sicurezza_gara'))
+    importo_gara = safe_float(committente.get('importo_gara_base'))
+    
+    # Converti stringhe vuote a 0
+    costi_gara_str = committente.get('costi_sicurezza_gara', 0) or 0
+    importo_gara_str = committente.get('importo_gara_base', 0) or 0
+
+    try:
+        costi_gara = float(costi_gara_str)
+    except (ValueError, TypeError):
+        costi_gara = 0
+
+    try:
+        importo_gara = float(importo_gara_str)
+    except (ValueError, TypeError):
+        importo_gara = 0
     
     print(f"\n💰 CONFRONTO COSTI - DUVRI {duvri_id}")
     print(f"   Tipo DUVRI: {tipo_duvri}")
@@ -685,18 +813,37 @@ def calcola_e_confronta_costi(duvri_id):
         }
     
     elif not costi_inclusi or costi_gara == 0:
-        # DUVRI operativo senza costi di gara previsti
-        return {
-            'tipo': 'OPERATIVO_SENZA_BASE',
-            'stato': 'PRIMO_CALCOLO_OPERATIVO',
-            'totale_operativo': totale_operativo,
-            'costi_operativi_dict': costi_operativi_dict,
-            'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-            'messaggio': f'Primo calcolo operativo (nessun costo previsto in gara): €{totale_operativo:,.2f}',
-            'alert_type': 'info',
-            'richiede_azione': False
-        }
+    # DUVRI operativo senza costi di gara previsti
+    # ⚠️ TUTTI I COSTI SONO EXTRA-COSTI!
     
+        if totale_operativo > 0:
+            # Ci sono costi operativi ma nessun costo previsto in gara
+            # → Integrazione contrattuale necessaria
+            return {
+                'tipo': 'OPERATIVO_SENZA_BASE',
+                'stato': 'EXTRA_COSTI_TOTALI',
+                'costi_gara': 0,
+                'totale_operativo': totale_operativo,
+                'costi_operativi_dict': costi_operativi_dict,
+                'delta': totale_operativo,  # Tutto è extra
+                'percentuale_delta': 0,  # Non ha senso calcolare %
+                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                'messaggio': f'⚠️ ATTENZIONE: Costi sicurezza non previsti in gara. Tutti i costi operativi (€{totale_operativo:,.2f}) richiedono integrazione contrattuale.',
+                'alert_type': 'warning',
+                'richiede_azione': True,
+                'azione_richiesta': 'integrazione_contrattuale'
+            }
+        else:
+            # Nessun costo operativo e nessun costo in gara
+            return {
+                'tipo': 'OPERATIVO_SENZA_BASE',
+                'stato': 'NESSUN_COSTO',
+                'totale_operativo': 0,
+                'costi_operativi_dict': costi_operativi_dict,
+                'messaggio': 'Nessun costo di sicurezza da interferenze rilevato',
+                'alert_type': 'success',
+                'richiede_azione': False
+            }
     else:
         # DUVRI operativo CON costi di gara - CONFRONTO
         delta = totale_operativo - costi_gara
@@ -773,9 +920,10 @@ def calcola_costi_sicurezza(data):
     committente = data.get('committente', {})
     
     # 🆕 Usa campi esistenti
-    importo_appalto = float(committente.get('importo', 0))
-    numero_lavoratori = int(appaltatore.get('max_addetti', 1))
-    durata_giorni = int(appaltatore.get('durata_giorni', 1))
+    # Usa importo_gara_base se presente, altrimenti fallback su importo vecchio
+    importo_appalto = safe_float(committente.get('importo_gara_base') or committente.get('importo'))
+    numero_lavoratori = int(safe_float(appaltatore.get('max_addetti', 1)))
+    durata_giorni = int(safe_float(appaltatore.get('durata_giorni', 1)))
     
     rischi_committente = committente.get('rischi_struttura', [])
     rischi_appaltatore = appaltatore.get('rischi', [])
@@ -1573,24 +1721,249 @@ def summary():
 def gestione_extra_costi(duvri_id):
     """
     Pagina gestione extra-costi e integrazione contrattuale.
-    PLACEHOLDER per Fase 2 - per ora mostra solo info
+    WORKFLOW COMPLETO con validazione SPP, approvazione RUP, documenti
     """
     
     if session.get('current_duvri_id') != duvri_id:
         flash('Accesso negato', 'danger')
         return redirect(url_for('admin_dashboard'))
     
+    # Calcola confronto costi
     confronto = calcola_e_confronta_costi(duvri_id)
     
     if not confronto.get('richiede_azione'):
         flash('Nessun extra-costo rilevato', 'info')
         return redirect(url_for('summary'))
     
-    # Per ora mostra solo il confronto
-    # Fase 2: qui ci sarà il workflow completo
-    return render_template('extra_costi_placeholder.html',
+    # Recupera o crea extra-costo
+    extra_costo = get_extra_costo(duvri_id)
+    
+    if not extra_costo:
+        # Crea automaticamente se non esiste
+        descrizione = f"Extra-costi da interferenze: incremento {confronto['percentuale_delta']:.1f}%"
+        extra_id = crea_extra_costo(duvri_id, confronto['delta'], descrizione)
+        
+        if extra_id:
+            extra_costo = get_extra_costo(duvri_id)
+            print(f"✅ Extra-costo creato automaticamente: {extra_id}")
+    
+    # Dettaglio costi per tabella comparativa (opzionale per ora)
+    # Puoi lasciare vuoto, lo useremo nella fase documenti
+    
+    return render_template('gestione_extra_costi.html',
                          duvri_id=duvri_id,
-                         confronto=confronto)
+                         confronto=confronto,
+                         extra_costo=extra_costo)
+@app.route('/valida_spp/<duvri_id>', methods=['POST'])
+def valida_spp(duvri_id):
+    """Validazione tecnica da parte del SPP/RSPP"""
+    
+    if session.get('current_duvri_id') != duvri_id:
+        flash('Accesso negato', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Recupera dati form
+    nome = request.form.get('validato_spp_nome')
+    note = request.form.get('validato_spp_note', '')
+    
+    if not nome:
+        flash('Nome SPP/RSPP obbligatorio', 'danger')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Calcola confronto per ottenere importo extra-costi
+    confronto = calcola_e_confronta_costi(duvri_id)
+    
+    if not confronto or not confronto.get('richiede_azione'):
+        flash('Nessun extra-costo da validare', 'warning')
+        return redirect(url_for('summary'))
+    
+    # Verifica se extra-costo esiste già
+    extra = get_extra_costo(duvri_id)
+    
+    if not extra:
+        # Crea nuovo record extra-costo
+        descrizione = f"Extra-costi da interferenze: incremento {confronto['percentuale_delta']:.1f}%"
+        extra_id = crea_extra_costo(duvri_id, confronto['delta'], descrizione)
+        
+        if not extra_id:
+            flash('Errore nella creazione extra-costo', 'danger')
+            return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Aggiorna con validazione SPP
+    success = aggiorna_extra_costo(
+        duvri_id,
+        validato_spp=1,
+        validato_spp_data=datetime.now(),
+        validato_spp_nome=nome,
+        validato_spp_note=note,
+        stato='validato_spp'
+    )
+    
+    if success:
+        flash(f'✅ Extra-costi validati da {nome}', 'success')
+        print(f"✅ SPP validazione: {nome} - DUVRI {duvri_id}")
+    else:
+        flash('Errore nel salvataggio validazione', 'danger')
+    
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+@app.route('/approva_rup/<duvri_id>', methods=['POST'])
+def approva_rup(duvri_id):
+    """Approvazione da parte del RUP"""
+    
+    if session.get('current_duvri_id') != duvri_id:
+        flash('Accesso negato', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Verifica che ci sia validazione SPP
+    extra = get_extra_costo(duvri_id)
+    
+    if not extra or not extra['validato_spp']:
+        flash('Richiesta validazione SPP prima di approvare', 'warning')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Recupera dati form
+    nome = request.form.get('approvato_rup_nome')
+    note = request.form.get('approvato_rup_note', '')
+    fonte_copertura = request.form.get('fonte_copertura')
+    cig = request.form.get('cig', '')
+    capitolo = request.form.get('capitolo_bilancio', '')
+    
+    if not nome or not fonte_copertura:
+        flash('Nome RUP e fonte copertura obbligatori', 'danger')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Aggiorna con approvazione RUP
+    success = aggiorna_extra_costo(
+        duvri_id,
+        approvato_rup=1,
+        approvato_rup_data=datetime.now(),
+        approvato_rup_nome=nome,
+        approvato_rup_note=note,
+        fonte_copertura=fonte_copertura,
+        cig=cig,
+        capitolo_bilancio=capitolo,
+        stato='approvato_rup'
+    )
+    
+    if success:
+        flash(f'✅ Extra-costi approvati da {nome}', 'success')
+        print(f"✅ RUP approvazione: {nome} - Fonte: {fonte_copertura} - DUVRI {duvri_id}")
+    else:
+        flash('Errore nel salvataggio approvazione', 'danger')
+    
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+@app.route('/registra_determina/<duvri_id>', methods=['POST'])
+def registra_determina(duvri_id):
+    """Registrazione determina dirigenziale"""
+    
+    if session.get('current_duvri_id') != duvri_id:
+        flash('Accesso negato', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Verifica che ci sia approvazione RUP
+    extra = get_extra_costo(duvri_id)
+    
+    if not extra or not extra['approvato_rup']:
+        flash('Richiesta approvazione RUP prima di registrare determina', 'warning')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Recupera dati form
+    numero = request.form.get('determina_numero')
+    data_str = request.form.get('determina_data')
+    
+    if not numero or not data_str:
+        flash('Numero e data determina obbligatori', 'danger')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Converti data
+    try:
+        data_determina = datetime.strptime(data_str, '%Y-%m-%d')
+    except:
+        flash('Formato data non valido', 'danger')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Aggiorna con determina
+    success = aggiorna_extra_costo(
+        duvri_id,
+        determina_numero=numero,
+        determina_data=data_determina,
+        determina_importo=extra['importo'],
+        stato='determina_registrata'
+    )
+    
+    if success:
+        flash(f'✅ Determina n. {numero} registrata', 'success')
+        print(f"✅ Determina registrata: {numero} - €{extra['importo']:,.2f} - DUVRI {duvri_id}")
+    else:
+        flash('Errore nella registrazione determina', 'danger')
+    
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+
+
+@app.route('/comunica_impresa/<duvri_id>', methods=['POST'])
+def comunica_impresa(duvri_id):
+    """Segna come comunicato all'impresa"""
+    
+    if session.get('current_duvri_id') != duvri_id:
+        flash('Accesso negato', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Verifica che ci sia determina
+    extra = get_extra_costo(duvri_id)
+    
+    if not extra or not extra['determina_numero']:
+        flash('Richiesta registrazione determina prima di comunicare', 'warning')
+        return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+    # Aggiorna comunicazione
+    success = aggiorna_extra_costo(
+        duvri_id,
+        comunicato_impresa=1,
+        comunicato_impresa_data=datetime.now(),
+        stato='integrato'
+    )
+    
+    if success:
+        flash('✅ Integrazione contrattuale completata', 'success')
+        print(f"✅ Integrazione completata - DUVRI {duvri_id}")
+    else:
+        flash('Errore nella comunicazione', 'danger')
+    
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+    
+@app.route('/genera_nota_tecnica/<duvri_id>')
+def genera_nota_tecnica(duvri_id):
+    """Genera nota tecnica SPP (PLACEHOLDER)"""
+    flash('🚧 Generazione nota tecnica - In sviluppo', 'info')
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+
+
+@app.route('/genera_prospetto_costi/<duvri_id>')
+def genera_prospetto_costi(duvri_id):
+    """Genera prospetto costi analitico (PLACEHOLDER)"""
+    flash('🚧 Generazione prospetto costi - In sviluppo', 'info')
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+
+
+@app.route('/genera_determina/<duvri_id>')
+def genera_determina(duvri_id):
+    """Genera bozza determina dirigenziale (PLACEHOLDER)"""
+    flash('🚧 Generazione determina - In sviluppo', 'info')
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+
+
+@app.route('/genera_clausola/<duvri_id>')
+def genera_clausola(duvri_id):
+    """Genera clausola contrattuale (PLACEHOLDER)"""
+    flash('🚧 Generazione clausola - In sviluppo', 'info')
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
+
+
+@app.route('/scarica_pacchetto_completo/<duvri_id>')
+def scarica_pacchetto_completo(duvri_id):
+    """Scarica ZIP con tutti i documenti (PLACEHOLDER)"""
+    flash('🚧 Generazione pacchetto ZIP - In sviluppo', 'info')
+    return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
 # =============================================
 # ROUTES SECONDARIE E LEGACY
 # =============================================
@@ -1850,9 +2223,30 @@ def generate_pdf():
         print(f"✅ Path PDF completo: {output_path_completo}")
 
         # STEP 5: Render HTML
+        # STEP 5: Render HTML
         print("\n🎨 STEP 5: Rendering template HTML")
         try:
-            html_content = render_template("pdf_template.html", data=data, datetime=datetime)
+            # 🆕 Calcola confronto e extra-costo per sezione 2.6
+            confronto_costi = None
+            extra_costo = None
+            
+            # Solo se DUVRI completato con appaltatore
+            if data.get('appaltatore') and data.get('appaltatore').get('max_addetti'):
+                try:
+                    confronto_costi = calcola_e_confronta_costi(duvri_id)
+                    print(f"✅ Confronto costi calcolato: {confronto_costi.get('stato') if confronto_costi else 'None'}")
+                    
+                    if confronto_costi and confronto_costi.get('richiede_azione'):
+                        extra_costo = get_extra_costo(duvri_id)
+                        print(f"✅ Extra-costo recuperato: {bool(extra_costo)}")
+                except Exception as e:
+                    print(f"⚠️ Errore calcolo confronto costi per PDF: {e}")
+            
+            html_content = render_template("pdf_template.html", 
+                                         data=data, 
+                                         datetime=datetime,
+                                         confronto_costi=confronto_costi,
+                                         extra_costo=extra_costo)
             print(f"✅ HTML generato: {len(html_content)} caratteri")
             # Salva HTML per debug
             html_debug_path = os.path.join(output_folder, f"DEBUG_{filename_base}.html")

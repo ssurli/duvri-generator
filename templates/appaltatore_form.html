@@ -111,20 +111,116 @@
                 <fieldset class="mb-4">
                     <legend class="fw-bold fs-5">Referenti generali appaltatore</legend>
 
-                    <div class="mb-4">
-                        <h5>Datore di lavoro</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="datore_lavoro_nome" class="form-label">Nominativo:</label>
-                                    <input type="text" id="datore_lavoro_nome" name="datore_lavoro_nome" value="{{ data.get('datore_lavoro_nome','') }}" required class="form-control">
-                                </div>
+                    <!-- Datore di Lavoro -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="datore_lavoro_nome" class="form-label">Datore di Lavoro *</label>
+                                <input type="text" 
+                                       id="datore_lavoro_nome" 
+                                       name="datore_lavoro_nome" 
+                                       value="{{ data.get('datore_lavoro_nome', '') }}" 
+                                       class="form-control" 
+                                       required
+                                       placeholder="Nome e Cognome">
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="datore_lavoro_rif" class="form-label">Riferimenti (tel/email):</label>
-                                    <input type="text" id="datore_lavoro_rif" name="datore_lavoro_rif" value="{{ data.get('datore_lavoro_rif','') }}" class="form-control">
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="datore_lavoro_tel" class="form-label">Telefono</label>
+                                <input type="tel" 
+                                       id="datore_lavoro_tel" 
+                                       name="datore_lavoro_tel" 
+                                       value="{{ data.get('datore_lavoro_tel', '') }}" 
+                                       class="form-control"
+                                       placeholder="Es: 055-1234567">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="datore_lavoro_email" class="form-label">Email</label>
+                                <input type="email" 
+                                       id="datore_lavoro_email" 
+                                       name="datore_lavoro_email" 
+                                       value="{{ data.get('datore_lavoro_email', '') }}" 
+                                       class="form-control"
+                                       placeholder="email@azienda.it">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RSPP -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="rspp_nome" class="form-label">RSPP *</label>
+                                <input type="text" 
+                                       id="rspp_nome" 
+                                       name="rspp_nome" 
+                                       value="{{ data.get('rspp_nome', '') }}" 
+                                       class="form-control" 
+                                       required
+                                       placeholder="Nome e Cognome">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="rspp_tel" class="form-label">Telefono</label>
+                                <input type="tel" 
+                                       id="rspp_tel" 
+                                       name="rspp_tel" 
+                                       value="{{ data.get('rspp_tel', '') }}" 
+                                       class="form-control"
+                                       placeholder="Es: 055-1234567">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="rspp_email" class="form-label">Email</label>
+                                <input type="email" 
+                                       id="rspp_email" 
+                                       name="rspp_email" 
+                                       value="{{ data.get('rspp_email', '') }}" 
+                                       class="form-control"
+                                       placeholder="email@azienda.it">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Responsabile Appalto -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="resp_appalto_nome" class="form-label">Responsabile Appalto *</label>
+                                <input type="text" 
+                                       id="resp_appalto_nome" 
+                                       name="resp_appalto_nome" 
+                                       value="{{ data.get('resp_appalto_nome', '') }}" 
+                                       class="form-control" 
+                                       required
+                                       placeholder="Nome e Cognome">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="resp_appalto_tel" class="form-label">Telefono</label>
+                                <input type="tel" 
+                                       id="resp_appalto_tel" 
+                                       name="resp_appalto_tel" 
+                                       value="{{ data.get('resp_appalto_tel', '') }}" 
+                                       class="form-control"
+                                       placeholder="Es: 055-1234567">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="resp_appalto_email" class="form-label">Email</label>
+                                <input type="email" 
+                                       id="resp_appalto_email" 
+                                       name="resp_appalto_email" 
+                                       value="{{ data.get('resp_appalto_email', '') }}" 
+                                       class="form-control"
+                                       placeholder="email@azienda.it">
                             </div>
                         </div>
                     </div>

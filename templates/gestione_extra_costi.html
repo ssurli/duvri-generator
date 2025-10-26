@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>📋 Gestione Extra-Costi Sicurezza</h2>
+                <a href="{{ url_for('summary') }}" class="btn btn-secondary">
+                    ← Torna al Riepilogo
+                </a>
+            </div>
+            
+            <p class="text-muted">DUVRI ID: {{ duvri_id }}</p>
+            
+            <!-- RIEPILOGO EXTRA-COSTI -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">⚠️ Extra-Costi Rilevati</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Costi da Gara</h6>
+                            <h3>€ {{ "{:,.2f}".format(confronto.costi_gara) }}</h3>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Costi Operativi</h6>
+                            <h3>€ {{ "{:,.2f}".format(confronto.totale_operativo) }}</h3>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Extra-Costi</h6>
+                            <h3 class="text-danger">€ {{ "{:,.2f}".format(confronto.delta) }}</h3>
+                        </div>
+                        <div class="col-md-3">
+							<h6 class="text-muted">Incremento</h6>
+							{% if confronto.costi_gara > 0 %}
+								<h3 class="text-danger">+{{ "{:.1f}".format(confronto.percentuale_delta) }}%</h3>
+							{% else %}
+								<h3 class="text-danger">N/A</h3>
+								<small class="text-muted">(costi non previsti in gara)</small>
+							{% endif %}
+						</div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>📊 Dettaglio Extra-Costi per Voce</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Voce</th>
+                                <th class="text-end">Da Gara</th>
+                                <th class="text-end">Operativi</th>
+                                <th class="text-end">Delta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set costi_gara_dict = {} %}
+                            {% set costi_oper = confronto.costi_operativi_dict %}
+                            
+                            <tr>
+                                <td>Incontri coordinamento</td>
+                                <td class="text-end">€ {{ "{:,.2f}".format(costi_gara_dict.get('incontri', 0)) }}</td>
+                                <td class="text-end">€ {{ "{:,.2f}".format(costi_oper.get('costo_incontri', 0)) }}</td>
+                                <td class="text-end {% if costi_oper.get('costo_incontri', 0) > costi_gara_dict.get('incontri', 0) %}text-danger{% endif %}">
+                                    {{ "{:+,.2f}".format(costi_oper.get('costo_incontri', 0) - costi_gara_dict.get('incontri', 0)) }}
+                                </td>
+                            </tr>
+                            <!-- Altre voci simili -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- WORKFLOW STEPS -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🔄 Workflow Integrazione Contrattuale</h5>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar 
+                                {% if extra_costo and extra_costo.stato == 'rilevato' %}bg-warning{% endif %}
+                                {% if extra_costo and extra_costo.stato == 'validato_spp' %}bg-info{% endif %}
+                                {% if extra_costo and extra_costo.stato == 'approvato_rup' %}bg-primary{% endif %}
+                                {% if extra_costo and extra_costo.stato == 'integrato' %}bg-success{% endif %}"
+                                 role="progressbar" 
+                                 style="width: 
+                                    {% if not extra_costo or extra_costo.stato == 'rilevato' %}25%
+                                    {% elif extra_costo.stato == 'validato_spp' %}50%
+                                    {% elif extra_costo.stato == 'approvato_rup' %}75%
+                                    {% elif extra_costo.stato == 'integrato' %}100%
+                                    {% endif %}">
+                                <strong>
+                                    {% if not extra_costo or extra_costo.stato == 'rilevato' %}1/4 Rilevato
+                                    {% elif extra_costo.stato == 'validato_spp' %}2/4 Validato SPP
+                                    {% elif extra_costo.stato == 'approvato_rup' %}3/4 Approvato RUP
+                                    {% elif extra_costo.stato == 'integrato' %}4/4 Integrato
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- STEP 1: VALIDAZIONE SPP -->
+                    <div class="card mb-3 {% if extra_costo and extra_costo.validato_spp %}border-success{% else %}border-warning{% endif %}">
+                        <div class="card-header {% if extra_costo and extra_costo.validato_spp %}bg-success text-white{% else %}bg-warning{% endif %}">
+                            <h6 class="mb-0">
+                                {% if extra_costo and extra_costo.validato_spp %}✅{% else %}1️⃣{% endif %} 
+                                Validazione Tecnica SPP/RSPP
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if extra_costo and extra_costo.validato_spp %}
+                                <!-- Mostra validazione esistente -->
+                                <div class="alert alert-success">
+                                    <strong>✅ Validato da:</strong> {{ extra_costo.validato_spp_nome }}<br>
+                                    <strong>📅 Data:</strong> {{ extra_costo.validato_spp_data }}<br>
+                                    {% if extra_costo.validato_spp_note %}
+                                    <strong>📝 Note:</strong> {{ extra_costo.validato_spp_note }}
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <!-- Form validazione -->
+                                <form method="POST" action="{{ url_for('valida_spp', duvri_id=duvri_id) }}">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nome e Qualifica SPP/RSPP *</label>
+                                        <input type="text" name="validato_spp_nome" class="form-control" required 
+                                               placeholder="Es: Dr. Mario Rossi - RSPP">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Note e Osservazioni</label>
+                                        <textarea name="validato_spp_note" class="form-control" rows="3"
+                                                  placeholder="Eventuali note sulla congruità dei costi..."></textarea>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input" id="conferma_spp" required>
+                                        <label class="form-check-label" for="conferma_spp">
+                                            <strong>Confermo la congruità tecnica dei costi proposti</strong>
+                                        </label>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-success">
+                                        ✅ Valida come SPP/RSPP
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- STEP 2: APPROVAZIONE RUP -->
+                    <div class="card mb-3 {% if extra_costo and extra_costo.approvato_rup %}border-success{% elif extra_costo and extra_costo.validato_spp %}border-primary{% else %}border-secondary{% endif %}">
+                        <div class="card-header {% if extra_costo and extra_costo.approvato_rup %}bg-success text-white{% elif extra_costo and extra_costo.validato_spp %}bg-primary text-white{% else %}bg-secondary text-white{% endif %}">
+                            <h6 class="mb-0">
+                                {% if extra_costo and extra_costo.approvato_rup %}✅{% else %}2️⃣{% endif %} 
+                                Approvazione RUP
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if not extra_costo or not extra_costo.validato_spp %}
+                                <p class="text-muted">⏳ In attesa di validazione SPP</p>
+                            {% elif extra_costo.approvato_rup %}
+                                <!-- Mostra approvazione esistente -->
+                                <div class="alert alert-success">
+                                    <strong>✅ Approvato da:</strong> {{ extra_costo.approvato_rup_nome }}<br>
+                                    <strong>📅 Data:</strong> {{ extra_costo.approvato_rup_data }}<br>
+                                    {% if extra_costo.approvato_rup_note %}
+                                    <strong>📝 Note:</strong> {{ extra_costo.approvato_rup_note }}
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <!-- Form approvazione -->
+                                <form method="POST" action="{{ url_for('approva_rup', duvri_id=duvri_id) }}">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nome RUP *</label>
+                                        <input type="text" name="approvato_rup_nome" class="form-control" required
+                                               placeholder="Es: Ing. Maria Bianchi">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Note</label>
+                                        <textarea name="approvato_rup_note" class="form-control" rows="3"
+                                                  placeholder="Note sull'approvazione..."></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Fonte Copertura Finanziaria *</label>
+                                        <select name="fonte_copertura" class="form-control" required>
+                                            <option value="">Seleziona...</option>
+                                            <option value="economie_appalto">Economie appalto</option>
+                                            <option value="fondi_residui">Fondi residui</option>
+                                            <option value="stanziamento_aggiuntivo">Stanziamento aggiuntivo</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">CIG (opzionale)</label>
+                                                <input type="text" name="cig" class="form-control"
+                                                       placeholder="Es: 123456789A">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Capitolo Bilancio (opzionale)</label>
+                                                <input type="text" name="capitolo_bilancio" class="form-control"
+                                                       placeholder="Es: Cap. 12345">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input" id="conferma_rup" required>
+                                        <label class="form-check-label" for="conferma_rup">
+                                            <strong>Approvo l'integrazione contrattuale per i costi indicati</strong>
+                                        </label>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">
+                                        ✅ Approva come RUP
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- STEP 3: GENERAZIONE DOCUMENTI -->
+                    <div class="card mb-3 {% if extra_costo and extra_costo.approvato_rup %}border-info{% else %}border-secondary{% endif %}">
+                        <div class="card-header {% if extra_costo and extra_costo.approvato_rup %}bg-info text-white{% else %}bg-secondary text-white{% endif %}">
+                            <h6 class="mb-0">3️⃣ Generazione Documenti</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if not extra_costo or not extra_costo.approvato_rup %}
+                                <p class="text-muted">⏳ In attesa di approvazione RUP</p>
+                            {% else %}
+                                <p class="mb-3">Documenti disponibili per l'integrazione contrattuale:</p>
+                                
+                                <div class="list-group">
+                                    <a href="{{ url_for('genera_nota_tecnica', duvri_id=duvri_id) }}" 
+                                       class="list-group-item list-group-item-action">
+                                        📄 Nota Tecnica SPP
+                                        <span class="badge bg-primary float-end">PDF</span>
+                                    </a>
+                                    <a href="{{ url_for('genera_prospetto_costi', duvri_id=duvri_id) }}" 
+                                       class="list-group-item list-group-item-action">
+                                        📊 Prospetto Costi Analitico
+                                        <span class="badge bg-success float-end">PDF</span>
+                                    </a>
+                                    <a href="{{ url_for('genera_determina', duvri_id=duvri_id) }}" 
+                                       class="list-group-item list-group-item-action">
+                                        📋 Bozza Determina Dirigenziale
+                                        <span class="badge bg-warning float-end">DOCX</span>
+                                    </a>
+                                    <a href="{{ url_for('genera_clausola', duvri_id=duvri_id) }}" 
+                                       class="list-group-item list-group-item-action">
+                                        📝 Clausola Contrattuale
+                                        <span class="badge bg-info float-end">DOCX</span>
+                                    </a>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <a href="{{ url_for('scarica_pacchetto_completo', duvri_id=duvri_id) }}" 
+                                       class="btn btn-success btn-lg w-100">
+                                        📦 Scarica Pacchetto Completo (ZIP)
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- STEP 4: REGISTRAZIONE DETERMINA -->
+                    <div class="card {% if extra_costo and extra_costo.determina_numero %}border-success{% else %}border-secondary{% endif %}">
+                        <div class="card-header {% if extra_costo and extra_costo.determina_numero %}bg-success text-white{% else %}bg-secondary text-white{% endif %}">
+                            <h6 class="mb-0">
+                                {% if extra_costo and extra_costo.determina_numero %}✅{% else %}4️⃣{% endif %} 
+                                Registrazione Determina
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if not extra_costo or not extra_costo.approvato_rup %}
+                                <p class="text-muted">⏳ In attesa di approvazione RUP</p>
+                            {% elif extra_costo.determina_numero %}
+                                <div class="alert alert-success">
+                                    <strong>✅ Determina n.:</strong> {{ extra_costo.determina_numero }}<br>
+                                    <strong>📅 Data:</strong> {{ extra_costo.determina_data }}<br>
+                                    <strong>💰 Importo:</strong> € {{ "{:,.2f}".format(extra_costo.determina_importo) }}
+                                </div>
+                                
+                                {% if extra_costo.comunicato_impresa %}
+                                    <div class="alert alert-info">
+                                        <strong>📧 Comunicato a impresa il:</strong> {{ extra_costo.comunicato_impresa_data }}
+                                    </div>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('comunica_impresa', duvri_id=duvri_id) }}">
+                                        <button type="submit" class="btn btn-info">
+                                            📧 Comunica a Impresa
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <form method="POST" action="{{ url_for('registra_determina', duvri_id=duvri_id) }}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Numero Determina *</label>
+                                                <input type="text" name="determina_numero" class="form-control" required
+                                                       placeholder="Es: 123/2025">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Data Determina *</label>
+                                                <input type="date" name="determina_data" class="form-control" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-success">
+                                        ✅ Registra Determina
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

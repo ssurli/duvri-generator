@@ -87,24 +87,7 @@
 									<input type="number" id="importo" name="importo" value="{{ data.get('importo','') }}"
 										   step="any" min="0" class="form-control" placeholder="0,00" required>
 										   <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="percentuale_costo_base" class="form-label">
-                                    Percentuale Costo Base (%)
-                                    <span class="text-muted" data-bs-toggle="tooltip" title="Percentuale dell'importo appalto da considerare come costo base di sicurezza (min 0%, max 3%)">ℹ️</span>
-                                </label>
-                                <input type="number" 
-                                       id="percentuale_costo_base" 
-                                       name="percentuale_costo_base" 
-                                       value="{{ data.get('percentuale_costo_base', '2') }}" 
-                                       class="form-control" 
-                                       step="0.1" 
-                                       min="0" 
-                                       max="3"
-                                       placeholder="2.0">
-                                <small class="text-muted">
-                                    Default: 2% | Range: 0-3%
-                                </small>
-                            </div>
+                            
                         </div>
 								</div>
 							</div>
@@ -177,7 +160,24 @@
                             </div>
                         </div>
                     </div>
-                    
+                    <div class="mb-3">
+                                <label for="percentuale_costo_base" class="form-label">
+                                    Percentuale Costo Base (%)
+                                    <span class="text-muted" data-bs-toggle="tooltip" title="Percentuale dell'importo appalto da considerare come costo base di sicurezza (min 0%, max 3%)">ℹ️</span>
+                                </label>
+                                <input type="number" 
+                                       id="percentuale_costo_base" 
+                                       name="percentuale_costo_base" 
+                                       value="{{ data.get('percentuale_costo_base', '2') }}" 
+                                       class="form-control" 
+                                       step="0.1" 
+                                       min="0" 
+                                       max="3"
+                                       placeholder="2.0">
+                                <small class="text-muted">
+                                    Default: 2% | Range: 0-3%
+                                </small>
+                            </div>
                     <div class="row">
                         <!-- Checkbox Costi Inclusi -->
                         <div class="col-md-12">
