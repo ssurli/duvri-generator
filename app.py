@@ -688,12 +688,15 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     current_data['appaltatore'] = dati_appaltatore
     
     # 🆕 CALCOLO AUTOMATICO COSTI SICUREZZA
-    # Verifica che ci siano tutti i parametri necessari
+    # ⚠️ SOLO SE NON SONO STATI MODIFICATI MANUALMENTE
     ha_importo = current_data.get('committente', {}).get('importo')
     ha_lavoratori = dati_appaltatore.get('max_addetti')
     ha_durata = dati_appaltatore.get('durata_giorni')
     
-    if ha_importo and ha_lavoratori and ha_durata:
+    # ✅ Verifica se i costi sono stati modificati manualmente
+    costi_modificati_manualmente = dati_appaltatore.get('costi_modificati_manualmente', False)
+    
+    if ha_importo and ha_lavoratori and ha_durata and not costi_modificati_manualmente:
         print("\n🔢 Calcolo costi sicurezza parametrico...")
         try:
             costi_calcolati = calcola_costi_sicurezza(current_data)
@@ -702,11 +705,10 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
             print(f"✅ Costi calcolati e salvati")
         except Exception as e:
             print(f"❌ Errore calcolo costi: {e}")
+    elif costi_modificati_manualmente:
+        print(f"⚠️ Costi modificati manualmente - salto ricalcolo automatico")
     else:
-        print(f"⚠️ Parametri mancanti per calcolo costi:")
-        print(f"   - Importo committente: {'✅' if ha_importo else '❌'}")
-        print(f"   - Max addetti: {'✅' if ha_lavoratori else '❌'}")
-        print(f"   - Durata giorni: {'✅' if ha_durata else '❌'}")
+        print(f"⚠️ Parametri mancanti per calcolo costi")
     
     # Aggiorna anche in memoria
     if duvri_id in duvri_list:
@@ -714,7 +716,7 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     
     save_current_duvri_data(current_data)
 
-    # Aggiorna stato
+    # Aggiorna stato (resto del codice invariato)
     if duvri_id in duvri_list:
         duvri = duvri_list[duvri_id]
         if duvri.get('dati_committente'):
@@ -752,153 +754,372 @@ def get_allegati_list(duvri_id):
 # =============================================
 def calcola_e_confronta_costi(duvri_id):
     """
-    Calcola costi operativi e confronta con quelli di gara.
-    Restituisce dizionario con analisi completa.
+    VERSIONE CORRETTA con gestione completa dei 2 scenari normativi
     """
     
     data = get_current_duvri_data()
     committente = data.get('committente', {})
     appaltatore = data.get('appaltatore', {})
     
-    # Informazioni gara
-    tipo_duvri = committente.get('tipo_duvri', 'operativo')
-    costi_inclusi = committente.get('costi_inclusi_gara', False)
-    costi_gara = safe_float(committente.get('costi_sicurezza_gara'))
-    importo_gara = safe_float(committente.get('importo_gara_base'))
+    # ========================================
+    # PARAMETRI DA FORM COMMITTENTE
+    # ========================================
     
-    # Converti stringhe vuote a 0
-    costi_gara_str = committente.get('costi_sicurezza_gara', 0) or 0
-    importo_gara_str = committente.get('importo_gara_base', 0) or 0
-
-    try:
-        costi_gara = float(costi_gara_str)
-    except (ValueError, TypeError):
-        costi_gara = 0
-
-    try:
-        importo_gara = float(importo_gara_str)
-    except (ValueError, TypeError):
-        importo_gara = 0
+    tipo_duvri = committente.get('tipo_duvri', 'operativo')
+    costi_inclusi_gara = committente.get('costi_inclusi_gara', False)
+    costi_sicurezza_gara = safe_float(committente.get('costi_sicurezza_gara', 0))
+    importo_gara_base = safe_float(committente.get('importo_gara_base', 0))
+    usa_costi_manuali = committente.get('usa_costi_manuali', False)
     
     print(f"\n💰 CONFRONTO COSTI - DUVRI {duvri_id}")
     print(f"   Tipo DUVRI: {tipo_duvri}")
-    print(f"   Costi inclusi in gara: {costi_inclusi}")
-    print(f"   Costi da gara: €{costi_gara:,.2f}")
+    print(f"   Costi inclusi in gara: {costi_inclusi_gara}")
+    print(f"   Costi da gara dichiarati: €{costi_sicurezza_gara:,.2f}")
+    print(f"   Usa costi manuali: {usa_costi_manuali}")
     
-    # Calcola costi operativi
+    # ========================================
+    # CALCOLA COSTI OPERATIVI
+    # ========================================
+    
     try:
-        costi_operativi_dict = calcola_costi_sicurezza(data)
+        # Calcola o prendi i costi
+        if usa_costi_manuali:
+            # Usa valori manuali dal committente
+            costi_operativi_dict = {
+                'costo_incontri': safe_float(committente.get('costo_incontri_manuale', 0)),
+                'costo_dpi': safe_float(committente.get('costo_dpi_manuale', 0)),
+                'costo_impiantistica': safe_float(committente.get('costo_impiantistica_manuale', 0)),
+                'costo_segnaletica': safe_float(committente.get('costo_segnaletica_manuale', 0)),
+                'costo_presidi': safe_float(committente.get('costo_presidi_manuale', 0)),
+                'costo_controlli': safe_float(committente.get('costo_controlli_manuale', 0)),
+                'costo_altre_misure': safe_float(committente.get('costo_altre_misure_manuale', 0))
+            }
+        else:
+            # Calcolo automatico
+            costi_operativi_dict = calcola_costi_sicurezza(data)
+        
         totale_operativo = sum([v for k, v in costi_operativi_dict.items() 
                                if k.startswith('costo_') and isinstance(v, (int, float))])
+        
     except Exception as e:
         print(f"⚠️ Errore calcolo costi: {e}")
         totale_operativo = 0
         costi_operativi_dict = {}
     
-    print(f"   Costi operativi: €{totale_operativo:,.2f}")
+    print(f"   Costi operativi calcolati: €{totale_operativo:,.2f}")
     
-    # LOGICA DECISIONALE
+    # ========================================
+    # SCENARIO 1: DUVRI RICOGNITIVO
+    # ========================================
     
     if tipo_duvri == 'ricognitivo':
-        # DUVRI per documenti gara - primo calcolo
         return {
             'tipo': 'RICOGNITIVO',
             'stato': 'PRIMO_CALCOLO',
             'totale_operativo': totale_operativo,
             'costi_operativi_dict': costi_operativi_dict,
-            'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+            'percentuale_gara': (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0,
             'messaggio': f'Costi stimati per documenti gara: €{totale_operativo:,.2f}',
             'alert_type': 'info',
-            'richiede_azione': False
+            'richiede_azione': False,
+            'scenario_normativo': None
         }
     
-    elif not costi_inclusi or costi_gara == 0:
-    # DUVRI operativo senza costi di gara previsti
-    # ⚠️ TUTTI I COSTI SONO EXTRA-COSTI!
+    # ========================================
+    # SCENARIO 2: COSTI INCLUSI MA COMPENSATI
+    # ========================================
     
+    if costi_inclusi_gara and costi_sicurezza_gara == 0:
+        # CASO 2: Costi inclusi ma non evidenziati = compensati
+        
         if totale_operativo > 0:
-            # Ci sono costi operativi ma nessun costo previsto in gara
-            # → Integrazione contrattuale necessaria
+            # Ci sono interferenze ma i costi sono da compensare
+            return {
+                'tipo': 'OPERATIVO_COMPENSATO',
+                'stato': 'COSTI_COMPENSATI',
+                'costi_gara': 0,
+                'totale_operativo': totale_operativo,
+                'costi_operativi_dict': costi_operativi_dict,
+                'delta': 0,  # Nessun delta perché compensati
+                'percentuale_delta': 0,
+                'percentuale_gara': (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0,
+                'messaggio': f'ℹ️ COMPENSAZIONE INTERNA : Costi interferenze (€{totale_operativo:,.2f}) assorbiti negli oneri generali. Richiesto verbale di concordamento RUP/Appaltatore.',
+                'alert_type': 'info',
+                'richiede_azione': True,
+                'azione_richiesta': 'verbale_concordamento',
+                'scenario_normativo': 'COMPENSAZIONE'
+            }
+        else:
+            return {
+                'tipo': 'OPERATIVO_COMPENSATO',
+                'stato': 'NESSUN_COSTO',
+                'totale_operativo': 0,
+                'costi_operativi_dict': costi_operativi_dict,
+                'messaggio': 'Nessun costo da interferenze rilevato',
+                'alert_type': 'success',
+                'richiede_azione': False,
+                'scenario_normativo': None
+            }
+    
+    # ========================================
+    # SCENARIO 3: COSTI NON PREVISTI IN GARA
+    # ========================================
+    
+    if not costi_inclusi_gara or costi_sicurezza_gara == 0:
+        # CASO 1: Nessun costo previsto = TUTTI sono extra-costi
+        
+        if totale_operativo > 0:
+            percentuale_su_appalto = (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0
+            
+            # Verifica limiti art. 120
+            supera_limite = percentuale_su_appalto > 50
+            
             return {
                 'tipo': 'OPERATIVO_SENZA_BASE',
                 'stato': 'EXTRA_COSTI_TOTALI',
                 'costi_gara': 0,
                 'totale_operativo': totale_operativo,
                 'costi_operativi_dict': costi_operativi_dict,
-                'delta': totale_operativo,  # Tutto è extra
-                'percentuale_delta': 0,  # Non ha senso calcolare %
-                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                'messaggio': f'⚠️ ATTENZIONE: Costi sicurezza non previsti in gara. Tutti i costi operativi (€{totale_operativo:,.2f}) richiedono integrazione contrattuale.',
-                'alert_type': 'warning',
+                'delta': totale_operativo,
+                'percentuale_delta': 0,
+                'percentuale_gara': percentuale_su_appalto,
+                'messaggio': f'⚠️ ATTO AGGIUNTIVO NECESSARIO (art. 120): Interferenze non previste. Costi totali: €{totale_operativo:,.2f} ({percentuale_su_appalto:.1f}% appalto). {"❌ SUPERA limite 50%!" if supera_limite else "✅ Entro limite 50%"}',
+                'alert_type': 'danger' if supera_limite else 'warning',
                 'richiede_azione': True,
-                'azione_richiesta': 'integrazione_contrattuale'
+                'azione_richiesta': 'atto_aggiuntivo',
+                'scenario_normativo': 'ATTO_AGGIUNTIVO_ART120',
+                'supera_limite_50': supera_limite
             }
         else:
-            # Nessun costo operativo e nessun costo in gara
             return {
                 'tipo': 'OPERATIVO_SENZA_BASE',
                 'stato': 'NESSUN_COSTO',
                 'totale_operativo': 0,
                 'costi_operativi_dict': costi_operativi_dict,
-                'messaggio': 'Nessun costo di sicurezza da interferenze rilevato',
+                'messaggio': 'Nessun costo di sicurezza da interferenze',
                 'alert_type': 'success',
-                'richiede_azione': False
+                'richiede_azione': False,
+                'scenario_normativo': None
             }
+    
+    # ========================================
+    # SCENARIO 4: COSTI PREVISTI IN GARA
+    # ========================================
+    
+    # Confronto tra costi previsti e costi operativi
+    delta = totale_operativo - costi_sicurezza_gara
+    percentuale_delta = (delta / costi_sicurezza_gara * 100) if costi_sicurezza_gara > 0 else 0
+    percentuale_delta_su_appalto = (delta / importo_gara_base * 100) if importo_gara_base > 0 else 0
+    
+    print(f"   Delta: €{delta:,.2f} ({percentuale_delta:+.1f}%)")
+    
+    if delta > 0:
+        # EXTRA-COSTI rispetto alla previsione
+        
+        # Verifica limiti art. 120
+        supera_limite = percentuale_delta_su_appalto > 50
+        
+        return {
+            'tipo': 'OPERATIVO_CON_BASE',
+            'stato': 'EXTRA_COSTI',
+            'costi_gara': costi_sicurezza_gara,
+            'totale_operativo': totale_operativo,
+            'costi_operativi_dict': costi_operativi_dict,
+            'delta': delta,
+            'percentuale_delta': percentuale_delta,
+            'percentuale_gara': (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0,
+            'messaggio': f'⚠️ ATTO AGGIUNTIVO (art. 120): Extra-costi €{delta:,.2f} (+{percentuale_delta:.1f}% vs gara, {percentuale_delta_su_appalto:.1f}% appalto). {"❌ SUPERA limite 50%!" if supera_limite else "✅ Entro limite 50%"}',
+            'alert_type': 'danger' if supera_limite else 'warning',
+            'richiede_azione': True,
+            'azione_richiesta': 'atto_aggiuntivo',
+            'scenario_normativo': 'ATTO_AGGIUNTIVO_ART120',
+            'supera_limite_50': supera_limite
+        }
+    
+    elif delta < 0:
+        # RISPARMIO
+        return {
+            'tipo': 'OPERATIVO_CON_BASE',
+            'stato': 'RISPARMIO',
+            'costi_gara': costi_sicurezza_gara,
+            'totale_operativo': totale_operativo,
+            'costi_operativi_dict': costi_operativi_dict,
+            'delta': abs(delta),
+            'percentuale_delta': abs(percentuale_delta),
+            'percentuale_gara': (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0,
+            'messaggio': f'✅ Risparmio: €{abs(delta):,.2f} (-{abs(percentuale_delta):.1f}%) rispetto ai costi di gara',
+            'alert_type': 'success',
+            'richiede_azione': False,
+            'scenario_normativo': None
+        }
+    
     else:
+        # PERFETTA CORRISPONDENZA
+        return {
+            'tipo': 'OPERATIVO_CON_BASE',
+            'stato': 'CONFERMATO',
+            'costi_gara': costi_sicurezza_gara,
+            'totale_operativo': totale_operativo,
+            'costi_operativi_dict': costi_operativi_dict,
+            'delta': 0,
+            'percentuale_delta': 0,
+            'percentuale_gara': (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0,
+            'messaggio': '✅ Costi operativi confermano la previsione di gara',
+            'alert_type': 'success',
+            'richiede_azione': False,
+            'scenario_normativo': None
+        }
+
+
+# def calcola_e_confronta_costi(duvri_id):
+   # """
+   # Calcola costi operativi e confronta con quelli di gara.
+   # Restituisce dizionario con analisi completa.
+   # """
+   
+   # data = get_current_duvri_data()
+   # committente = data.get('committente', {})
+    # appaltatore = data.get('appaltatore', {})
+    
+   # Informazioni gara
+    # tipo_duvri = committente.get('tipo_duvri', 'operativo')
+  # costi_inclusi = committente.get('costi_inclusi_gara', False)
+   # costi_gara = safe_float(committente.get('costi_sicurezza_gara'))
+   # importo_gara = safe_float(committente.get('importo_gara_base'))
+    
+    # Converti stringhe vuote a 0
+   # costi_gara_str = committente.get('costi_sicurezza_gara', 0) or 0
+   # importo_gara_str = committente.get('importo_gara_base', 0) or 0
+
+    # try:
+        # costi_gara = float(costi_gara_str)
+    # except (ValueError, TypeError):
+        # costi_gara = 0
+
+    # try:
+        # importo_gara = float(importo_gara_str)
+    # except (ValueError, TypeError):
+        # importo_gara = 0
+    
+    # print(f"\n💰 CONFRONTO COSTI - DUVRI {duvri_id}")
+    # print(f"   Tipo DUVRI: {tipo_duvri}")
+    # print(f"   Costi inclusi in gara: {costi_inclusi}")
+    # print(f"   Costi da gara: €{costi_gara:,.2f}")
+    
+    # Calcola costi operativi
+    # try:
+        # costi_operativi_dict = calcola_costi_sicurezza(data)
+        # totale_operativo = sum([v for k, v in costi_operativi_dict.items() 
+                               # if k.startswith('costo_') and isinstance(v, (int, float))])
+    # except Exception as e:
+        # print(f"⚠️ Errore calcolo costi: {e}")
+        # totale_operativo = 0
+        # costi_operativi_dict = {}
+    
+    # print(f"   Costi operativi: €{totale_operativo:,.2f}")
+    
+    # LOGICA DECISIONALE
+    
+    # if tipo_duvri == 'ricognitivo':
+        # DUVRI per documenti gara - primo calcolo
+        # return {
+            # 'tipo': 'RICOGNITIVO',
+            # 'stato': 'PRIMO_CALCOLO',
+            # 'totale_operativo': totale_operativo,
+            # 'costi_operativi_dict': costi_operativi_dict,
+            # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+            # 'messaggio': f'Costi stimati per documenti gara: €{totale_operativo:,.2f}',
+            # 'alert_type': 'info',
+            # 'richiede_azione': False
+        # }
+    
+    # elif not costi_inclusi or costi_gara == 0:
+    # DUVRI operativo senza costi di gara previsti
+    # ⚠️ TUTTI I COSTI SONO EXTRA-COSTI!
+    
+        # if totale_operativo > 0:
+            # Ci sono costi operativi ma nessun costo previsto in gara
+            # → Integrazione contrattuale necessaria
+            # return {
+                # 'tipo': 'OPERATIVO_SENZA_BASE',
+                # 'stato': 'EXTRA_COSTI_TOTALI',
+                # 'costi_gara': 0,
+                # 'totale_operativo': totale_operativo,
+                # 'costi_operativi_dict': costi_operativi_dict,
+                # 'delta': totale_operativo,  # Tutto è extra
+                # 'percentuale_delta': 0,  # Non ha senso calcolare %
+                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                # 'messaggio': f'⚠️ ATTENZIONE: Costi sicurezza non previsti in gara. Tutti i costi operativi (€{totale_operativo:,.2f}) richiedono integrazione contrattuale.',
+                # 'alert_type': 'warning',
+                # 'richiede_azione': True,
+                # 'azione_richiesta': 'integrazione_contrattuale'
+            # }
+        # else:
+            # Nessun costo operativo e nessun costo in gara
+            # return {
+                # 'tipo': 'OPERATIVO_SENZA_BASE',
+                # 'stato': 'NESSUN_COSTO',
+                # 'totale_operativo': 0,
+                # 'costi_operativi_dict': costi_operativi_dict,
+                # 'messaggio': 'Nessun costo di sicurezza da interferenze rilevato',
+                # 'alert_type': 'success',
+                # 'richiede_azione': False
+            # }
+    # else:
         # DUVRI operativo CON costi di gara - CONFRONTO
-        delta = totale_operativo - costi_gara
-        percentuale_delta = (delta / costi_gara * 100) if costi_gara > 0 else 0
+        # delta = totale_operativo - costi_gara
+        # percentuale_delta = (delta / costi_gara * 100) if costi_gara > 0 else 0
         
-        print(f"   Delta: €{delta:,.2f} ({percentuale_delta:+.1f}%)")
+        # print(f"   Delta: €{delta:,.2f} ({percentuale_delta:+.1f}%)")
         
-        if delta > 0:
+        # if delta > 0:
             # EXTRA-COSTI rilevati
-            return {
-                'tipo': 'OPERATIVO_CON_BASE',
-                'stato': 'EXTRA_COSTI',
-                'costi_gara': costi_gara,
-                'totale_operativo': totale_operativo,
-                'costi_operativi_dict': costi_operativi_dict,
-                'delta': delta,
-                'percentuale_delta': percentuale_delta,
-                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                'messaggio': f'⚠️ ATTENZIONE: Rilevati extra-costi per €{delta:,.2f} (+{percentuale_delta:.1f}%)',
-                'alert_type': 'warning',
-                'richiede_azione': True,
-                'azione_richiesta': 'integrazione_contrattuale'
-            }
+            # return {
+                # 'tipo': 'OPERATIVO_CON_BASE',
+                # 'stato': 'EXTRA_COSTI',
+                # 'costi_gara': costi_gara,
+                # 'totale_operativo': totale_operativo,
+                # 'costi_operativi_dict': costi_operativi_dict,
+                # 'delta': delta,
+                # 'percentuale_delta': percentuale_delta,
+                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                # 'messaggio': f'⚠️ ATTENZIONE: Rilevati extra-costi per €{delta:,.2f} (+{percentuale_delta:.1f}%)',
+                # 'alert_type': 'warning',
+                # 'richiede_azione': True,
+                # 'azione_richiesta': 'integrazione_contrattuale'
+            # }
         
-        elif delta < 0:
+        # elif delta < 0:
             # RISPARMIO (raro ma possibile)
-            return {
-                'tipo': 'OPERATIVO_CON_BASE',
-                'stato': 'RISPARMIO',
-                'costi_gara': costi_gara,
-                'totale_operativo': totale_operativo,
-                'costi_operativi_dict': costi_operativi_dict,
-                'delta': abs(delta),
-                'percentuale_delta': abs(percentuale_delta),
-                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                'messaggio': f'✅ Risparmio: €{abs(delta):,.2f} (-{abs(percentuale_delta):.1f}%) rispetto ai costi di gara',
-                'alert_type': 'success',
-                'richiede_azione': False
-            }
+            # return {
+                # 'tipo': 'OPERATIVO_CON_BASE',
+                # 'stato': 'RISPARMIO',
+                # 'costi_gara': costi_gara,
+                # 'totale_operativo': totale_operativo,
+                # 'costi_operativi_dict': costi_operativi_dict,
+                # 'delta': abs(delta),
+                # 'percentuale_delta': abs(percentuale_delta),
+                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                # 'messaggio': f'✅ Risparmio: €{abs(delta):,.2f} (-{abs(percentuale_delta):.1f}%) rispetto ai costi di gara',
+                # 'alert_type': 'success',
+                # 'richiede_azione': False
+            # }
         
-        else:
+        # else:
             # PERFETTA CORRISPONDENZA (rarissimo)
-            return {
-                'tipo': 'OPERATIVO_CON_BASE',
-                'stato': 'CONFERMATO',
-                'costi_gara': costi_gara,
-                'totale_operativo': totale_operativo,
-                'costi_operativi_dict': costi_operativi_dict,
-                'delta': 0,
-                'percentuale_delta': 0,
-                'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                'messaggio': '✅ Costi operativi corrispondono esattamente ai costi di gara',
-                'alert_type': 'success',
-                'richiede_azione': False
-            }
+            # return {
+                # 'tipo': 'OPERATIVO_CON_BASE',
+                # 'stato': 'CONFERMATO',
+                # 'costi_gara': costi_gara,
+                # 'totale_operativo': totale_operativo,
+                # 'costi_operativi_dict': costi_operativi_dict,
+                # 'delta': 0,
+                # 'percentuale_delta': 0,
+                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
+                # 'messaggio': '✅ Costi operativi corrispondono esattamente ai costi di gara',
+                # 'alert_type': 'success',
+                # 'richiede_azione': False
+            # }
 
 def calcola_costi_sicurezza(data):
     """
@@ -928,6 +1149,38 @@ def calcola_costi_sicurezza(data):
     rischi_committente = committente.get('rischi_struttura', [])
     rischi_appaltatore = appaltatore.get('rischi', [])
     
+    # ========================================
+    # ✅ VERIFICA SE CI SONO COSTI MANUALI
+    # ========================================
+    
+    usa_costi_manuali = committente.get('usa_costi_manuali', False)
+    
+    if usa_costi_manuali:
+        print("\n🖊️ MODALITÀ COSTI MANUALI ATTIVA")
+        
+        # Usa i valori manuali se presenti, altrimenti calcola
+        costi_finali = {
+            'costo_incontri': safe_float(committente.get('costo_incontri_manuale')) or 0,
+            'costo_dpi': safe_float(committente.get('costo_dpi_manuale')) or 0,
+            'costo_impiantistica': safe_float(committente.get('costo_impiantistica_manuale')) or 0,
+            'costo_segnaletica': safe_float(committente.get('costo_segnaletica_manuale')) or 0,
+            'costo_presidi': safe_float(committente.get('costo_presidi_manuale')) or 0,
+            'costo_controlli': safe_float(committente.get('costo_controlli_manuale')) or 0,
+            'costo_altre_misure': safe_float(committente.get('costo_altre_misure_manuale')) or 0,
+            'costi_presenti': True,
+            'costi_calcolati_auto': False,
+            'note_costi_sicurezza': f'Costi inseriti manualmente dal committente.'
+        }
+        
+        totale = sum([v for k, v in costi_finali.items() 
+                     if k.startswith('costo_') and isinstance(v, (int, float))])
+        
+        print(f"💰 TOTALE MANUALE: €{totale:,.2f}")
+        
+        return costi_finali
+    # ========================================
+    # CALCOLO AUTOMATICO
+    # ========================================
     print(f"\n💰 CALCOLO COSTI PARAMETRICO")
     print(f"📊 Importo appalto (committente): €{importo_appalto:,.2f}")
     print(f"👷 Lavoratori (appaltatore.max_addetti): {numero_lavoratori}")
@@ -1660,45 +1913,110 @@ def ricalcola_costi():
 
     return redirect(url_for('summary'))
 
+@app.route('/salva_costi_manuali', methods=['POST'])
+def salva_costi_manuali():
+    """Salva i costi modificati manualmente dall'utente"""
+    print("\n💾 SALVATAGGIO COSTI MANUALI")
+    
+    duvri_id = session.get('current_duvri_id')
+    if not duvri_id:
+        flash("Nessun DUVRI selezionato", "warning")
+        return redirect(url_for('summary'))
+    
+    # Recupera dati correnti
+    data = get_current_duvri_data()
+    
+    if not data.get('appaltatore'):
+        data['appaltatore'] = {}
+    
+    # Leggi i valori dal form
+    costi_manuali = {
+        'costo_incontri': safe_float(request.form.get('costo_incontri', 0)),
+        'costo_dpi': safe_float(request.form.get('costo_dpi', 0)),
+        'costo_impiantistica': safe_float(request.form.get('costo_impiantistica', 0)),
+        'costo_segnaletica': safe_float(request.form.get('costo_segnaletica', 0)),
+        'costo_presidi': safe_float(request.form.get('costo_presidi', 0)),
+        'costo_controlli': safe_float(request.form.get('costo_controlli', 0)),
+        'costo_altre_misure': safe_float(request.form.get('costo_altre_misure', 0)),
+        'note_costi_sicurezza': request.form.get('note_costi_sicurezza', ''),
+        'costi_presenti': True,
+        'costi_calcolati_auto': False,  # ← IMPORTANTE: Flag per indicare modifica manuale
+        'costi_modificati_manualmente': True  # ← Nuovo flag
+    }
+    
+    totale = sum([v for k, v in costi_manuali.items() 
+                  if k.startswith('costo_') and isinstance(v, (int, float))])
+    
+    print(f"📊 Totale manuale: €{totale:,.2f}")
+    
+    # Aggiorna i dati
+    data['appaltatore'].update(costi_manuali)
+    
+    # Aggiorna anche in memoria (duvri_list)
+    if duvri_id in duvri_list:
+        if 'dati_appaltatore' not in duvri_list[duvri_id]:
+            duvri_list[duvri_id]['dati_appaltatore'] = {}
+        duvri_list[duvri_id]['dati_appaltatore'].update(costi_manuali)
+        print("✅ Aggiornato in memoria")
+    
+    # Salva nel database
+    save_current_duvri_data(data)
+    print("✅ Salvato nel database")
+    
+    flash(f"✅ Costi aggiornati manualmente: €{totale:,.2f}", "success")
+    return redirect(url_for('summary'))
 
 @app.route('/summary')
 def summary():
     """Pagina di riepilogo"""
     duvri_id = session.get('current_duvri_id')
-
     if not duvri_id:
         flash('Prima crea o seleziona un DUVRI', 'warning')
         return redirect(url_for('admin_dashboard'))
-
+    
     # Carica dati dal database
     data = get_current_duvri_data()
-
+    
     # Aggiungi lista allegati ai dati
     if 'appaltatore' not in data:
         data['appaltatore'] = {}
-
     data['appaltatore']['allegati'] = get_allegati_list(duvri_id)
-
-    # CALCOLO COSTI AUTOMATICO - logica semplificata
+    
+    # ========================================
+    # CALCOLO COSTI - RISPETTA MODALITÀ MANUALE
+    # ========================================
     if data.get('appaltatore'):
-        # Verifica se i costi NON sono presenti OPPURE sono automatici ma devono essere ricalcolati
-        costi_mancanti = not any(
-            data['appaltatore'].get(campo)
-            for campo in ['costo_incontri', 'costo_dpi', 'costo_impiantistica']
-        )
-
-        # Se i costi mancano o sono automatici, ricalcola
-        if costi_mancanti or data['appaltatore'].get('costi_calcolati_auto'):
-            costi_calcolati = calcola_costi_sicurezza(data)
-
-            # Preserva le note esistenti
-            if 'note_costi_sicurezza' in data['appaltatore']:
-                costi_calcolati['note_costi_sicurezza'] = data['appaltatore']['note_costi_sicurezza']
-
-            # Aggiorna SOLO se sono costi automatici o mancanti
-            data['appaltatore'].update(costi_calcolati)
-            save_current_duvri_data(data)
-
+        committente = data.get('committente', {})
+        
+        # ✅ VERIFICA SE IL COMMITTENTE HA ATTIVATO COSTI MANUALI
+        usa_costi_manuali = committente.get('usa_costi_manuali', False)
+        
+        if usa_costi_manuali:
+            print("📝 Costi manuali attivi dal committente - nessun ricalcolo")
+            # Non ricalcola, i costi manuali sono già nei dati committente
+            # La funzione calcola_costi_sicurezza li gestirà correttamente
+        else:
+            # Modalità automatica: ricalcola se necessario
+            costi_mancanti = not any(
+                data['appaltatore'].get(campo)
+                for campo in ['costo_incontri', 'costo_dpi', 'costo_impiantistica']
+            )
+            
+            # Ricalcola solo se mancanti o se sono costi automatici
+            if costi_mancanti or data['appaltatore'].get('costi_calcolati_auto'):
+                print("🔢 Ricalcolo automatico costi...")
+                costi_calcolati = calcola_costi_sicurezza(data)
+                
+                # Preserva le note esistenti
+                if 'note_costi_sicurezza' in data['appaltatore']:
+                    costi_calcolati['note_costi_sicurezza'] = data['appaltatore']['note_costi_sicurezza']
+                
+                # Aggiorna e salva
+                data['appaltatore'].update(costi_calcolati)
+                save_current_duvri_data(data)
+            else:
+                print("⚠️ Costi già presenti - nessun ricalcolo")
+    
     # 🆕 CONFRONTO COSTI (solo se appaltatore ha compilato)
     confronto_costi = None
     if data.get('appaltatore') and data['appaltatore'].get('max_addetti'):
@@ -1709,10 +2027,10 @@ def summary():
             print(f"⚠️ Errore confronto costi: {e}")
             import traceback
             traceback.print_exc()
-
+    
     return render_template('summary.html',
                          data=data,
-                         confronto_costi=confronto_costi,  # 🆕 Passa confronto
+                         confronto_costi=confronto_costi,
                          duvri_list=duvri_list,
                          current_duvri_id=duvri_id,
                          WEASYPRINT_AVAILABLE=WEASYPRINT_AVAILABLE,

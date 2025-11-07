@@ -226,7 +226,12 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Incontri di coordinamento</td>
+                            
+							<h3>💰 Costi per la Sicurezza</h3>
+							<form method="POST" action="{{ url_for('salva_costi_manuali') }}">
+    						
+							
+							<td>Incontri di coordinamento</td>
                             <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_incontri', 0)|float) }}</td>
                         </tr>
                         <tr>
@@ -257,9 +262,17 @@
                             <td>TOTALE COSTI SICUREZZA</td>
                             <td class="text-end">{{ "%.2f"|format(costi_totali) }}</td>
                         </tr>
+						<button type="submit" class="btn btn-success mt-3">
+							💾 Salva Modifiche Manuali
+						</button>
+							</form>
                     </tbody>
                 </table>
-
+				<form method="POST" action="{{ url_for('ricalcola_costi') }}" class="mt-2">
+					<button type="submit" class="btn btn-warning">
+						🔄 Ricalcola Automaticamente
+					</button>
+				</form>
                 {% if data.appaltatore.note_costi_sicurezza %}
                 <div class="alert alert-info">
                     <strong>ℹ️ Dettagli calcolo:</strong><br>

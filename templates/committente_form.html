@@ -1,608 +1,543 @@
-<!-- templates/committente_form.html -->
 {% extends "base.html" %}
 
-{% block document_title %}Compila Dati Committente - DUVRI{% endblock %}
-{% block revision_status %}Compilazione Committente{% endblock %}
-
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <h1 class="text-center mb-4">📋 Dati Committente</h1>
-            <p class="text-muted text-center mb-4">Azienda USL Toscana Nord Ovest - Compilazione DUVRI</p>
-
-            <!-- Messaggi Flash -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST" action="{{ url_for('compila_committente') }}" enctype="multipart/form-data">
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Dati Committente - Azienda USL Toscana Nord Ovest</legend>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="nome" class="form-label">RUP/RES Committente:</label>
-                                <input type="text" id="nome" name="nome" value="{{ data.get('nome','') }}" required class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="codice_fiscale" class="form-label">Codice fiscale/P.IVA:</label>
-                                <input type="text" id="codice_fiscale" name="codice_fiscale" value="{{ data.get('codice_fiscale','') }}" required class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="indirizzo" class="form-label">Indirizzo:</label>
-                        <input type="text" id="indirizzo" name="indirizzo" value="{{ data.get('indirizzo','') }}" required class="form-control">
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="referente" class="form-label">DEC:</label>
-                                <input type="text" id="referente" name="referente" value="{{ data.get('referente','') }}" required class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email:</label>
-                                <input type="email" id="email" name="email" value="{{ data.get('email','') }}" required class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Informazioni sulla struttura (installazione HTA)</legend>
-
-					<div class="row">
-							<div class="col-md-9">
-								<div class="mb-3">
-									<label for="oggetto" class="form-label">Oggetto del servizio:</label>
-									<input type="text" id="oggetto" name="oggetto" value="{{ data.get('oggetto','') }}"
-										   class="form-control" placeholder="Descrizione del servizio...">
-										   <!-- Messaggio di sincronizzazione -->
-											{% if not data.get('oggetto') and duvri_list.get(current_duvri_id, {}).get('dati_appaltatore', {}).get('oggetto') %}
-											<small class="form-text text-info">
-												💡 <strong>Suggerimento:</strong> L'appaltatore ha inserito:
-												"{{ duvri_list.get(current_duvri_id, {}).get('dati_appaltatore', {}).get('oggetto') }}"
-											</small>
-											{% endif %}
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="mb-3">
-									<label for="importo" class="form-label">Importo del servizio/appalto (€):</label>
-									<input type="number" id="importo" name="importo" value="{{ data.get('importo','') }}"
-										   step="any" min="0" class="form-control" placeholder="0,00" required>
-										   <div class="col-md-3">
-                            
-                        </div>
-								</div>
-							</div>
-						</div>
-<!-- 🆕 INFORMAZIONI GARA E APPALTO -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2 mb-3">📋 Informazioni Gara e Appalto</h5>
-                            
-                            <div class="alert alert-info">
-                                <strong>ℹ️ Nota:</strong> Se l'appalto è stato aggiudicato da centrale committenza (es. ESTAR) 
-                                con DUVRI ricognitivo, indicare le informazioni della gara.
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <!-- Tipo DUVRI -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="tipo_duvri" class="form-label">Tipo DUVRI *</label>
-                                <select id="tipo_duvri" name="tipo_duvri" class="form-control" required>
-                                    <option value="operativo" {% if data.get('tipo_duvri') == 'operativo' or not data.get('tipo_duvri') %}selected{% endif %}>
-                                        Operativo (post-aggiudicazione)
-                                    </option>
-                                    <option value="ricognitivo" {% if data.get('tipo_duvri') == 'ricognitivo' %}selected{% endif %}>
-                                        Ricognitivo (per documenti gara)
-                                    </option>
-                                </select>
-                                <small class="text-muted">
-                                    • Ricognitivo: da allegare ai documenti di gara<br>
-                                    • Operativo: dopo aggiudicazione, con condizioni reali
-                                </small>
-                            </div>
-                        </div>
-                        
-                        <!-- Fase Appalto -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="fase_appalto" class="form-label">Fase Appalto</label>
-                                <select id="fase_appalto" name="fase_appalto" class="form-control">
-                                    <option value="pre_gara" {% if data.get('fase_appalto') == 'pre_gara' %}selected{% endif %}>
-                                        Pre-gara (preparazione bando)
-                                    </option>
-                                    <option value="post_gara" {% if data.get('fase_appalto') == 'post_gara' %}selected{% endif %}>
-                                        Post-gara (aggiudicato, non ancora esecutivo)
-                                    </option>
-                                    <option value="esecuzione" {% if data.get('fase_appalto') == 'esecuzione' or not data.get('fase_appalto') %}selected{% endif %}>
-                                        In esecuzione
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <!-- Importo Gara -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="importo_gara_base" class="form-label">Importo Gara Base (€)</label>
-                                <input type="number" 
-                                       id="importo_gara_base" 
-                                       name="importo_gara_base" 
-                                       value="{{ data.get('importo_gara_base', '') }}" 
-                                       class="form-control" 
-                                       step="0.01" 
-                                       min="0"
-                                       placeholder="0,00">
-                                <small class="text-muted">Importo complessivo aggiudicato (IVA esclusa)</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                                <label for="percentuale_costo_base" class="form-label">
-                                    Percentuale Costo Base (%)
-                                    <span class="text-muted" data-bs-toggle="tooltip" title="Percentuale dell'importo appalto da considerare come costo base di sicurezza (min 0%, max 3%)">ℹ️</span>
-                                </label>
-                                <input type="number" 
-                                       id="percentuale_costo_base" 
-                                       name="percentuale_costo_base" 
-                                       value="{{ data.get('percentuale_costo_base', '2') }}" 
-                                       class="form-control" 
-                                       step="0.1" 
-                                       min="0" 
-                                       max="3"
-                                       placeholder="2.0">
-                                <small class="text-muted">
-                                    Default: 2% | Range: 0-3%
-                                </small>
-                            </div>
-                    <div class="row">
-                        <!-- Checkbox Costi Inclusi -->
-                        <div class="col-md-12">
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input type="checkbox" 
-                                           id="costi_inclusi_gara" 
-                                           name="costi_inclusi_gara" 
-                                           class="form-check-input"
-                                           {% if data.get('costi_inclusi_gara') %}checked{% endif %}
-                                           onchange="toggleCostiGara()">
-                                    <label for="costi_inclusi_gara" class="form-check-label">
-                                        <strong>Costi della sicurezza da interferenze già inclusi nei documenti di gara</strong>
-                                    </label>
-                                </div>
-                                <small class="text-muted">
-                                    Selezionare se ESTAR (o altra centrale) ha già stimato e incluso costi sicurezza nel bando
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sezione Costi Gara (mostra solo se checkbox attivata) -->
-                    <div id="sezione_costi_gara" style="display: {% if data.get('costi_inclusi_gara') %}block{% else %}none{% endif %}">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="costi_sicurezza_gara" class="form-label">
-                                        Importo Costi Sicurezza da Gara (€) *
-                                    </label>
-                                    <input type="number" 
-                                           id="costi_sicurezza_gara" 
-                                           name="costi_sicurezza_gara" 
-                                           value="{{ data.get('costi_sicurezza_gara', '') }}" 
-                                           class="form-control" 
-                                           step="0.01" 
-                                           min="0"
-                                           placeholder="0,00">
-                                    <small class="text-muted">
-                                        Importo esatto indicato nel DUVRI/documenti di gara
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Upload DUVRI ESTAR -->
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    <label for="duvri_estar_file" class="form-label">
-                                        📎 Allega DUVRI Ricognitivo ESTAR (opzionale)
-                                    </label>
-                                    <input type="file" 
-                                           id="duvri_estar_file" 
-                                           name="duvri_estar_file" 
-                                           class="form-control"
-                                           accept=".pdf,.doc,.docx">
-                                    <small class="text-muted">
-                                        PDF o Word del DUVRI allegato ai documenti di gara dalla centrale committenza
-                                    </small>
-                                    
-                                    {% if data.get('duvri_estar_filename') %}
-                                    <div class="mt-2">
-                                        <span class="badge bg-success">
-                                            ✅ File caricato: {{ data.get('duvri_estar_filename') }}
-                                        </span>
-                                        <a href="{{ url_for('scarica_duvri_estar', duvri_id=session.get('current_duvri_id')) }}" 
-                                           class="btn btn-sm btn-outline-primary ms-2">
-                                            📥 Scarica
-                                        </a>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="alert alert-warning">
-                            <strong>⚠️ Attenzione:</strong> I costi indicati qui saranno considerati come 
-                            <strong>vincolanti</strong> e non soggetti a ribasso. In fase operativa, eventuali 
-                            costi aggiuntivi richiederanno una procedura di integrazione contrattuale.
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="tipologia_struttura" class="form-label">Tipologia struttura:</label>
-                                <select id="tipologia_struttura" name="tipologia_struttura" required class="form-select">
-                                    <option value="">Seleziona...</option>
-                                    <option value="Presidio Ospedaliero" {% if data.get('tipologia_struttura') == 'Presidio Ospedaliero' %}selected{% endif %}>Presidio Ospedaliero</option>
-                                    <option value="Casa di comunità" {% if data.get('tipologia_struttura') == 'Casa di comunità' %}selected{% endif %}>Casa di comunità</option>
-                                    <option value="Distretto Socio Sanitario" {% if data.get('tipologia_struttura') == 'Distretto Socio Sanitario' %}selected{% endif %}>Distretto Socio Sanitario</option>
-                                    <option value="Centro diurno" {% if data.get('tipologia_struttura') == 'Centro diurno' %}selected{% endif %}>Centro diurno</option>
-                                    <option value="Struttura sanitaria territoriale" {% if data.get('tipologia_struttura') == 'Struttura sanitaria territoriale' %}selected{% endif %}>Struttura sanitaria territoriale</option>
-                                    <option value="Altro" {% if data.get('tipologia_struttura') == 'Altro' %}selected{% endif %}>Altro</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="area_installazione" class="form-label">Reparto/Area di installazione:</label>
-                                <input type="text" id="area_installazione" name="area_installazione" value="{{ data.get('area_installazione','') }}" required class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="presenza_pazienti" class="form-label">Presenza di pazienti durante i lavori:</label>
-                                <select id="presenza_pazienti" name="presenza_pazienti" required class="form-select">
-                                    <option value="">Seleziona...</option>
-                                    <option value="Si" {% if data.get('presenza_pazienti') == 'Si' %}selected{% endif %}>Sì</option>
-                                    <option value="No" {% if data.get('presenza_pazienti') == 'No' %}selected{% endif %}>No</option>
-                                    <option value="Parziale" {% if data.get('presenza_pazienti') == 'Parziale' %}selected{% endif %}>Parziale</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="alimentazione_disponibile" class="form-label">Alimentazione elettrica dedicata:</label>
-                                <select id="alimentazione_disponibile" name="alimentazione_disponibile" class="form-select">
-                                    <option value="">Seleziona...</option>
-                                    <option value="Si" {% if data.get('alimentazione_disponibile') == 'Si' %}selected{% endif %}>Sì</option>
-                                    <option value="No" {% if data.get('alimentazione_disponibile') == 'No' %}selected{% endif %}>No</option>
-                                    <option value="Da verificare" {% if data.get('alimentazione_disponibile') == 'Da verificare' %}selected{% endif %}>Da verificare</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="tipo_pavimento" class="form-label">Tipologia di pavimento:</label>
-                                <select id="tipo_pavimento" name="tipo_pavimento" class="form-select">
-                                    <option value="">Seleziona...</option>
-                                    <option value="Piastrelle" {% if data.get('tipo_pavimento') == 'Piastrelle' %}selected{% endif %}>Piastrelle</option>
-                                    <option value="Linoleum-pvc" {% if data.get('tipo_pavimento') == 'Linoleum-pvc' %}selected{% endif %}>Linoleum-pvc</option>
-                                    <option value="Resina" {% if data.get('tipo_pavimento') == 'Resina' %}selected{% endif %}>Resina</option>
-                                    <option value="Sopraelevato" {% if data.get('tipo_pavimento') == 'Sopraelevato' %}selected{% endif %}>Sopraelevato</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="altezza_soffitto" class="form-label">Altezza soffitto (metri):</label>
-                                <input type="number" id="altezza_soffitto" name="altezza_soffitto" value="{{ data.get('altezza_soffitto','') }}" step="0.1" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="larghezza_accesso" class="form-label">Larghezza accesso minima (cm):</label>
-                                <input type="number" id="larghezza_accesso" name="larghezza_accesso" value="{{ data.get('larghezza_accesso','') }}" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="referente_tecnico" class="form-label">Referente tecnico struttura:</label>
-                                <input type="text" id="referente_tecnico" name="referente_tecnico" value="{{ data.get('referente_tecnico','') }}" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="orari_lavori" class="form-label">Orari preferibili per i lavori:</label>
-                        <input type="text" id="orari_lavori" name="orari_lavori" value="{{ data.get('orari_lavori','') }}" placeholder="es. 14:00-18:00, weekend" class="form-control">
-                    </div>
-                </fieldset>
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Rischi specifici della struttura committente</legend>
-                    <p class="text-muted">Indicare i rischi presenti nella struttura che potrebbero interferire con l'installazione HTA:</p>
-
-                    <div class="row">
-                        {% for rischio in rischi_committente %}
-                        <div class="col-md-6">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="rischi_struttura" value="{{ rischio }}"
-                                       {% if rischio in data.get('rischi_struttura', []) %}checked{% endif %}>
-                                <label class="form-check-label">{{ rischio }}</label>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="mt-3">
-                        <label for="note_rischi_struttura" class="form-label">Note aggiuntive sui rischi della struttura:</label>
-                        <textarea id="note_rischi_struttura" name="note_rischi_struttura" rows="4" class="form-control">{{ data.get('note_rischi_struttura','') }}</textarea>
-                    </div>
-                </fieldset>
-<!-- 🆕 SEZIONE COSTI MANUALI (OPZIONALE) - Solo per committente -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-info text-white">
-                                <h5 class="mb-0">💰 Definizione Costi Sicurezza da Interferenze (Opzionale)</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-info">
-                                    <strong>ℹ️ Per il RUP/Responsabile:</strong><br>
-                                    • Se <strong>NON</strong> compili questa sezione, i costi saranno <strong>calcolati automaticamente</strong> in base a importo, lavoratori, durata e rischi.<br>
-                                    • Se <strong>compili i campi</strong>, potrai definire analiticamente i costi da interferenze.<br>
-                                    • I costi inseriti manualmente devono essere <strong>congrui e documentabili</strong>.<br>
-                                    • Per <strong>forzare calcolo automatico</strong>, lascia tutti i campi vuoti.
-                                </div>
-                                
-                                <div class="form-check mb-3">
-                                    <input type="checkbox" 
-                                           id="usa_costi_manuali" 
-                                           name="usa_costi_manuali" 
-                                           class="form-check-input"
-                                           {% if data.get('usa_costi_manuali') %}checked{% endif %}
-                                           onchange="toggleCostiManualiCommittente()">
-                                    <label for="usa_costi_manuali" class="form-check-label">
-                                        <strong>Definisci costi manualmente (sostituisce calcolo automatico)</strong>
-                                    </label>
-                                </div>
-                                
-                                <div id="sezione_costi_manuali_committente" style="display: {% if data.get('usa_costi_manuali') %}block{% else %}none{% endif %}">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_incontri_manuale" class="form-label">Incontri Coordinamento (€)</label>
-                                                <input type="number" 
-                                                       id="costo_incontri_manuale" 
-                                                       name="costo_incontri_manuale" 
-                                                       value="{{ data.get('costo_incontri_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_dpi_manuale" class="form-label">DPI (€)</label>
-                                                <input type="number" 
-                                                       id="costo_dpi_manuale" 
-                                                       name="costo_dpi_manuale" 
-                                                       value="{{ data.get('costo_dpi_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_impiantistica_manuale" class="form-label">Impiantistica Sicurezza (€)</label>
-                                                <input type="number" 
-                                                       id="costo_impiantistica_manuale" 
-                                                       name="costo_impiantistica_manuale" 
-                                                       value="{{ data.get('costo_impiantistica_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_segnaletica_manuale" class="form-label">Segnaletica (€)</label>
-                                                <input type="number" 
-                                                       id="costo_segnaletica_manuale" 
-                                                       name="costo_segnaletica_manuale" 
-                                                       value="{{ data.get('costo_segnaletica_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_presidi_manuale" class="form-label">Presidi Antincendio (€)</label>
-                                                <input type="number" 
-                                                       id="costo_presidi_manuale" 
-                                                       name="costo_presidi_manuale" 
-                                                       value="{{ data.get('costo_presidi_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_controlli_manuale" class="form-label">Controlli Periodici (€)</label>
-                                                <input type="number" 
-                                                       id="costo_controlli_manuale" 
-                                                       name="costo_controlli_manuale" 
-                                                       value="{{ data.get('costo_controlli_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="costo_altre_misure_manuale" class="form-label">Altre Misure (€)</label>
-                                                <input type="number" 
-                                                       id="costo_altre_misure_manuale" 
-                                                       name="costo_altre_misure_manuale" 
-                                                       value="{{ data.get('costo_altre_misure_manuale', '') }}" 
-                                                       class="form-control" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       placeholder="Lascia vuoto per calcolo automatico">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="alert alert-warning">
-                                        <strong>⚠️ Attenzione:</strong> I costi inseriti manualmente devono essere <strong>analitici, congrui e documentabili</strong>. 
-                                        Verranno riportati nel DUVRI come costi da interferenze ai sensi del D.Lgs. 81/08 art. 26.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- PULSANTI DI INVIO -->
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        💾 Salva e Continua
-                    </button>
-
-                    <a href="{{ url_for('summary') }}" class="btn btn-secondary btn-lg">
-                        📊 Vai al Riepilogo
-                    </a>
-
-					<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-lg">
-                        🏠 Torna alla Dashboard
-                    </a>
-                    </a>
-                </div>
-            </form>
-        </div>
+<div class="container mt-4">
+    <h2>📋 Dati Committente - DUVRI Dinamico</h2>
+    
+    <!-- ALERT INFORMATIVO TIPO DUVRI -->
+    <div class="alert alert-info">
+        <h5>ℹ️ Tipologie di DUVRI</h5>
+        <ul class="mb-0">
+            <li><strong>Ricognitivo:</strong> Per documenti di gara (stima preliminare costi sicurezza)</li>
+            <li><strong>Operativo:</strong> Per esecuzione contratto (valutazione interferenze reali)</li>
+        </ul>
     </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        
+        <!-- ============================================ -->
+        <!-- SEZIONE 1: TIPO DUVRI E FASE APPALTO -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>1️⃣ Tipologia e Fase del DUVRI</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tipo DUVRI *</label>
+                        <select name="tipo_duvri" class="form-select" required>
+                            <option value="ricognitivo" {{ 'selected' if data.get('tipo_duvri') == 'ricognitivo' else '' }}>
+                                📄 Ricognitivo (per documenti gara)
+                            </option>
+                            <option value="operativo" {{ 'selected' if data.get('tipo_duvri') == 'operativo' or not data.get('tipo_duvri') else '' }}>
+                                🔧 Operativo (per esecuzione contratto)
+                            </option>
+                        </select>
+                        <small class="text-muted">
+                            Ricognitivo = stima per bando | Operativo = interferenze reali
+                        </small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Fase Appalto *</label>
+                        <select name="fase_appalto" class="form-select" required>
+                            <option value="progettazione" {{ 'selected' if data.get('fase_appalto') == 'progettazione' else '' }}>
+                                📐 Progettazione/Gara
+                            </option>
+                            <option value="esecuzione" {{ 'selected' if data.get('fase_appalto') == 'esecuzione' or not data.get('fase_appalto') else '' }}>
+                                🔨 Esecuzione contratto
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Upload DUVRI ESTAR -->
+                <div class="mt-3">
+                    <label class="form-label fw-bold">📎 DUVRI ESTAR/Preliminare (opzionale)</label>
+                    <input type="file" name="duvri_estar_file" class="form-control" accept=".pdf,.doc,.docx">
+                    <small class="text-muted">
+                        Carica il DUVRI preliminare fornito da ESTAR o altra centrale di committenza
+                    </small>
+                    
+                    {% if data.get('duvri_estar_filename') %}
+                    <div class="alert alert-success mt-2">
+                        ✅ File caricato: <strong>{{ data.duvri_estar_filename }}</strong>
+                        <a href="{{ url_for('scarica_duvri_estar', duvri_id=current_duvri_id) }}" 
+                           class="btn btn-sm btn-primary ms-2">📥 Scarica</a>
+                    </div>
+                    {% endif %}
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 2: DATI ANAGRAFICI COMMITTENTE -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h4>2️⃣ Dati Anagrafici Committente</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">RUP/Responsabile Committente *</label>
+                        <input type="text" name="nome" class="form-control" 
+                               value="{{ data.get('nome', '') }}" required
+                               placeholder="es. Dott. Mario Rossi">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Codice Fiscale/P.IVA *</label>
+                        <input type="text" name="codice_fiscale" class="form-control" 
+                               value="{{ data.get('codice_fiscale', '') }}" required
+                               placeholder="es. 02198590503">
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Indirizzo Sede *</label>
+                        <input type="text" name="indirizzo" class="form-control" 
+                               value="{{ data.get('indirizzo', '') }}" required
+                               placeholder="es. Via Roma 1, 50100 Firenze">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Email *</label>
+                        <input type="email" name="email" class="form-control" 
+                               value="{{ data.get('email', '') }}" required
+                               placeholder="rup@asl.toscana.it">
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Oggetto Appalto/Servizio *</label>
+                        <textarea name="oggetto" class="form-control" rows="2" required
+                                  placeholder="es. Fornitura in locazione di 2 colonne endoscopiche">{{ data.get('oggetto', '') }}</textarea>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 3: IMPORTI E COSTI GARA -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h4>3️⃣ Importi Appalto e Costi Sicurezza da Gara</h4>
+            </div>
+            <div class="card-body">
+                
+                <!-- ALERT ESPLICATIVO -->
+                <div class="alert alert-info">
+                    <h5>📖 Istruzioni sui Costi da Gara</h5>
+                    <p class="mb-2"><strong>Seleziona lo scenario corretto:</strong></p>
+                    
+                    <div class="ms-3">
+                        <p class="mb-2">
+                            <strong>✅ Scenario A - Costi già inclusi ed evidenziati:</strong><br>
+                            <small>
+                                ☑️ Spunta "Costi sicurezza inclusi"<br>
+                                📝 Compila "Importo costi sicurezza" = importo dichiarato nei documenti<br>
+                                💡 <em>Sistema calcolerà delta e gestirà atto aggiuntivo se necessario (art. 120)</em>
+                            </small>
+                        </p>
+                        
+                        <p class="mb-2">
+                            <strong>⚖️ Scenario B - Costi inclusi ma compensati (non evidenziati):</strong><br>
+                            <small>
+                                ☑️ Spunta "Costi sicurezza inclusi"<br>
+                                📝 <strong>LASCIA VUOTO</strong> "Importo costi sicurezza" o imposta 0€<br>
+                                💡 <em>Sistema applicherà compensazione interna con verbale coordinamento</em>
+                            </small>
+                        </p>
+                        
+                        <p class="mb-0">
+                            <strong>❌ Scenario C - Costi NON inclusi in gara:</strong><br>
+                            <small>
+                                ☐ NON spuntare "Costi sicurezza inclusi"<br>
+                                💡 <em>Tutti i costi operativi saranno extra-costi → atto aggiuntivo necessario (art. 120)</em>
+                            </small>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Importo Base Gara (€) *</label>
+                        <input type="number" step="0.01" name="importo_gara_base" 
+                               class="form-control" 
+                               value="{{ data.get('importo_gara_base', '') }}" 
+                               required
+                               placeholder="es. 50000.00">
+                        <small class="text-muted">Importo contrattuale (IVA esclusa)</small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check mt-4 pt-2">
+                            <input type="checkbox" 
+                                   class="form-check-input" 
+                                   id="costi_inclusi_gara" 
+                                   name="costi_inclusi_gara"
+                                   {{ 'checked' if data.get('costi_inclusi_gara') else '' }}>
+                            <label class="form-check-label fw-bold" for="costi_inclusi_gara">
+                                Costi sicurezza da interferenze già inclusi nei documenti di gara
+                            </label>
+                            <small class="d-block text-muted mt-1">
+                                Selezionare se ESTAR (o altra centrale) ha già incluso costi sicurezza
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3" id="importo_costi_gara_section" 
+                     style="display: {{ 'block' if data.get('costi_inclusi_gara') else 'none' }};">
+                    <div class="col-md-12">
+                        <div class="alert alert-warning">
+                            <h6>⚠️ ATTENZIONE - Compila con cura:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Se i costi sono evidenziati nei documenti</strong> → inserisci l'importo esatto</li>
+                                <li><strong>Se i costi sono compensati (non evidenziati)</strong> → lascia a 0 o vuoto</li>
+                            </ul>
+                        </div>
+                        
+                        <label class="form-label fw-bold">Importo Costi Sicurezza da Gara (€)</label>
+                        <input type="number" step="0.01" name="costi_sicurezza_gara" 
+                               class="form-control" 
+                               value="{{ data.get('costi_sicurezza_gara', '0') }}"
+                               placeholder="0.00 per costi compensati, oppure importo dichiarato">
+                        <small class="text-muted">
+                            <strong>0 o vuoto</strong> = costi compensati  | 
+                            <strong>Valore > 0</strong> = confronto per atto aggiuntivo (art. 120)
+                        </small>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 4: CARATTERISTICHE STRUTTURA -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h4>4️⃣ Caratteristiche Struttura e Ambiente</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Tipologia Struttura *</label>
+                        <select name="tipologia_struttura" class="form-select" required>
+                            <option value="">Seleziona...</option>
+                            <option value="ospedale" {{ 'selected' if data.get('tipologia_struttura') == 'ospedale' else '' }}>
+                                🏥 Ospedale
+                            </option>
+                            <option value="poliambulatorio" {{ 'selected' if data.get('tipologia_struttura') == 'poliambulatorio' else '' }}>
+                                🏢 Poliambulatorio
+                            </option>
+                            <option value="rsa" {{ 'selected' if data.get('tipologia_struttura') == 'rsa' else '' }}>
+                                🏠 RSA/Casa di Cura
+                            </option>
+                            <option value="laboratorio" {{ 'selected' if data.get('tipologia_struttura') == 'laboratorio' else '' }}>
+                                🔬 Laboratorio
+                            </option>
+                            <option value="altro" {{ 'selected' if data.get('tipologia_struttura') == 'altro' else '' }}>
+                                📋 Altro
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Area Installazione *</label>
+                        <input type="text" name="area_installazione" class="form-control" 
+                               value="{{ data.get('area_installazione', '') }}" required
+                               placeholder="es. Reparto Endoscopia, 2° piano">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Presenza Pazienti *</label>
+                        <select name="presenza_pazienti" class="form-select" required>
+                            <option value="">Seleziona...</option>
+                            <option value="si_continua" {{ 'selected' if data.get('presenza_pazienti') == 'si_continua' else '' }}>
+                                👥 Sì, continuativa (H24)
+                            </option>
+                            <option value="si_diurna" {{ 'selected' if data.get('presenza_pazienti') == 'si_diurna' else '' }}>
+                                👤 Sì, solo diurna
+                            </option>
+                            <option value="no" {{ 'selected' if data.get('presenza_pazienti') == 'no' else '' }}>
+                                ✅ No, area non operativa
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Orari Lavori Consentiti</label>
+                        <input type="text" name="orari_lavori" class="form-control" 
+                               value="{{ data.get('orari_lavori', '') }}"
+                               placeholder="es. Lun-Ven 8:00-18:00, no weekend">
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Referente Tecnico ASL</label>
+                        <input type="text" name="referente_tecnico" class="form-control" 
+                               value="{{ data.get('referente_tecnico', '') }}"
+                               placeholder="Nome, ruolo, telefono">
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 5: RISCHI DELLA STRUTTURA -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h4>5️⃣ Rischi Presenti nella Struttura Committente</h4>
+            </div>
+            <div class="card-body">
+                
+                <p class="text-muted">Seleziona i rischi presenti nell'area dove si svolgeranno i lavori:</p>
+                
+                <div class="row">
+                    {% for rischio in rischi_committente %}
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="rischi_struttura" 
+                                   value="{{ rischio }}"
+                                   id="rischio_{{ loop.index }}"
+                                   {{ 'checked' if rischio in data.get('rischi_struttura', []) else '' }}>
+                            <label class="form-check-label" for="rischio_{{ loop.index }}">
+                                {{ rischio }}
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-3">
+                    <label class="form-label fw-bold">Note Aggiuntive sui Rischi</label>
+                    <textarea name="note_rischi_struttura" class="form-control" rows="3"
+                              placeholder="Specificare particolari situazioni, vincoli, procedure...">{{ data.get('note_rischi_struttura', '') }}</textarea>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 6: COSTI SICUREZZA (OPZIONALE) -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h4>6️⃣ Definizione Costi Sicurezza da Interferenze (Opzionale)</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="alert alert-secondary">
+                    <h5>ℹ️ Calcolo Costi</h5>
+                    <p class="mb-2">Puoi scegliere tra:</p>
+                    <ul class="mb-0">
+                        <li><strong>Calcolo Automatico:</strong> Il sistema calcola i costi in base a parametri (lavoratori, durata, rischi)</li>
+                        <li><strong>Inserimento Manuale:</strong> Inserisci tu i costi per ogni voce (utile se hai già una stima)</li>
+                    </ul>
+                </div>
+                
+                <!-- Checkbox Costi Manuali -->
+                <div class="form-check form-switch mb-3">
+                    <input type="checkbox" 
+                           class="form-check-input" 
+                           id="usa_costi_manuali" 
+                           name="usa_costi_manuali"
+                           {{ 'checked' if data.get('usa_costi_manuali') else '' }}>
+                    <label class="form-check-label fw-bold" for="usa_costi_manuali">
+                        🖊️ Inserisci costi manualmente (disabilita calcolo automatico)
+                    </label>
+                </div>
+                
+                <!-- Sezione Calcolo Automatico -->
+                <div id="calcolo_automatico_section" 
+                     style="display: {{ 'none' if data.get('usa_costi_manuali') else 'block' }};">
+                    <h5>⚙️ Parametri Calcolo Automatico</h5>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="form-label">Percentuale Costo Base (%) 
+                                <small class="text-muted">
+                                    ℹ️ Percentuale sull'importo appalto per costi base (default 2%)
+                                </small>
+                            </label>
+                            <input type="number" step="0.1" name="percentuale_costo_base" 
+                                   class="form-control" 
+                                   value="{{ data.get('percentuale_costo_base', '2.0') }}"
+                                   placeholder="2.0"
+                                   min="0" max="5">
+                            <small class="text-muted">
+                                Imposta 0 per nessun costo base, oppure 1-3% tipicamente
+                            </small>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            💡 Il sistema calcolerà automaticamente i costi quando l'appaltatore inserirà:
+                            numero lavoratori, durata lavori e rischi
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- Sezione Costi Manuali -->
+                <div id="costi_manuali_section" 
+                     style="display: {{ 'block' if data.get('usa_costi_manuali') else 'none' }};">
+                    <h5>💰 Inserimento Manuale Costi</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Incontri e coordinamento (€)</label>
+                            <input type="number" step="0.01" name="costo_incontri_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_incontri_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">DPI specifici (€)</label>
+                            <input type="number" step="0.01" name="costo_dpi_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_dpi_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Impiantistica ausiliaria (€)</label>
+                            <input type="number" step="0.01" name="costo_impiantistica_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_impiantistica_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Segnaletica (€)</label>
+                            <input type="number" step="0.01" name="costo_segnaletica_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_segnaletica_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Presidi antincendio (€)</label>
+                            <input type="number" step="0.01" name="costo_presidi_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_presidi_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Controlli periodici (€)</label>
+                            <input type="number" step="0.01" name="costo_controlli_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_controlli_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Altre misure (€)</label>
+                            <input type="number" step="0.01" name="costo_altre_misure_manuale" 
+                                   class="form-control" 
+                                   value="{{ data.get('costo_altre_misure_manuale', '') }}"
+                                   placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- BOTTONI AZIONE -->
+        <!-- ============================================ -->
+        
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                ← Annulla
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+                💾 Salva Dati Committente
+            </button>
+        </div>
+        
+    </form>
 </div>
 
-<style>
-fieldset {
-    border: 2px solid #007bff;
-    border-radius: 8px;
-    padding: 25px;
-    margin-bottom: 25px;
-    background: #f8f9fa;
-}
-legend {
-    font-weight: bold;
-    color: #007bff;
-    font-size: 1.2em;
-    padding: 0 15px;
-    width: auto;
-}
-.form-check-label {
-    font-weight: normal;
-}
-</style>
+<!-- JavaScript per toggle sezioni -->
 <script>
-// Toggle sezione costi gara
-function toggleCostiGara() {
-    const checkbox = document.getElementById('costi_inclusi_gara');
-    const sezione = document.getElementById('sezione_costi_gara');
-    const inputCosti = document.getElementById('costi_sicurezza_gara');
-    
-    if (checkbox.checked) {
-        sezione.style.display = 'block';
-        inputCosti.required = true;
-    } else {
-        sezione.style.display = 'none';
-        inputCosti.required = false;
-        inputCosti.value = '';
-    }
-}
-
-// Avviso cambio tipo DUVRI
-document.getElementById('tipo_duvri').addEventListener('change', function() {
-    if (this.value === 'ricognitivo') {
-        alert('ℹ️ DUVRI Ricognitivo: da utilizzare per preparare i documenti di gara. ' +
-              'I costi calcolati saranno quelli da includere nel bando.');
-    } else {
-        alert('ℹ️ DUVRI Operativo: da compilare dopo l\'aggiudicazione, con le condizioni reali. ' +
-              'Eventuali differenze rispetto ai costi di gara richiederanno una procedura di integrazione.');
-    }
-});
-
-// Esegui al caricamento
 document.addEventListener('DOMContentLoaded', function() {
-    toggleCostiGara();
-});
-function toggleCostiManualiCommittente() {
-    const checkbox = document.getElementById('usa_costi_manuali');
-    const sezione = document.getElementById('sezione_costi_manuali_committente');
     
-    if (checkbox.checked) {
-        sezione.style.display = 'block';
-    } else {
-        sezione.style.display = 'none';
-        // Pulisci i campi quando disattivi
-        const inputs = sezione.querySelectorAll('input[type="number"]');
-        inputs.forEach(input => input.value = '');
+    // Toggle importo costi gara
+    const checkboxCostiInclusi = document.getElementById('costi_inclusi_gara');
+    const importoCostiSection = document.getElementById('importo_costi_gara_section');
+    
+    if (checkboxCostiInclusi) {
+        checkboxCostiInclusi.addEventListener('change', function() {
+            importoCostiSection.style.display = this.checked ? 'block' : 'none';
+        });
     }
-}
-
-// Esegui al caricamento
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('usa_costi_manuali')) {
-        toggleCostiManualiCommittente();
+    
+    // Toggle costi manuali vs automatici
+    const checkboxCostiManuali = document.getElementById('usa_costi_manuali');
+    const calcoloAutoSection = document.getElementById('calcolo_automatico_section');
+    const costiManualiSection = document.getElementById('costi_manuali_section');
+    
+    if (checkboxCostiManuali) {
+        checkboxCostiManuali.addEventListener('change', function() {
+            if (this.checked) {
+                calcoloAutoSection.style.display = 'none';
+                costiManualiSection.style.display = 'block';
+            } else {
+                calcoloAutoSection.style.display = 'block';
+                costiManualiSection.style.display = 'none';
+            }
+        });
     }
+    
 });
 </script>
+
+<style>
+.card-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.alert h5, .alert h6 {
+    margin-top: 0;
+}
+
+.form-check-label {
+    cursor: pointer;
+}
+
+.alert ul {
+    padding-left: 1.5rem;
+}
+</style>
+
 {% endblock %}
