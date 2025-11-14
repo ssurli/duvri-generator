@@ -9,7 +9,8 @@ venv/
 *.sqlite3
 .env
 *.log
-output/ 
-Download/ 
+output/
+uploads/
+uploads_duvri_estar/
 *.db 
 uploads_duvri_estar/ 

@@ -1,537 +1,335 @@
-<!-- templates/appaltatore_form.html -->
 {% extends "base.html" %}
 
-{% block document_title %}Compila Dati Appaltatore - DUVRI{% endblock %}
-{% block revision_status %}Compilazione Appaltatore{% endblock %}
-
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="info-box">
-			<h3>Informazioni</h3>
-			<p>Questo form consente la compilazione della <strong>Parte Dinamica</strong> del DUVRI per forniture con installazione (ad es. apparecchiature HTA) presso le strutture dell'Azienda USL Toscana Nord Ovest.</p>
-			<p>La <strong>Parte Statica</strong> del DUVRI contiene le informazioni generali sui rischi e deve essere consultata preventivamente.</p>
-		</div>
-
-    <!-- SEZIONE DOWNLOAD PDF
-    <div class="pdf-buttons">
-    <a href="{{ url_for('download_pdf', filename='duvri_dinamico') }}"
-       class="btn-pdf" target="_blank">
-        📄 DUVRI Dinamico (Rev 1.0)
-    </a>-->
-		<a href="{{ url_for('download_pdf', filename='duvri_statico') }}"
-			class="btn-pdf" target="_blank">
-        📄 DUVRI Statico (Rev 1.0)
-    </a>
-	</div>
-        <p class="pdf-note"><small>Il documento si aprirà in una nuova finestra</small></p>
+<div class="container mt-4">
+    <h2>📋 Dati Appaltatore - DUVRI Dinamico</h2>
+    
+    <!-- ALERT INFO OGGETTO -->
+    {% if dati_committente and dati_committente.get('oggetto') %}
+    <div class="alert alert-info">
+        <strong>📄 Oggetto Appalto:</strong> {{ dati_committente.oggetto }}
     </div>
-		<div class="col-lg-10">
-            <h1 class="text-center mb-4">🏢 Dati Appaltatore</h1>
-            <p class="text-muted text-center mb-4">Ditta Esterna - Compilazione DUVRI</p>
+    {% endif %}
 
-            <!-- Messaggi Flash -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="post" action="">
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Riferimenti generali dell'appaltatore</legend>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="ragione_sociale" class="form-label">Ragione sociale:</label>
-                                <input type="text" id="ragione_sociale" name="ragione_sociale" value="{{ data.get('ragione_sociale','') }}" required class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="cf" class="form-label">Codice fiscale:</label>
-                                <input type="text" id="cf" name="cf" value="{{ data.get('cf','') }}" required class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="piva" class="form-label">Partita IVA:</label>
-                                <input type="text" id="piva" name="piva" value="{{ data.get('piva','') }}" required class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="cciaa" class="form-label">N.ro iscrizione C.C.I.A.A.:</label>
-                                <input type="text" id="cciaa" name="cciaa" value="{{ data.get('cciaa','') }}" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="sede" class="form-label">Sede legale:</label>
-                        <input type="text" id="sede" name="sede" value="{{ data.get('sede','') }}" required class="form-control">
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="telefono" class="form-label">Telefono:</label>
-                                <input type="tel" id="telefono" name="telefono" value="{{ data.get('telefono','') }}" required class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="fax" class="form-label">Fax:</label>
-                                <input type="tel" id="fax" name="fax" value="{{ data.get('fax','') }}" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email:</label>
-                                <input type="email" id="email" name="email" value="{{ data.get('email','') }}" required class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="pec" class="form-label">PEC:</label>
-                        <input type="email" id="pec" name="pec" value="{{ data.get('pec','') }}" required class="form-control">
-                    </div>
-                </fieldset>
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Referenti generali appaltatore</legend>
-
-                    <!-- Datore di Lavoro -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="datore_lavoro_nome" class="form-label">Datore di Lavoro *</label>
-                                <input type="text" 
-                                       id="datore_lavoro_nome" 
-                                       name="datore_lavoro_nome" 
-                                       value="{{ data.get('datore_lavoro_nome', '') }}" 
-                                       class="form-control" 
-                                       required
-                                       placeholder="Nome e Cognome">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="datore_lavoro_tel" class="form-label">Telefono</label>
-                                <input type="tel" 
-                                       id="datore_lavoro_tel" 
-                                       name="datore_lavoro_tel" 
-                                       value="{{ data.get('datore_lavoro_tel', '') }}" 
-                                       class="form-control"
-                                       placeholder="Es: 055-1234567">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="datore_lavoro_email" class="form-label">Email</label>
-                                <input type="email" 
-                                       id="datore_lavoro_email" 
-                                       name="datore_lavoro_email" 
-                                       value="{{ data.get('datore_lavoro_email', '') }}" 
-                                       class="form-control"
-                                       placeholder="email@azienda.it">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RSPP -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="rspp_nome" class="form-label">RSPP *</label>
-                                <input type="text" 
-                                       id="rspp_nome" 
-                                       name="rspp_nome" 
-                                       value="{{ data.get('rspp_nome', '') }}" 
-                                       class="form-control" 
-                                       required
-                                       placeholder="Nome e Cognome">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="rspp_tel" class="form-label">Telefono</label>
-                                <input type="tel" 
-                                       id="rspp_tel" 
-                                       name="rspp_tel" 
-                                       value="{{ data.get('rspp_tel', '') }}" 
-                                       class="form-control"
-                                       placeholder="Es: 055-1234567">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="rspp_email" class="form-label">Email</label>
-                                <input type="email" 
-                                       id="rspp_email" 
-                                       name="rspp_email" 
-                                       value="{{ data.get('rspp_email', '') }}" 
-                                       class="form-control"
-                                       placeholder="email@azienda.it">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Responsabile Appalto -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="resp_appalto_nome" class="form-label">Responsabile Appalto *</label>
-                                <input type="text" 
-                                       id="resp_appalto_nome" 
-                                       name="resp_appalto_nome" 
-                                       value="{{ data.get('resp_appalto_nome', '') }}" 
-                                       class="form-control" 
-                                       required
-                                       placeholder="Nome e Cognome">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="resp_appalto_tel" class="form-label">Telefono</label>
-                                <input type="tel" 
-                                       id="resp_appalto_tel" 
-                                       name="resp_appalto_tel" 
-                                       value="{{ data.get('resp_appalto_tel', '') }}" 
-                                       class="form-control"
-                                       placeholder="Es: 055-1234567">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="resp_appalto_email" class="form-label">Email</label>
-                                <input type="email" 
-                                       id="resp_appalto_email" 
-                                       name="resp_appalto_email" 
-                                       value="{{ data.get('resp_appalto_email', '') }}" 
-                                       class="form-control"
-                                       placeholder="email@azienda.it">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <h5>RSPP (Responsabile Servizio Prevenzione e Protezione)</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="rspp_nome" class="form-label">Nominativo:</label>
-                                    <input type="text" id="rspp_nome" name="rspp_nome" value="{{ data.get('rspp_nome','') }}" required class="form-control">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="rspp_rif" class="form-label">Riferimenti (tel/email):</label>
-                                    <input type="text" id="rspp_rif" name="rspp_rif" value="{{ data.get('rspp_rif','') }}" class="form-control">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <h5>Responsabile appalto presso il committente</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="resp_appalto_nome" class="form-label">Nominativo:</label>
-                                    <input type="text" id="resp_appalto_nome" name="resp_appalto_nome" value="{{ data.get('resp_appalto_nome','') }}" required class="form-control">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="resp_appalto_rif" class="form-label">Riferimenti (tel/email):</label>
-                                    <input type="text" id="resp_appalto_rif" name="resp_appalto_rif" value="{{ data.get('resp_appalto_rif','') }}" class="form-control">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="max_addetti" class="form-label">Numero massimo addetti previsti contemporaneamente nell'area di lavoro:</label>
-                        <input type="number" id="max_addetti" name="max_addetti" value="{{ data.get('max_addetti','') }}" min="1" required class="form-control">
-                        <small class="text-muted">Utilizzato per calcolo DPI, formazione e sorveglianza sanitaria</small>
+    <form method="POST">
+        
+        <!-- ============================================ -->
+        <!-- SEZIONE 1: DATI ANAGRAFICI -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>1️⃣ Dati Anagrafici Impresa</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Ragione Sociale *</label>
+                        <input type="text" name="ragione_sociale" class="form-control" 
+                               value="{{ data.get('ragione_sociale', '') }}" required
+                               placeholder="es. ACME S.r.l.">
                     </div>
                     
-                    <!-- 🆕 DURATA LAVORI -->
-                    <div class="col-md-6">
-                        <label for="durata_giorni" class="form-label">Durata prevista dei lavori (giorni):</label>
-                        <input type="number" id="durata_giorni" name="durata_giorni" value="{{ data.get('durata_giorni','') }}" min="1" max="365" required class="form-control">
-                        <small class="text-muted">Utilizzato per calcolo incontri coordinamento e controlli periodici</small>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Codice Fiscale *</label>
+                        <input type="text" name="cf" class="form-control" 
+                               value="{{ data.get('cf', '') }}" required
+                               placeholder="es. 12345678901">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">P.IVA *</label>
+                        <input type="text" name="piva" class="form-control" 
+                               value="{{ data.get('piva', '') }}" required
+                               placeholder="es. 12345678901">
                     </div>
                 </div>
                 
-                <div class="alert alert-info mt-3">
-                    <small>
-                        <strong>ℹ️ Calcolo Automatico Costi Sicurezza</strong><br>
-                        I costi di sicurezza saranno calcolati automaticamente in conformità all'art. 26 D.Lgs. 81/08, 
-                        utilizzando i parametri forniti:
-                        <ul class="mb-0 mt-1">
-                            <li><strong>Importo appalto</strong>: fornito dal committente (€{{ dati_committente.get('importo', 'N/D') if dati_committente else 'N/D' }})</li>
-                            <li><strong>Numero lavoratori</strong>: da indicare sopra</li>
-                            <li><strong>Durata lavori</strong>: da indicare sopra</li>
-                            <li><strong>Rischi</strong>: quelli che selezionerai più avanti nel form</li>
-                        </ul>
-                    </small>
+                <div class="row mt-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Sede Legale *</label>
+                        <input type="text" name="sede" class="form-control" 
+                               value="{{ data.get('sede', '') }}" required
+                               placeholder="Via, Città, CAP">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Telefono *</label>
+                        <input type="tel" name="telefono" class="form-control" 
+                               value="{{ data.get('telefono', '') }}" required
+                               placeholder="es. 055-1234567">
+                    </div>
                 </div>
-                </fieldset>
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Organizzazione dell'appalto</legend>
-
-                    <div class="mb-3">
-                        <label class="form-label">Orario durante il quale si svolgeranno le attività:</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="orario_lavoro" value="07:00-19:00" {% if data.get('orario_lavoro') == '07:00-19:00' %}checked{% endif %}>
-                            <label class="form-check-label">07:00 - 19:00</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="orario_lavoro" value="19:00-07:00" {% if data.get('orario_lavoro') == '19:00-07:00' %}checked{% endif %}>
-                            <label class="form-check-label">19:00 - 07:00</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="orario_lavoro" value="altro" {% if data.get('orario_lavoro') == 'altro' %}checked{% endif %}>
-                            <label class="form-check-label">Altro:</label>
-                            <input type="text" name="orario_altro" value="{{ data.get('orario_altro','') }}" placeholder="Specificare orario" class="form-control mt-2" style="max-width: 300px;">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="oggetto" class="form-label">Oggetto dell'appalto (dettagliato):</label>
-                        <textarea id="oggetto" name="oggetto" rows="3" class="form-control">{{ data.get('oggetto','') }}</textarea>
-                    </div>
-                </fieldset>
-
-                <!-- 🆕 SEZIONE RISCHI COMMITTENTE -->
-                {% if dati_committente and dati_committente.rischi_struttura %}
-                <fieldset class="mb-4" style="background-color: #f0f8ff; border-color: #17a2b8;">
-                    <legend class="fw-bold fs-5" style="color: #17a2b8;">ℹ️ Rischi della Struttura già Identificati dal Committente</legend>
-                    <p class="text-muted">Il committente ha già identificato i seguenti rischi presenti nella struttura. <strong>Considera questi rischi quando selezioni i tuoi rischi di lavorazione</strong> per identificare le possibili interferenze:</p>
-                    
-                    <div class="alert alert-info">
-                        <strong>📍 Struttura:</strong> {{ dati_committente.get('tipologia_struttura', 'N/D') }} - {{ dati_committente.get('area_installazione', 'N/D') }}<br>
-                        <strong>👥 Presenza pazienti durante i lavori:</strong> {{ dati_committente.get('presenza_pazienti', 'N/D') }}
-                        {% if dati_committente.get('importo') %}
-                        <br><strong>💰 Importo servizio:</strong> € {{ dati_committente.get('importo') }}
-                        {% endif %}
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Email *</label>
+                        <input type="email" name="email" class="form-control" 
+                               value="{{ data.get('email', '') }}" required
+                               placeholder="info@azienda.it">
                     </div>
                     
-                    <h6 class="fw-bold mt-3">⚠️ Rischi Identificati:</h6>
-                    <div class="row">
-                        {% for rischio in dati_committente.rischi_struttura %}
-                        <div class="col-md-6 mb-2">
-                            <div class="alert alert-warning mb-0 py-2">
-                                <small>⚠️ <strong>{{ rischio }}</strong></small>
-                            </div>
-                        </div>
-                        {% endfor %}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">PEC *</label>
+                        <input type="email" name="pec" class="form-control" 
+                               value="{{ data.get('pec', '') }}" required
+                               placeholder="pec@azienda.it">
                     </div>
-                    
-                    {% if dati_committente.note_rischi_struttura %}
-                    <div class="mt-3 p-3 bg-light rounded">
-                        <strong>📝 Note aggiuntive del committente:</strong>
-                        <p class="text-muted fst-italic mb-0 mt-2">{{ dati_committente.note_rischi_struttura }}</p>
-                    </div>
-                    {% endif %}
-                </fieldset>
-                {% endif %}
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Rischi interferenti identificati - Installazione Apparecchiature HTA</legend>
-                    <p class="text-muted">Seleziona le attività previste dall'appalto facendo riferimento ai paragrafi del DUVRI-Parte Statica:</p>
-
-                    <div class="mb-4">
-                        <h6>3.3.1 - 3.3.12: Attività con attrezzature e lavorazioni speciali</h6>
-                        <div class="row">
-                            {% for numero, descrizione in rischi_paragrafi.items() %}
-                                {% if numero.split('.')[2]|int <= 12 %}
-                                <div class="col-md-6">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="rischi" value="{{ numero }} - {{ descrizione }}"
-                                               {% if (numero + " - " + descrizione) in data.get('rischi', []) %}checked{% endif %}>
-                                        <label class="form-check-label">{{ numero }} - {{ descrizione }}</label>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <h6>3.3.13 - 3.3.16: Movimentazione e lavori su impianti</h6>
-                        <div class="row">
-                            {% for numero, descrizione in rischi_paragrafi.items() %}
-                                {% if numero.split('.')[2]|int >= 13 and numero.split('.')[2]|int <= 16 %}
-                                <div class="col-md-6">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="rischi" value="{{ numero }} - {{ descrizione }}"
-                                               {% if (numero + " - " + descrizione) in data.get('rischi', []) %}checked{% endif %}>
-                                        <label class="form-check-label">{{ numero }} - {{ descrizione }}</label>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <h6>3.3.17 - 3.3.25: Attività specialistiche e assistenziali</h6>
-                        <div class="row">
-                            {% for numero, descrizione in rischi_paragrafi.items() %}
-                                {% if numero.split('.')[2]|int >= 17 %}
-                                <div class="col-md-6">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="rischi" value="{{ numero }} - {{ descrizione }}"
-                                               {% if (numero + " - " + descrizione) in data.get('rischi', []) %}checked{% endif %}>
-                                        <label class="form-check-label">{{ numero }} - {{ descrizione }}</label>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <h6>Rischi specifici per apparecchiature HTA</h6>
-                        <div class="row">
-                            {% for rischio in rischi_hta %}
-                            <div class="col-md-6">
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" name="rischi" value="{{ rischio }}"
-                                           {% if rischio in data.get('rischi', []) %}checked{% endif %}>
-                                    <label class="form-check-label">{{ rischio }}</label>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </fieldset>
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Specifiche tecniche dell'apparecchiatura HTA</legend>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="marca_modello" class="form-label">Marca e modello dell'apparecchiatura HTA:</label>
-                                <input type="text" id="marca_modello" name="marca_modello" value="{{ data.get('marca_modello','') }}" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="potenza_kw" class="form-label">Potenza elettrica assorbita (kW):</label>
-                                <input type="number" id="potenza_kw" name="potenza_kw" value="{{ data.get('potenza_kw','') }}" step="0.1" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="peso_kg" class="form-label">Peso dell'apparecchiatura (kg):</label>
-                                <input type="number" id="peso_kg" name="peso_kg" value="{{ data.get('peso_kg','') }}" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="durata_giorni" class="form-label">Durata prevista installazione (giorni):</label>
-                                <input type="number" id="durata_giorni" name="durata_giorni" value="{{ data.get('durata_giorni','') }}" class="form-control">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="numero_tecnici" class="form-label">Numero tecnici coinvolti:</label>
-                                <input type="number" id="numero_tecnici" name="numero_tecnici" value="{{ data.get('numero_tecnici','') }}" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <fieldset class="mb-4">
-                    <legend class="fw-bold fs-5">Note aggiuntive</legend>
-                    <div class="mb-3">
-                        <label for="note_rischi_struttura" class="form-label">Note aggiuntive sui rischi della struttura:</label>
-                        <textarea id="note_rischi_struttura" name="note_rischi_struttura" rows="4" class="form-control">{{ data.get('note_rischi_struttura','') }}</textarea>
-                    </div>
-                </fieldset>
-
-                <!-- PULSANTI DI INVIO -->
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        💾 Salva e Continua
-                    </button>
-
-                    <a href="{{ url_for('summary') }}" class="btn btn-secondary btn-lg">
-                        📊 Vai al Riepilogo
-                    </a>
-
                 </div>
-            </form>
+                
+            </div>
         </div>
-    </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 2: FIGURE RESPONSABILI -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h4>2️⃣ Figure Responsabili per la Sicurezza</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Datore di Lavoro *</label>
+                        <input type="text" name="datore_lavoro_nome" class="form-control" 
+                               value="{{ data.get('datore_lavoro_nome', '') }}" required
+                               placeholder="Nome e Cognome">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">RSPP *</label>
+                        <input type="text" name="rspp_nome" class="form-control" 
+                               value="{{ data.get('rspp_nome', '') }}" required
+                               placeholder="Nome e Cognome">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Responsabile Appalto *</label>
+                        <input type="text" name="resp_appalto_nome" class="form-control" 
+                               value="{{ data.get('resp_appalto_nome', '') }}" required
+                               placeholder="Nome e Cognome">
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 3: PARAMETRI OPERATIVI (per calcolo costi) -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h4>3️⃣ Parametri Operativi</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="alert alert-info">
+                    <strong>ℹ️ Informazione:</strong> Questi dati sono utilizzati per il calcolo automatico dei costi di sicurezza da parte del committente.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Numero Massimo Addetti *</label>
+                        <input type="number" name="max_addetti" class="form-control" 
+                               value="{{ data.get('max_addetti', '') }}" required min="1"
+                               placeholder="es. 3">
+                        <small class="text-muted">Lavoratori presenti contemporaneamente</small>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Durata Lavori (giorni) *</label>
+                        <input type="number" name="durata_giorni" class="form-control" 
+                               value="{{ data.get('durata_giorni', '') }}" required min="1"
+                               placeholder="es. 10">
+                        <small class="text-muted">Giorni lavorativi previsti</small>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Orario Lavoro *</label>
+                        <select name="orario_lavoro" class="form-select" required>
+                            <option value="">Seleziona...</option>
+                            <option value="diurno" {{ 'selected' if data.get('orario_lavoro') == 'diurno' else '' }}>
+                                🌞 Solo diurno (8-18)
+                            </option>
+                            <option value="h24" {{ 'selected' if data.get('orario_lavoro') == 'h24' else '' }}>
+                                🌙 H24 (anche notturno)
+                            </option>
+                            <option value="altro" {{ 'selected' if data.get('orario_lavoro') == 'altro' else '' }}>
+                                📅 Altro (specificare)
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mt-3" id="orario_altro_field" 
+                     style="display: {{ 'block' if data.get('orario_lavoro') == 'altro' else 'none' }};">
+                    <div class="col-md-12">
+                        <label class="form-label">Specifica Orario</label>
+                        <input type="text" name="orario_altro" class="form-control" 
+                               value="{{ data.get('orario_altro', '') }}"
+                               placeholder="es. Sabato 9-13">
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 4: ATTIVITÀ E RISCHI -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h4>4️⃣ Attività e Rischi dell'Impresa</h4>
+            </div>
+            <div class="card-body">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descrizione Attività</label>
+                    <textarea name="oggetto" class="form-control" rows="3" required
+                              placeholder="Descrivere dettagliatamente le attività che verranno svolte...">{{ data.get('oggetto', dati_committente.get('oggetto', '') if dati_committente else '') }}</textarea>
+                </div>
+                
+                <hr>
+                
+                <h5>⚠️ Rischi delle Attività dell'Impresa</h5>
+                <p class="text-muted">Selezionare tutti i rischi associati alle attività che verranno svolte:</p>
+                
+                <div class="row">
+                    {% for codice, descrizione in rischi_paragrafi.items() %}
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="rischi" 
+                                   value="{{ descrizione }}"
+                                   id="rischio_{{ loop.index }}"
+                                   {{ 'checked' if descrizione in data.get('rischi', []) else '' }}>
+                            <label class="form-check-label" for="rischio_{{ loop.index }}">
+                                <small><strong>{{ codice }}</strong> - {{ descrizione }}</small>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if rischi_hta %}
+                <hr class="mt-3">
+                <h6>🏥 Rischi Specifici HTA (Health Technology Assessment)</h6>
+                <div class="row">
+                    {% for rischio in rischi_hta %}
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="rischi" 
+                                   value="{{ rischio }}"
+                                   id="rischio_hta_{{ loop.index }}"
+                                   {{ 'checked' if rischio in data.get('rischi', []) else '' }}>
+                            <label class="form-check-label" for="rischio_hta_{{ loop.index }}">
+                                <small>{{ rischio }}</small>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <label class="form-label fw-bold">Note Aggiuntive sui Rischi</label>
+                    <textarea name="note_rischi_struttura" class="form-control" rows="3"
+                              placeholder="Eventuali specificazioni aggiuntive...">{{ data.get('note_rischi_struttura', '') }}</textarea>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SEZIONE 5: CARATTERISTICHE ATTREZZATURE (se applicabile) -->
+        <!-- ============================================ -->
+        
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h4>5️⃣ Caratteristiche Attrezzature (opzionale)</h4>
+            </div>
+            <div class="card-body">
+                
+                <p class="text-muted">Compilare solo se pertinente all'attività svolta</p>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Marca e Modello</label>
+                        <input type="text" name="marca_modello" class="form-control" 
+                               value="{{ data.get('marca_modello', '') }}"
+                               placeholder="es. Siemens XYZ-123">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Potenza (kW)</label>
+                        <input type="number" step="0.1" name="potenza_kw" class="form-control" 
+                               value="{{ data.get('potenza_kw', '') }}"
+                               placeholder="es. 15.5">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Peso (kg)</label>
+                        <input type="number" step="0.1" name="peso_kg" class="form-control" 
+                               value="{{ data.get('peso_kg', '') }}"
+                               placeholder="es. 450">
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- BOTTONI AZIONE -->
+        <!-- ============================================ -->
+        
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('summary') }}" class="btn btn-secondary">
+                ← Annulla
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+                💾 Salva Dati Appaltatore
+            </button>
+        </div>
+        
+    </form>
 </div>
 
-<style>
-fieldset {
-    border: 2px solid #28a745;
-    border-radius: 8px;
-    padding: 25px;
-    margin-bottom: 25px;
-    background: #f8f9fa;
-}
-legend {
-    font-weight: bold;
-    color: #28a745;
-    font-size: 1.2em;
-    padding: 0 15px;
-    width: auto;
-}
-.form-check-label {
-    font-weight: normal;
-}
-</style>
-{% endblock %}
-
-{% block scripts %}
+<!-- JavaScript per toggle campi -->
 <script>
-// Simple form submission - let the browser handle it normally
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Appaltatore form loaded successfully');
-
-    // DEBUG COOKIE BANNER PER APPALTATORE
-    console.log('🔍 DEBUG Appaltatore Cookie Banner');
-    console.log('URL corrente:', window.location.href);
-    console.log('Pathname:', window.location.pathname);
-
-    // Funzione per controllare i cookie
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
+    
+    // Toggle campo "altro" per orario lavoro
+    const orarioSelect = document.querySelector('[name="orario_lavoro"]');
+    const orarioAltroField = document.getElementById('orario_altro_field');
+    
+    if (orarioSelect) {
+        orarioSelect.addEventListener('change', function() {
+            orarioAltroField.style.display = this.value === 'altro' ? 'block' : 'none';
+        });
     }
-
-    console.log('Cookie accettati:', getCookie('cookies_accepted'));
-    console.log('Tutti i cookie:', document.cookie);
-
-    // Verifica se siamo in modalità appaltatore
-    const isAppaltatore = window.location.pathname.includes('/appaltatore/') ||
-                         window.location.pathname.includes('/appaltatore_form/');
-    console.log('Modalità appaltatore?', isAppaltatore);
+    
 });
 </script>
+
+<style>
+.card-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.form-check-label {
+    cursor: pointer;
+}
+
+.alert {
+    border-radius: 8px;
+}
+</style>
+
 {% endblock %}

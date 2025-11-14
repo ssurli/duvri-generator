@@ -88,7 +88,7 @@
                 <strong>✓ Completato il:</strong> {{ data.signatures.committente }}
             </div>
             {% else %}
-            <a href="{{ url_for('sign', role='committente') }}" class="btn btn-success mt-3">Firma come Committente</a>
+            <a href="{{ url_for('sign', role='committente') }}" class="btn btn-success mt-3">Completato (clicca quando sono stati inseriti tutti i dati)</a>
             {% endif %}
 
             {% else %}
@@ -207,89 +207,156 @@
                     {% endif %}
                 </div>
                 {% endif %}
-                {% set costi_totali = (
-                    data.appaltatore.get('costo_incontri', 0)|float + 
-                    data.appaltatore.get('costo_dpi', 0)|float + 
-                    data.appaltatore.get('costo_impiantistica', 0)|float + 
-                    data.appaltatore.get('costo_segnaletica', 0)|float + 
-                    data.appaltatore.get('costo_presidi', 0)|float + 
-                    data.appaltatore.get('costo_controlli', 0)|float + 
-                    data.appaltatore.get('costo_altre_misure', 0)|float
-                ) %}
 
-                <table class="table table-bordered table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Voce di Costo</th>
-                            <th class="text-end">Importo (€)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            
-							<h3>💰 Costi per la Sicurezza</h3>
-							<form method="POST" action="{{ url_for('salva_costi_manuali') }}">
-    						
-							
-							<td>Incontri di coordinamento</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_incontri', 0)|float) }}</td>
-                        </tr>
-                        <tr>
-                            <td>DPI e protezioni individuali</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_dpi', 0)|float) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Impiantistica sicurezza</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_impiantistica', 0)|float) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Segnaletica e delimitazioni</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_segnaletica', 0)|float) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Presidi antincendio</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_presidi', 0)|float) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Controlli e verifiche periodiche</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_controlli', 0)|float) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Altre misure e costo base</td>
-                            <td class="text-end">{{ "%.2f"|format(data.appaltatore.get('costo_altre_misure', 0)|float) }}</td>
-                        </tr>
-                        <tr class="table-success fw-bold">
-                            <td>TOTALE COSTI SICUREZZA</td>
-                            <td class="text-end">{{ "%.2f"|format(costi_totali) }}</td>
-                        </tr>
-						<button type="submit" class="btn btn-success mt-3">
-							💾 Salva Modifiche Manuali
-						</button>
-							</form>
-                    </tbody>
-                </table>
-				<form method="POST" action="{{ url_for('ricalcola_costi') }}" class="mt-2">
-					<button type="submit" class="btn btn-warning">
-						🔄 Ricalcola Automaticamente
-					</button>
-				</form>
-                {% if data.appaltatore.note_costi_sicurezza %}
-                <div class="alert alert-info">
-                    <strong>ℹ️ Dettagli calcolo:</strong><br>
-                    {{ data.appaltatore.note_costi_sicurezza }}
-                </div>
+                <!-- Dettaglio Costi per la Sicurezza -->
+                <h5 class="mt-4">💰 Dettaglio Costi per la Sicurezza</h5>
+
+                {% if data.appaltatore.costi_presenti %}
+                    
+                    <!-- Visualizzazione Costi (solo lettura) -->
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Voce</th>
+                                <th class="text-end" style="width: 200px;">Importo (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Incontri e coordinamento</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_incontri or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>DPI specifici</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_dpi or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Impiantistica ausiliaria</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_impiantistica or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Segnaletica</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_segnaletica or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Presidi antincendio</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_presidi or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Controlli periodici</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_controlli or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Altre misure</td>
+                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_altre_misure or 0) }}</td>
+                            </tr>
+                            <tr class="table-warning fw-bold">
+                                <td>TOTALE</td>
+                                <td class="text-end">
+                                    € {{ "{:,.2f}".format(
+                                        (data.appaltatore.costo_incontri or 0) +
+                                        (data.appaltatore.costo_dpi or 0) +
+                                        (data.appaltatore.costo_impiantistica or 0) +
+                                        (data.appaltatore.costo_segnaletica or 0) +
+                                        (data.appaltatore.costo_presidi or 0) +
+                                        (data.appaltatore.costo_controlli or 0) +
+                                        (data.appaltatore.costo_altre_misure or 0)
+                                    ) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Info sul metodo di calcolo 
+                    {% if data.appaltatore.note_costi_sicurezza %}
+                    <div class="alert alert-info mt-3">
+                        <small><strong>ℹ️ Dettagli calcolo:</strong><br>
+                        {{ data.appaltatore.note_costi_sicurezza }}</small>
+                    </div>
+                    {% endif %}-->
+                    {# Form per aggiornare le note - TEMPORANEAMENTE DISABILITATO
+                    <div class="card mt-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">📝 Note Personalizzate sui Costi</h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('aggiorna_note_costi') }}">
+                                <div class="mb-3">
+                                    <label for="note_costi_sicurezza" class="form-label">
+                                        Aggiungi o modifica le note sui costi:
+                                    </label>
+                                    <textarea class="form-control" id="note_costi_sicurezza" 
+                                              name="note_costi_sicurezza" rows="3"
+                                              placeholder="Inserisci note aggiuntive sui costi di sicurezza...">{{ data.appaltatore.note_costi_sicurezza or '' }}</textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    💾 Salva Note
+                                </button>
+                                <small class="text-muted ms-2">
+                                    Le note vengono preservate anche durante il ricalcolo automatico
+                                </small>
+                            </form>
+                        </div>
+                    </div>
+                    #}
+                    <!-- Pulsante Ricalcola (se non sono costi manuali committente) -->
+                    {% if not data.committente.usa_costi_manuali %}
+                    <form method="POST" action="{{ url_for('ricalcola_costi') }}" class="mt-3">
+                        <button type="submit" class="btn btn-warning btn-sm">
+                            🔄 Ricalcola Costi Automaticamente
+                        </button>
+                        <small class="text-muted ms-2">
+                            Ricalcola in base ai parametri attuali (lavoratori, durata, rischi)
+                        </small>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-secondary mt-3">
+                        <small>
+                            <strong>🖊️ Costi impostati manualmente dal committente</strong><br>
+                            Per modificarli, torna al <a href="{{ url_for('compila_committente', duvri_id=current_duvri_id) }}">form committente</a>.
+                        </small>
+                    </div>
+                    {% endif %}
+
+                {% else %}
+                    <!-- Nessun costo calcolato -->
+                    <div class="alert alert-warning">
+                        <h5>⚠️ Costi Non Ancora Calcolati</h5>
+                        <p class="mb-2">Per calcolare i costi di sicurezza sono necessari:</p>
+                        <ul class="mb-0">
+                            <li>✅ Importo appalto (dal committente)</li>
+                            <li>✅ Numero lavoratori (dall'appaltatore)</li>
+                            <li>✅ Durata lavori (dall'appaltatore)</li>
+                        </ul>
+                    </div>
+                    
+                    {% if not data.committente.importo_gara_base %}
+                    <div class="alert alert-danger">
+                        ❌ Manca l'importo appalto nel form committente
+                    </div>
+                    {% endif %}
+                    
+                    {% if not data.appaltatore.max_addetti or not data.appaltatore.durata_giorni %}
+                    <div class="alert alert-danger">
+                        ❌ Mancano numero lavoratori o durata nel form appaltatore
+                    </div>
+                    {% endif %}
+                    
                 {% endif %}
 
                 <!-- Badge -->
                 <div class="mt-2">
-                    {% if data.appaltatore and data.appaltatore.costi_calcolati_auto %}
-                    <span class="badge bg-success">✅ Calcolati Automaticamente</span>
-                    <span class="badge bg-info">Conformi D.Lgs. 81/08 art. 26</span>
+                    {% if data.appaltatore and data.appaltatore.costi_presenti %}
+                        {% if data.committente.usa_costi_manuali %}
+                            <span class="badge bg-primary">🖊️ Inseriti Manualmente dal Committente</span>
+                        {% elif data.appaltatore.costi_calcolati_auto %}
+                            <span class="badge bg-success">✅ Calcolati Automaticamente</span>
+                        {% endif %}
+                        <span class="badge bg-info">Conformi D.Lgs. 81/08 art. 26</span>
                     {% endif %}
                 </div>
             </div>
             {% endif %}
-
 
             <!-- Firma -->
             {% if data.signatures and data.signatures.appaltatore %}
@@ -297,7 +364,7 @@
                 <strong>✓ Completato il:</strong> {{ data.signatures.appaltatore }}
             </div>
             {% else %}
-            <a href="{{ url_for('sign', role='appaltatore') }}" class="btn btn-success mt-3">Firma come Appaltatore</a>
+            <a href="{{ url_for('sign', role='appaltatore') }}" class="btn btn-success mt-3">Completato (clicca quando sono stati inseriti tutti i dati)</a>
             {% endif %}
 
             {% else %}

@@ -912,68 +912,22 @@ def calcola_e_confronta_costi(duvri_id):
         # CASO 2: Costi inclusi ma non evidenziati = compensati
         
         if totale_operativo > 0:
-            # 🆕 VERIFICA SOGLIE CONFIGURABILI
-            try:
-                from config_scenario import ConfigScenarioNormativo
-                
-                soglia_euro = ConfigScenarioNormativo.SOGLIA_COMPENSAZIONE_EURO
-                soglia_perc = ConfigScenarioNormativo.SOGLIA_COMPENSAZIONE_PERCENTUALE
-            except:
-                # Fallback se config non disponibile
-                soglia_euro = 1000.0
-                soglia_perc = 3.0
-            
-            # Calcola percentuale sul contratto
-            perc_su_contratto = (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0
-            
-            # Verifica soglie (operatore OR)
-            sotto_soglia_euro = totale_operativo < soglia_euro
-            sotto_soglia_perc = perc_su_contratto < soglia_perc
-            
-            # COMPENSAZIONE se sotto ALMENO UNA soglia
-            if sotto_soglia_euro or sotto_soglia_perc:
-                motivazione = "Sotto soglia: "
-                if sotto_soglia_euro and sotto_soglia_perc:
-                    motivazione += f"€{int(soglia_euro)} e {soglia_perc}%"
-                elif sotto_soglia_euro:
-                    motivazione += f"€{int(soglia_euro)}"
-                else:
-                    motivazione += f"{soglia_perc}%"
-                
-                return {
-                    'tipo': 'OPERATIVO_COMPENSATO',
-                    'stato': 'COSTI_COMPENSATI',
-                    'costi_gara': 0,
-                    'totale_operativo': totale_operativo,
-                    'costi_operativi_dict': costi_operativi_dict,
-                    'delta': 0,
-                    'percentuale_delta': 0,
-                    'percentuale_gara': perc_su_contratto,
-                    'messaggio': f'ℹ️ COMPENSAZIONE INTERNA: Costi interferenze (€{totale_operativo:,.2f}, {perc_su_contratto:.1f}% contratto) assorbiti negli oneri generali. {motivazione}. Richiesto verbale RUP/Appaltatore.',
-                    'alert_type': 'info',
-                    'richiede_azione': True,
-                    'azione_richiesta': 'verbale_concordamento',
-                    'scenario_normativo': 'COMPENSAZIONE'
-                }
-            else:
-                # Sopra entrambe le soglie → ATTO AGGIUNTIVO
-                supera_limite = perc_su_contratto > 50
-                return {
-                    'tipo': 'OPERATIVO_COMPENSATO',
-                    'stato': 'EXTRA_COSTI',
-                    'costi_gara': 0,
-                    'totale_operativo': totale_operativo,
-                    'costi_operativi_dict': costi_operativi_dict,
-                    'delta': totale_operativo,
-                    'percentuale_delta': 0,
-                    'percentuale_gara': perc_su_contratto,
-                    'messaggio': f'⚠️ ATTO AGGIUNTIVO NECESSARIO: Interferenze non previste. Costi €{totale_operativo:,.2f} ({perc_su_contratto:.1f}% contratto). Sopra soglie: €{int(soglia_euro)} e {soglia_perc}%. {"❌ SUPERA limite 50%!" if supera_limite else "✅ Entro limite 50%"}',
-                    'alert_type': 'danger' if supera_limite else 'warning',
-                    'richiede_azione': True,
-                    'azione_richiesta': 'atto_aggiuntivo',
-                    'scenario_normativo': 'ATTO_AGGIUNTIVO_ART120',
-                    'supera_limite_50': supera_limite
-                }
+            # Ci sono interferenze ma i costi sono da compensare
+            return {
+                'tipo': 'OPERATIVO_COMPENSATO',
+                'stato': 'COSTI_COMPENSATI',
+                'costi_gara': 0,
+                'totale_operativo': totale_operativo,
+                'costi_operativi_dict': costi_operativi_dict,
+                'delta': 0,  # Nessun delta perché compensati
+                'percentuale_delta': 0,
+                'percentuale_gara': (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0,
+                'messaggio': f'ℹ️ COMPENSAZIONE INTERNA : Costi interferenze (€{totale_operativo:,.2f}) assorbiti negli oneri generali. Richiesto verbale di concordamento RUP/Appaltatore.',
+                'alert_type': 'info',
+                'richiede_azione': True,
+                'azione_richiesta': 'verbale_concordamento',
+                'scenario_normativo': 'COMPENSAZIONE'
+            }
         else:
             return {
                 'tipo': 'OPERATIVO_COMPENSATO',
@@ -991,14 +945,14 @@ def calcola_e_confronta_costi(duvri_id):
     # ========================================
     
     if not costi_inclusi_gara or costi_sicurezza_gara == 0:
-    # CASO 1: Nessun costo previsto = TUTTI sono extra-costi
-    
+        # CASO 1: Nessun costo previsto = TUTTI sono extra-costi
+        
         if totale_operativo > 0:
             percentuale_su_appalto = (totale_operativo / importo_gara_base * 100) if importo_gara_base > 0 else 0
-        
+            
             # Verifica limiti art. 120
             supera_limite = percentuale_su_appalto > 50
-        
+            
             return {
                 'tipo': 'OPERATIVO_SENZA_BASE',
                 'stato': 'EXTRA_COSTI_TOTALI',
@@ -1006,7 +960,7 @@ def calcola_e_confronta_costi(duvri_id):
                 'totale_operativo': totale_operativo,
                 'costi_operativi_dict': costi_operativi_dict,
                 'delta': totale_operativo,
-                'percentuale_delta': 100.0,  # ✅ MODIFICATO: da 0 a 100.0
+                'percentuale_delta': 0,
                 'percentuale_gara': percentuale_su_appalto,
                 'messaggio': f'⚠️ ATTO AGGIUNTIVO NECESSARIO (art. 120): Interferenze non previste. Costi totali: €{totale_operativo:,.2f} ({percentuale_su_appalto:.1f}% appalto). {"❌ SUPERA limite 50%!" if supera_limite else "✅ Entro limite 50%"}',
                 'alert_type': 'danger' if supera_limite else 'warning',
@@ -2062,37 +2016,6 @@ def ricalcola_costi():
 
     return redirect(url_for('summary'))
 
-@app.route('/aggiorna_note_costi', methods=['POST'])
-def aggiorna_note_costi():
-    """Aggiorna le note personalizzate sui costi di sicurezza"""
-    duvri_id = session.get('current_duvri_id')
-    
-    if not duvri_id:
-        flash('Nessun DUVRI selezionato', 'danger')
-        return redirect(url_for('admin_dashboard'))
-    
-    note_costi = request.form.get('note_costi_sicurezza', '')
-    
-    # Salva nei dati DUVRI
-    data = get_current_duvri_data()
-    if 'appaltatore' not in data:
-        data['appaltatore'] = {}
-    
-    data['appaltatore']['note_costi_sicurezza'] = note_costi
-    
-    # Salva nel database
-    conn = get_db_connection()
-    conn.execute('''
-        UPDATE duvri 
-        SET appaltatore_data = ? 
-        WHERE id = ?
-    ''', (json.dumps(data.get('appaltatore')), duvri_id))
-    conn.commit()
-    conn.close()
-    
-    flash('✅ Note sui costi aggiornate', 'success')
-    return redirect(url_for('summary'))
-
 @app.route('/salva_costi_manuali', methods=['POST'])
 def salva_costi_manuali():
     """Salva i costi modificati manualmente dall'utente"""
@@ -2765,10 +2688,42 @@ def generate_pdf():
         # STEP 5: Render HTML
         print("\n🎨 STEP 5: Rendering template HTML")
         try:
-        # 🆕 Usa helper unificato per preparare dati PDF
-            dati_pdf = prepara_dati_per_pdf(duvri_id, data)
+            # 🆕 Calcola confronto e extra-costo per sezione 2.6
+            confronto_costi = None
+            extra_costo = None
             
-            html_content = render_template("pdf_template.html", **dati_pdf)
+            # Solo se DUVRI completato con appaltatore
+            if data.get('appaltatore') and data.get('appaltatore').get('max_addetti'):
+                try:
+                    confronto_costi = calcola_e_confronta_costi(duvri_id)
+                    print(f"✅ Confronto costi calcolato: {confronto_costi.get('stato') if confronto_costi else 'None'}")
+                    
+                    if confronto_costi and confronto_costi.get('richiede_azione'):
+                        extra_costo = get_extra_costo(duvri_id)
+                        
+                        # 🆕 Se extra_costo esiste, aggiorna con scenario_normativo
+                        if extra_costo and confronto_costi.get('scenario_normativo'):
+                            aggiorna_extra_costo(
+                                duvri_id,
+                                scenario_normativo=confronto_costi['scenario_normativo'],
+                                supera_limite_50=1 if confronto_costi.get('supera_limite_50', False) else 0,
+                                importo_totale=confronto_costi.get('totale_operativo', 0)
+                            )
+                            # Ricarica extra_costo con i nuovi dati
+                            extra_costo = get_extra_costo(duvri_id)
+                        
+                        print(f"✅ Extra-costo recuperato: {bool(extra_costo)}")
+                        if extra_costo:
+                            print(f"   Scenario: {extra_costo.get('scenario_normativo')}")
+                            print(f"   Supera limite: {extra_costo.get('supera_limite_50')}")
+                except Exception as e:
+                    print(f"⚠️ Errore calcolo confronto costi per PDF: {e}")
+            
+            html_content = render_template("pdf_template.html", 
+                                         data=data, 
+                                         datetime=datetime,
+                                         confronto_costi=confronto_costi,
+                                         extra_costo=extra_costo)
             print(f"✅ HTML generato: {len(html_content)} caratteri")
             # Salva HTML per debug
             html_debug_path = os.path.join(output_folder, f"DEBUG_{filename_base}.html")
