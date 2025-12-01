@@ -5,12 +5,12 @@ __pycache__/
 .Python
 env/
 venv/
+.local/
+.ipython/
 *.db
 *.sqlite3
 .env
 *.log
 output/
 uploads/
-uploads_duvri_estar/
-*.db 
 uploads_duvri_estar/ 

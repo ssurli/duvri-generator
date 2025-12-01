@@ -3,8 +3,17 @@ import sqlite3
 import os
 from datetime import datetime
 
+# Percorso assoluto del database (compatibile con PythonAnywhere)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'duvri.db')
+
+def get_db_path():
+    """Restituisce il percorso assoluto del database"""
+    return DB_PATH
+
 def init_db():
-    conn = sqlite3.connect('duvri.db')
+    """Inizializza il database SQLite"""
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS duvri (
@@ -20,6 +29,7 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
+    print(f"✅ Database inizializzato: {DB_PATH}")
 
 # Chiama all'avvio
 init_db()

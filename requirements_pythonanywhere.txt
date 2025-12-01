@@ -1,0 +1,11 @@
+# Requirements per PythonAnywhere Free Tier
+# NOTA: weasyprint è escluso perché richiede librerie di sistema (Cairo, Pango)
+# non disponibili su PythonAnywhere free. L'app usa xhtml2pdf come motore principale.
+
+Flask==2.3.3
+Werkzeug==2.3.7
+xhtml2pdf==0.2.13
+Jinja2==3.1.2
+Pillow==10.0.1
+PyPDF2>=3.0.0
+python-dotenv==1.0.0
