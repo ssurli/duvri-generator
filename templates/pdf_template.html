@@ -1353,6 +1353,51 @@ della determina dirigenziale di riconoscimento.
         <li>Test funzionali coordinati con personale ASL</li>
     </ul>
 <div class="page-break"></div>
+
+    <!-- ============================================ -->
+    <!-- SEZIONE CONSULTAZIONE RSPP (Art. 26 D.Lgs. 81/08) -->
+    <!-- ============================================ -->
+    {% set rspp_committente_nome = data.committente.get('rspp_nome', '') if data and data.committente else '' %}
+    {% set rspp_committente_email = data.committente.get('rspp_email', '') if data and data.committente else '' %}
+    {% set rspp_appaltatore_nome = data.appaltatore.get('rspp_nome', '') if data and data.appaltatore else '' %}
+    {% set rspp_appaltatore_email = data.appaltatore.get('rspp_email', '') if data and data.appaltatore else '' %}
+
+    {% if rspp_committente_nome or rspp_committente_email or rspp_appaltatore_nome or rspp_appaltatore_email %}
+    <h2 style="background-color: #f0f8ff; border-left: 4px solid #4682b4;">🛡️ CONSULTAZIONE RSPP (D.Lgs. 81/08 - Art. 26)</h2>
+    <div style="border: 2px solid #4682b4; padding: 12px; margin: 15px 0; background-color: #f0f8ff;">
+        <p style="margin: 0 0 10px 0; font-size: 9.5pt; line-height: 1.4;">
+            <strong>Ai sensi dell'art. 26 comma 3 del D.Lgs. 81/08</strong>, il Responsabile del Servizio di Prevenzione e Protezione (RSPP)
+            è figura consultiva per la redazione del DUVRI. Il presente documento è stato condiviso con i seguenti RSPP:
+        </p>
+
+        <table style="margin-top: 10px; font-size: 9pt;">
+            {% if rspp_committente_nome or rspp_committente_email %}
+            <tr>
+                <th style="background-color: #e6f2ff; width: 25%;">RSPP Committente</th>
+                <td>
+                    {% if rspp_committente_nome %}<strong>{{ rspp_committente_nome }}</strong>{% endif %}
+                    {% if rspp_committente_email %}<br>Email: {{ rspp_committente_email }}{% endif %}
+                </td>
+            </tr>
+            {% endif %}
+
+            {% if rspp_appaltatore_nome or rspp_appaltatore_email %}
+            <tr>
+                <th style="background-color: #e6f2ff; width: 25%;">RSPP Appaltatore</th>
+                <td>
+                    {% if rspp_appaltatore_nome %}<strong>{{ rspp_appaltatore_nome }}</strong>{% endif %}
+                    {% if rspp_appaltatore_email %}<br>Email: {{ rspp_appaltatore_email }}{% endif %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <p style="margin: 10px 0 0 0; font-size: 8.5pt; font-style: italic; color: #555;">
+            📧 Il presente DUVRI verrà trasmesso agli RSPP indicati per presa visione e consultazione.
+        </p>
+    </div>
+    {% endif %}
+
     <h2>3. SOTTOSCRIZIONE DEL DOCUMENTO</h2>
     <table style="width:100%; border:none;">
         <tr>

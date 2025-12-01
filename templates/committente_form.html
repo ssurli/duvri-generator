@@ -123,7 +123,32 @@
                                   placeholder="es. Fornitura in locazione di 2 colonne endoscopiche">{{ data.get('oggetto', '') }}</textarea>
                     </div>
                 </div>
-                
+
+                <!-- RSPP COMMITTENTE (opzionale) -->
+                <div class="alert alert-secondary mt-3">
+                    <h6 class="mb-2">🛡️ RSPP Committente (D.Lgs. 81/08 - Art. 26)</h6>
+                    <p class="small mb-2">
+                        Ai sensi dell'art. 26 del D.Lgs. 81/08, il RSPP aziendale è figura consultiva
+                        per la redazione del DUVRI. Inserisci i dati per coinvolgerlo nel processo.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome e Cognome RSPP</label>
+                            <input type="text" name="rspp_nome" class="form-control"
+                                   value="{{ data.get('rspp_nome', '') }}"
+                                   placeholder="es. Dott. Giovanni Bianchi">
+                            <small class="text-muted">Opzionale</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email RSPP</label>
+                            <input type="email" name="rspp_email" class="form-control"
+                                   value="{{ data.get('rspp_email', '') }}"
+                                   placeholder="rspp@azienda.it">
+                            <small class="text-muted">Per invio automatico DUVRI finale</small>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 

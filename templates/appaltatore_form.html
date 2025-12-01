@@ -94,26 +94,43 @@
                 <div class="row">
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Datore di Lavoro *</label>
-                        <input type="text" name="datore_lavoro_nome" class="form-control" 
+                        <input type="text" name="datore_lavoro_nome" class="form-control"
                                value="{{ data.get('datore_lavoro_nome', '') }}" required
                                placeholder="Nome e Cognome">
                     </div>
-                    
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold">RSPP *</label>
-                        <input type="text" name="rspp_nome" class="form-control" 
+                        <input type="text" name="rspp_nome" class="form-control"
                                value="{{ data.get('rspp_nome', '') }}" required
                                placeholder="Nome e Cognome">
                     </div>
-                    
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Responsabile Appalto *</label>
-                        <input type="text" name="resp_appalto_nome" class="form-control" 
+                        <input type="text" name="resp_appalto_nome" class="form-control"
                                value="{{ data.get('resp_appalto_nome', '') }}" required
                                placeholder="Nome e Cognome">
                     </div>
                 </div>
-                
+
+                <!-- Email RSPP per invio DUVRI -->
+                <div class="alert alert-secondary mt-3">
+                    <h6 class="mb-2">🛡️ Contatti RSPP (D.Lgs. 81/08 - Art. 26)</h6>
+                    <p class="small mb-2">
+                        Email RSPP per invio automatico del DUVRI finale (opzionale ma consigliato).
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Email RSPP</label>
+                            <input type="email" name="rspp_email" class="form-control"
+                                   value="{{ data.get('rspp_email', '') }}"
+                                   placeholder="rspp@appaltatore.it">
+                            <small class="text-muted">Per condivisione DUVRI</small>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
