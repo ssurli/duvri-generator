@@ -677,6 +677,9 @@ def processa_form_(request):
         'email': request.form.get('email'),
         'pec': request.form.get('pec'),
         'datore_lavoro_nome': request.form.get('datore_lavoro_nome'),
+        'rspp_nome': request.form.get('rspp_nome'),  # 🆕 Campo esistente
+        'rspp_email': request.form.get('rspp_email', ''),  # 🆕 RSPP email (D.Lgs. 81/08)
+        'resp_appalto_nome': request.form.get('resp_appalto_nome'),  # 🆕 Campo esistente
         'max_addetti': request.form.get('max_addetti'),
         'orario_lavoro': request.form.get('orario_lavoro'),
         'orario_altro': request.form.get('orario_altro'),
@@ -689,7 +692,7 @@ def processa_form_(request):
         'numero_tecnici': request.form.get('numero_tecnici'),
         'note_rischi_struttura': request.form.get('note_rischi_struttura'),
         'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M'),
-      
+
 }
 
 def trova_duvri_per_link(link_univoco):
@@ -1711,13 +1714,17 @@ def compila_committente():
             'costo_altre_misure_manuale': request.form.get('costo_altre_misure_manuale', ''),
             'oggetto': request.form.get('oggetto', ''),
             'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M'),
-            
+
             # 🆕 NUOVI CAMPI GARA
             'tipo_duvri': request.form.get('tipo_duvri', 'operativo'),
             'fase_appalto': request.form.get('fase_appalto', 'esecuzione'),
             'importo_gara_base': request.form.get('importo_gara_base', ''),
             'costi_inclusi_gara': 'costi_inclusi_gara' in request.form,
-            'costi_sicurezza_gara': request.form.get('costi_sicurezza_gara', '0')
+            'costi_sicurezza_gara': request.form.get('costi_sicurezza_gara', '0'),
+
+            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26)
+            'rspp_nome': request.form.get('rspp_nome', ''),
+            'rspp_email': request.form.get('rspp_email', '')
         }
         
         # 🆕 GESTIONE UPLOAD DUVRI ESTAR
