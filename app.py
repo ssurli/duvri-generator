@@ -1635,13 +1635,6 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/logout')
-def logout():
-    """Route per il logout"""
-    session.clear()
-    flash('✅ Logout effettuato con successo', 'success')
-    return redirect(url_for('login'))
-
 # =============================================
 # ROUTES PRINCIPALI
 # =============================================
@@ -3490,10 +3483,10 @@ def logout():
         session.clear()
         return render_template("appaltatore_completato.html")
     else:
-        # ADMIN: torna alla dashboard
+        # ADMIN: torna alla pagina di login
         session.clear()
-        flash("Logout effettuato con successo", "info")
-        return redirect(url_for("admin_dashboard"))
+        flash("✅ Logout effettuato con successo", "success")
+        return redirect(url_for("login"))
 
 @app.route('/upload_allegato', methods=['GET', 'POST'])
 def upload_allegato():
