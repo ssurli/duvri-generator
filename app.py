@@ -14,6 +14,7 @@ import PyPDF2
 import base64
 from werkzeug.utils import secure_filename
 from pathlib import Path
+from functools import wraps
 
 # =============================================
 # CONFIGURAZIONE PERCORSI PER PYTHONANYWHERE
@@ -1596,6 +1597,52 @@ ALLEGATI_FOLDER = os.path.join(BASE_DIR, "uploads", "allegati")
 os.makedirs(ALLEGATI_FOLDER, exist_ok=True)
 
 # =============================================
+# AUTENTICAZIONE
+# =============================================
+
+# Credenziali admin (in produzione usare variabili d'ambiente)
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'duvri2024')  # CAMBIARE IN PRODUZIONE!
+
+def login_required(f):
+    """Decoratore per proteggere le route amministrative"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            flash('⚠️ Devi effettuare il login per accedere alla dashboard', 'warning')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Route di login per amministratori"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            session['username'] = username
+            flash('✅ Login effettuato con successo!', 'success')
+
+            # Redirect alla pagina richiesta o alla dashboard
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('admin_dashboard'))
+        else:
+            flash('❌ Username o password errati', 'danger')
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Route per il logout"""
+    session.clear()
+    flash('✅ Logout effettuato con successo', 'success')
+    return redirect(url_for('login'))
+
+# =============================================
 # ROUTES PRINCIPALI
 # =============================================
 
@@ -1605,6 +1652,7 @@ def index():
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin')
+@login_required
 def admin_dashboard():
     """Dashboard solo per l'amministratore - vede tutti i DUVRI"""
     # 🔥 FORZA SINCRONIZZAZIONE
@@ -1683,6 +1731,7 @@ def nuovo_duvri():
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/compila_committente', methods=['GET', 'POST'])
+@login_required
 def compila_committente():
     """Route per compilare i dati del committente"""
     duvri_id = request.args.get('duvri_id') or session.get('current_duvri_id')
