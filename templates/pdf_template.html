@@ -1398,6 +1398,138 @@ della determina dirigenziale di riconoscimento.
     </div>
     {% endif %}
 
+    <!-- ============================================ -->
+    <!-- SEZIONE SUBAPPALTO (Art. 26 D.Lgs. 81/08) -->
+    <!-- ============================================ -->
+    {% set ha_subappalto = data.appaltatore.get('ha_subappalto', False) if data and data.appaltatore else False %}
+    {% if ha_subappalto %}
+    <h2 style="background-color: #fff3cd; border-left: 4px solid #ffc107;">🔗 GESTIONE SUBAPPALTO (D.Lgs. 81/08 - Art. 26)</h2>
+    <div style="border: 2px solid #ffc107; padding: 12px; margin: 15px 0; background-color: #fff3cd;">
+        <p style="margin: 0 0 10px 0; font-size: 9.5pt; line-height: 1.4;">
+            <strong>L'appaltatore dichiara di avvalersi dei seguenti subappaltatori</strong> per l'esecuzione parziale dell'appalto,
+            ai sensi dell'art. 26 del D.Lgs. 81/08, assumendosi tutti gli obblighi previsti dalla normativa:
+        </p>
+
+        <div style="border: 1px solid #ddd; padding: 8px; margin: 10px 0; background-color: #fffbf0; font-size: 8.5pt;">
+            <strong>📋 Obblighi dell'Appaltatore:</strong>
+            <ul style="margin: 5px 0; padding-left: 20px; font-size: 8pt;">
+                <li>Verifica dell'idoneità tecnico-professionale del subappaltatore</li>
+                <li>Comunicazione al committente con dettagli del subappaltatore e piano di sicurezza</li>
+                <li>Integrazione del DUVRI con i rischi specifici generati dal subappaltatore</li>
+                <li>Riconoscimento degli oneri per la sicurezza (non soggetti a ribasso)</li>
+            </ul>
+        </div>
+
+        {% set sub1_ragione_sociale = data.appaltatore.get('sub1_ragione_sociale', '') if data and data.appaltatore else '' %}
+        {% set sub2_ragione_sociale = data.appaltatore.get('sub2_ragione_sociale', '') if data and data.appaltatore else '' %}
+        {% set sub3_ragione_sociale = data.appaltatore.get('sub3_ragione_sociale', '') if data and data.appaltatore else '' %}
+
+        <table style="margin-top: 10px; font-size: 9pt; width: 100%;">
+            {% if sub1_ragione_sociale %}
+            <tr>
+                <th colspan="2" style="background-color: #ffe9a9; padding: 8px;">SUBAPPALTATORE 1</th>
+            </tr>
+            <tr>
+                <th style="width: 30%; background-color: #fff8e1;">Ragione Sociale</th>
+                <td>{{ sub1_ragione_sociale }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">P.IVA</th>
+                <td>{{ data.appaltatore.get('sub1_piva', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Email</th>
+                <td>{{ data.appaltatore.get('sub1_email', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Attività Affidate</th>
+                <td>{{ data.appaltatore.get('sub1_attivita', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Verifica Idoneità</th>
+                <td>
+                    {% if data.appaltatore.get('sub1_verifica') %}
+                        ✅ Effettuata
+                    {% else %}
+                        ⚠️ Non confermata
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+
+            {% if sub2_ragione_sociale %}
+            <tr><td colspan="2" style="height: 10px;"></td></tr>
+            <tr>
+                <th colspan="2" style="background-color: #ffe9a9; padding: 8px;">SUBAPPALTATORE 2</th>
+            </tr>
+            <tr>
+                <th style="width: 30%; background-color: #fff8e1;">Ragione Sociale</th>
+                <td>{{ sub2_ragione_sociale }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">P.IVA</th>
+                <td>{{ data.appaltatore.get('sub2_piva', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Email</th>
+                <td>{{ data.appaltatore.get('sub2_email', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Attività Affidate</th>
+                <td>{{ data.appaltatore.get('sub2_attivita', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Verifica Idoneità</th>
+                <td>
+                    {% if data.appaltatore.get('sub2_verifica') %}
+                        ✅ Effettuata
+                    {% else %}
+                        ⚠️ Non confermata
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+
+            {% if sub3_ragione_sociale %}
+            <tr><td colspan="2" style="height: 10px;"></td></tr>
+            <tr>
+                <th colspan="2" style="background-color: #ffe9a9; padding: 8px;">SUBAPPALTATORE 3</th>
+            </tr>
+            <tr>
+                <th style="width: 30%; background-color: #fff8e1;">Ragione Sociale</th>
+                <td>{{ sub3_ragione_sociale }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">P.IVA</th>
+                <td>{{ data.appaltatore.get('sub3_piva', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Email</th>
+                <td>{{ data.appaltatore.get('sub3_email', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Attività Affidate</th>
+                <td>{{ data.appaltatore.get('sub3_attivita', 'N/D') }}</td>
+            </tr>
+            <tr>
+                <th style="background-color: #fff8e1;">Verifica Idoneità</th>
+                <td>
+                    {% if data.appaltatore.get('sub3_verifica') %}
+                        ✅ Effettuata
+                    {% else %}
+                        ⚠️ Non confermata
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <p style="margin: 10px 0 0 0; font-size: 8.5pt; font-style: italic; color: #555;">
+            📧 Il presente DUVRI verrà trasmesso ai subappaltatori indicati per presa visione e rispetto delle misure di sicurezza.
+        </p>
+    </div>
+    {% endif %}
+
     <h2>3. SOTTOSCRIZIONE DEL DOCUMENTO</h2>
     <table style="width:100%; border:none;">
         <tr>

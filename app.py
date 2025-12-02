@@ -693,6 +693,23 @@ def processa_form_(request):
         'note_rischi_struttura': request.form.get('note_rischi_struttura'),
         'compilato_il': datetime.now().strftime('%Y-%m-%d %H:%M'),
 
+        # 🆕 CAMPI SUBAPPALTO (Art. 26 D.Lgs. 81/08)
+        'ha_subappalto': 'ha_subappalto' in request.form,
+        'sub1_ragione_sociale': request.form.get('sub1_ragione_sociale', ''),
+        'sub1_piva': request.form.get('sub1_piva', ''),
+        'sub1_email': request.form.get('sub1_email', ''),
+        'sub1_attivita': request.form.get('sub1_attivita', ''),
+        'sub1_verifica': 'sub1_verifica' in request.form,
+        'sub2_ragione_sociale': request.form.get('sub2_ragione_sociale', ''),
+        'sub2_piva': request.form.get('sub2_piva', ''),
+        'sub2_email': request.form.get('sub2_email', ''),
+        'sub2_attivita': request.form.get('sub2_attivita', ''),
+        'sub2_verifica': 'sub2_verifica' in request.form,
+        'sub3_ragione_sociale': request.form.get('sub3_ragione_sociale', ''),
+        'sub3_piva': request.form.get('sub3_piva', ''),
+        'sub3_email': request.form.get('sub3_email', ''),
+        'sub3_attivita': request.form.get('sub3_attivita', ''),
+        'sub3_verifica': 'sub3_verifica' in request.form,
 }
 
 def trova_duvri_per_link(link_univoco):

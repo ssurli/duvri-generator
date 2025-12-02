@@ -135,6 +135,177 @@
         </div>
 
         <!-- ============================================ -->
+        <!-- SEZIONE SUBAPPALTO (Art. 26 D.Lgs. 81/08) -->
+        <!-- ============================================ -->
+
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h4>🔗 Gestione Subappalto (Art. 26 D.Lgs. 81/08)</h4>
+            </div>
+            <div class="card-body">
+
+                <div class="alert alert-info">
+                    <h6>📋 Obblighi dell'Appaltatore in caso di Subappalto</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Verifica dell'idoneità:</strong> L'appaltatore deve verificare l'idoneità tecnico-professionale del subappaltatore</li>
+                        <li><strong>Comunicazione:</strong> Comunicare al committente la richiesta di subappalto con dettagli del subappaltatore e piano di sicurezza</li>
+                        <li><strong>DUVRI:</strong> Integrare il DUVRI con i rischi specifici generati dal subappaltatore e comunicarlo al committente</li>
+                        <li><strong>Oneri della sicurezza:</strong> Riconoscere al subappaltatore gli oneri per la sicurezza (non soggetti a ribasso)</li>
+                    </ul>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="ha_subappalto"
+                           name="ha_subappalto"
+                           onchange="toggleSubappalto()"
+                           {{ 'checked' if data.get('ha_subappalto') else '' }}>
+                    <label class="form-check-label fw-bold" for="ha_subappalto">
+                        ☑️ Sono previsti subappalti per questo appalto
+                    </label>
+                </div>
+
+                <div id="subappalti_section" style="display: {{ 'block' if data.get('ha_subappalto') else 'none' }};">
+
+                    <!-- SUBAPPALTATORE 1 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Subappaltatore 1</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Ragione Sociale</label>
+                                    <input type="text" name="sub1_ragione_sociale" class="form-control"
+                                           value="{{ data.get('sub1_ragione_sociale', '') }}"
+                                           placeholder="es. Ditta Subappaltatore S.r.l.">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">P.IVA</label>
+                                    <input type="text" name="sub1_piva" class="form-control"
+                                           value="{{ data.get('sub1_piva', '') }}"
+                                           placeholder="es. 12345678901">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Email per DUVRI</label>
+                                    <input type="email" name="sub1_email" class="form-control"
+                                           value="{{ data.get('sub1_email', '') }}"
+                                           placeholder="subappaltatore@email.it">
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <label class="form-label">Attività affidate</label>
+                                    <textarea name="sub1_attivita" class="form-control" rows="2"
+                                              placeholder="Descrivere le attività affidate al subappaltatore...">{{ data.get('sub1_attivita', '') }}</textarea>
+                                </div>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input"
+                                       id="sub1_verifica" name="sub1_verifica"
+                                       {{ 'checked' if data.get('sub1_verifica') else '' }}>
+                                <label class="form-check-label small" for="sub1_verifica">
+                                    ✅ Confermo di aver verificato l'idoneità tecnico-professionale del subappaltatore
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBAPPALTATORE 2 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Subappaltatore 2 (opzionale)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Ragione Sociale</label>
+                                    <input type="text" name="sub2_ragione_sociale" class="form-control"
+                                           value="{{ data.get('sub2_ragione_sociale', '') }}"
+                                           placeholder="es. Ditta Subappaltatore S.r.l.">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">P.IVA</label>
+                                    <input type="text" name="sub2_piva" class="form-control"
+                                           value="{{ data.get('sub2_piva', '') }}"
+                                           placeholder="es. 12345678901">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Email per DUVRI</label>
+                                    <input type="email" name="sub2_email" class="form-control"
+                                           value="{{ data.get('sub2_email', '') }}"
+                                           placeholder="subappaltatore@email.it">
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <label class="form-label">Attività affidate</label>
+                                    <textarea name="sub2_attivita" class="form-control" rows="2"
+                                              placeholder="Descrivere le attività affidate al subappaltatore...">{{ data.get('sub2_attivita', '') }}</textarea>
+                                </div>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input"
+                                       id="sub2_verifica" name="sub2_verifica"
+                                       {{ 'checked' if data.get('sub2_verifica') else '' }}>
+                                <label class="form-check-label small" for="sub2_verifica">
+                                    ✅ Confermo di aver verificato l'idoneità tecnico-professionale del subappaltatore
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBAPPALTATORE 3 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Subappaltatore 3 (opzionale)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Ragione Sociale</label>
+                                    <input type="text" name="sub3_ragione_sociale" class="form-control"
+                                           value="{{ data.get('sub3_ragione_sociale', '') }}"
+                                           placeholder="es. Ditta Subappaltatore S.r.l.">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">P.IVA</label>
+                                    <input type="text" name="sub3_piva" class="form-control"
+                                           value="{{ data.get('sub3_piva', '') }}"
+                                           placeholder="es. 12345678901">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Email per DUVRI</label>
+                                    <input type="email" name="sub3_email" class="form-control"
+                                           value="{{ data.get('sub3_email', '') }}"
+                                           placeholder="subappaltatore@email.it">
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <label class="form-label">Attività affidate</label>
+                                    <textarea name="sub3_attivita" class="form-control" rows="2"
+                                              placeholder="Descrivere le attività affidate al subappaltatore...">{{ data.get('sub3_attivita', '') }}</textarea>
+                                </div>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input"
+                                       id="sub3_verifica" name="sub3_verifica"
+                                       {{ 'checked' if data.get('sub3_verifica') else '' }}>
+                                <label class="form-check-label small" for="sub3_verifica">
+                                    ✅ Confermo di aver verificato l'idoneità tecnico-professionale del subappaltatore
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================ -->
         <!-- SEZIONE 3: PARAMETRI OPERATIVI (per calcolo costi) -->
         <!-- ============================================ -->
         
@@ -319,18 +490,25 @@
 
 <!-- JavaScript per toggle campi -->
 <script>
+// Funzione per mostrare/nascondere sezione subappalti
+function toggleSubappalto() {
+    const checkbox = document.getElementById('ha_subappalto');
+    const section = document.getElementById('subappalti_section');
+    section.style.display = checkbox.checked ? 'block' : 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    
+
     // Toggle campo "altro" per orario lavoro
     const orarioSelect = document.querySelector('[name="orario_lavoro"]');
     const orarioAltroField = document.getElementById('orario_altro_field');
-    
+
     if (orarioSelect) {
         orarioSelect.addEventListener('change', function() {
             orarioAltroField.style.display = this.value === 'altro' ? 'block' : 'none';
         });
     }
-    
+
 });
 </script>
 

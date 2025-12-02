@@ -129,22 +129,54 @@
                     <h6 class="mb-2">🛡️ RSPP Committente (D.Lgs. 81/08 - Art. 26)</h6>
                     <p class="small mb-2">
                         Ai sensi dell'art. 26 del D.Lgs. 81/08, il RSPP aziendale è figura consultiva
-                        per la redazione del DUVRI. Inserisci i dati per coinvolgerlo nel processo.
+                        per la redazione del DUVRI. Seleziona il RSPP di riferimento.
                     </p>
                     <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label">Nome e Cognome RSPP</label>
-                            <input type="text" name="rspp_nome" class="form-control"
-                                   value="{{ data.get('rspp_nome', '') }}"
-                                   placeholder="es. Dott. Giovanni Bianchi">
-                            <small class="text-muted">Opzionale</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Email RSPP</label>
-                            <input type="email" name="rspp_email" class="form-control"
-                                   value="{{ data.get('rspp_email', '') }}"
-                                   placeholder="rspp@azienda.it">
-                            <small class="text-muted">Per invio automatico DUVRI finale</small>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Seleziona RSPP Aziendale</label>
+                            <select id="rspp_select" class="form-select" onchange="aggiornaRSPP()">
+                                <option value="">-- Nessun RSPP --</option>
+                                <option value="nord"
+                                    {{ 'selected' if data.get('rspp_nome') == 'Ing. Milena Pepe' else '' }}>
+                                    🌐 RSPP Area Nord - Ing. Milena Pepe
+                                </option>
+                                <option value="sud"
+                                    {{ 'selected' if data.get('rspp_nome') == 'Ing. Maria Rosaria Libone' else '' }}>
+                                    🌐 RSPP Area Sud - Ing. Maria Rosaria Libone
+                                </option>
+                                <option value="altro"
+                                    {{ 'selected' if data.get('rspp_nome') and data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else '' }}>
+                                    📝 Altro RSPP (inserimento manuale)
+                                </option>
+                            </select>
+
+                            <!-- Campi nascosti per inviare i dati al backend -->
+                            <input type="hidden" name="rspp_nome" id="rspp_nome" value="{{ data.get('rspp_nome', '') }}">
+                            <input type="hidden" name="rspp_email" id="rspp_email" value="{{ data.get('rspp_email', '') }}">
+
+                            <!-- Campi manuali (visibili solo se "Altro") -->
+                            <div id="rspp_manuale_section" class="mt-3" style="display: {{ 'block' if data.get('rspp_nome') and data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else 'none' }};">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nome e Cognome RSPP</label>
+                                        <input type="text" id="rspp_nome_manuale" class="form-control"
+                                               value="{{ data.get('rspp_nome', '') if data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else '' }}"
+                                               placeholder="es. Dott. Giovanni Bianchi"
+                                               onchange="aggiornaRSPP()">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email RSPP</label>
+                                        <input type="email" id="rspp_email_manuale" class="form-control"
+                                               value="{{ data.get('rspp_email', '') if data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else '' }}"
+                                               placeholder="rspp@azienda.it"
+                                               onchange="aggiornaRSPP()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <small class="text-muted d-block mt-2">
+                                ℹ️ Il RSPP selezionato riceverà il DUVRI finale per consultazione
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -514,23 +546,57 @@
 
 <!-- JavaScript per toggle sezioni -->
 <script>
+// Funzione per aggiornare i campi RSPP in base alla selezione
+function aggiornaRSPP() {
+    const select = document.getElementById('rspp_select');
+    const nomeHidden = document.getElementById('rspp_nome');
+    const emailHidden = document.getElementById('rspp_email');
+    const manualeSection = document.getElementById('rspp_manuale_section');
+    const nomeManuale = document.getElementById('rspp_nome_manuale');
+    const emailManuale = document.getElementById('rspp_email_manuale');
+
+    const value = select.value;
+
+    if (value === 'nord') {
+        // RSPP Area Nord
+        nomeHidden.value = 'Ing. Milena Pepe';
+        emailHidden.value = 'milena.pepe@uslnordovest.toscana.it';
+        manualeSection.style.display = 'none';
+    } else if (value === 'sud') {
+        // RSPP Area Sud
+        nomeHidden.value = 'Ing. Maria Rosaria Libone';
+        emailHidden.value = 'mariarosaria.libone@uslnordovest.toscana.it';
+        manualeSection.style.display = 'none';
+    } else if (value === 'altro') {
+        // Inserimento manuale
+        nomeHidden.value = nomeManuale.value;
+        emailHidden.value = emailManuale.value;
+        manualeSection.style.display = 'block';
+    } else {
+        // Nessun RSPP
+        nomeHidden.value = '';
+        emailHidden.value = '';
+        manualeSection.style.display = 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    
+
     // Toggle importo costi gara
     const checkboxCostiInclusi = document.getElementById('costi_inclusi_gara');
     const importoCostiSection = document.getElementById('importo_costi_gara_section');
-    
+
     if (checkboxCostiInclusi) {
         checkboxCostiInclusi.addEventListener('change', function() {
             importoCostiSection.style.display = this.checked ? 'block' : 'none';
         });
     }
-    
+
     // Toggle costi manuali vs automatici
     const checkboxCostiManuali = document.getElementById('usa_costi_manuali');
     const calcoloAutoSection = document.getElementById('calcolo_automatico_section');
     const costiManualiSection = document.getElementById('costi_manuali_section');
-    
+
     if (checkboxCostiManuali) {
         checkboxCostiManuali.addEventListener('change', function() {
             if (this.checked) {
@@ -542,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
 });
 </script>
 

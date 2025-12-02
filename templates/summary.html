@@ -561,32 +561,46 @@
 							Documento con firme digitali di entrambe le parti
 						</small>
 
-						<!-- Bottone Invio a RSPP (D.Lgs. 81/08 Art. 26) -->
+						<!-- Bottone Invio a RSPP e Subappaltatori (D.Lgs. 81/08 Art. 26) -->
 						{% set rspp_committente_email = data.committente.get('rspp_email', '') if data and data.committente else '' %}
 						{% set rspp_appaltatore_email = data.appaltatore.get('rspp_email', '') if data and data.appaltatore else '' %}
-						{% if rspp_committente_email or rspp_appaltatore_email %}
+						{% set sub1_email = data.appaltatore.get('sub1_email', '') if data and data.appaltatore else '' %}
+						{% set sub2_email = data.appaltatore.get('sub2_email', '') if data and data.appaltatore else '' %}
+						{% set sub3_email = data.appaltatore.get('sub3_email', '') if data and data.appaltatore else '' %}
+						{% if rspp_committente_email or rspp_appaltatore_email or sub1_email or sub2_email or sub3_email %}
 						<div class="mt-3 pt-3 border-top border-light">
-							<h6 class="text-white mb-2">🛡️ Consultazione RSPP (Art. 26 D.Lgs. 81/08)</h6>
-							{% set emails_rspp = [] %}
+							<h6 class="text-white mb-2">🛡️ Consultazione RSPP e Subappaltatori (Art. 26 D.Lgs. 81/08)</h6>
+							{% set emails_destinatari = [] %}
 							{% if rspp_committente_email %}
-								{{ emails_rspp.append(rspp_committente_email) or '' }}
+								{{ emails_destinatari.append(rspp_committente_email) or '' }}
 							{% endif %}
 							{% if rspp_appaltatore_email %}
-								{{ emails_rspp.append(rspp_appaltatore_email) or '' }}
+								{{ emails_destinatari.append(rspp_appaltatore_email) or '' }}
 							{% endif %}
-							{% set mailto_to = emails_rspp|join(',') %}
+							{% if sub1_email %}
+								{{ emails_destinatari.append(sub1_email) or '' }}
+							{% endif %}
+							{% if sub2_email %}
+								{{ emails_destinatari.append(sub2_email) or '' }}
+							{% endif %}
+							{% if sub3_email %}
+								{{ emails_destinatari.append(sub3_email) or '' }}
+							{% endif %}
+							{% set mailto_to = emails_destinatari|join(',') %}
 							{% set oggetto_appalto = data.committente.get('oggetto', 'DUVRI') if data and data.committente else 'DUVRI' %}
-							{% set mailto_subject = 'DUVRI Firmato - Consultazione RSPP: ' ~ oggetto_appalto %}
-							{% set mailto_body = 'Gentile RSPP,%0D%0A%0D%0AAi sensi dell\'art. 26 comma 3 del D.Lgs. 81/08, Le trasmettiamo in allegato il DUVRI (Documento Unico di Valutazione dei Rischi Interferenti) relativo a:%0D%0A%0D%0AOggetto: ' ~ oggetto_appalto ~ '%0D%0A%0D%0AIl documento è stato sottoscritto da entrambe le parti (Committente e Appaltatore) ed è disponibile per la Sua consultazione.%0D%0A%0D%0ASi prega di allegare manualmente il PDF del DUVRI alla presente email prima dell\'invio.%0D%0A%0D%0ACordiali saluti' %}
+							{% set mailto_subject = 'DUVRI Firmato - Consultazione: ' ~ oggetto_appalto %}
+							{% set mailto_body = 'Gentile destinatario,%0D%0A%0D%0AAi sensi dell\'art. 26 comma 3 del D.Lgs. 81/08, Le trasmettiamo in allegato il DUVRI (Documento Unico di Valutazione dei Rischi Interferenti) relativo a:%0D%0A%0D%0AOggetto: ' ~ oggetto_appalto ~ '%0D%0A%0D%0AIl documento è stato sottoscritto da entrambe le parti (Committente e Appaltatore) ed è disponibile per la Sua consultazione e per il rispetto delle misure di sicurezza previste.%0D%0A%0D%0ASi prega di allegare manualmente il PDF del DUVRI alla presente email prima dell\'invio.%0D%0A%0D%0ACordiali saluti' %}
 							<a href="mailto:{{ mailto_to }}?subject={{ mailto_subject }}&body={{ mailto_body }}"
 							   class="btn btn-info">
-								📧 Invia a RSPP
+								📧 Invia a RSPP e Subappaltatori
 							</a>
 							<small class="d-block text-white mt-2">
-								Destinatari:
-								{% if rspp_committente_email %}{{ rspp_committente_email }}{% endif %}
-								{% if rspp_committente_email and rspp_appaltatore_email %}, {% endif %}
-								{% if rspp_appaltatore_email %}{{ rspp_appaltatore_email }}{% endif %}
+								<strong>Destinatari:</strong><br>
+								{% if rspp_committente_email %}<span class="badge bg-primary me-1">RSPP Comm.</span> {{ rspp_committente_email }}<br>{% endif %}
+								{% if rspp_appaltatore_email %}<span class="badge bg-primary me-1">RSPP App.</span> {{ rspp_appaltatore_email }}<br>{% endif %}
+								{% if sub1_email %}<span class="badge bg-warning text-dark me-1">Sub 1</span> {{ sub1_email }}<br>{% endif %}
+								{% if sub2_email %}<span class="badge bg-warning text-dark me-1">Sub 2</span> {{ sub2_email }}<br>{% endif %}
+								{% if sub3_email %}<span class="badge bg-warning text-dark me-1">Sub 3</span> {{ sub3_email }}<br>{% endif %}
 							</small>
 							<small class="d-block text-white-50 mt-1 fst-italic">
 								⚠️ Ricorda di allegare il PDF del DUVRI all'email prima di inviarla
