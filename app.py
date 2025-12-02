@@ -3733,6 +3733,18 @@ def load_duvri_on_every_request():
         print(f"⚠️ Errore nel ricaricamento automatico: {e}")
 
 
+# =============================================
+# INIZIALIZZAZIONE DATABASE (eseguito sempre, anche su WSGI)
+# =============================================
+try:
+    print("🔧 Inizializzazione database all'avvio...")
+    init_db()
+    sync_all_duvri_from_db()
+    print(f"✅ Database inizializzato - {len(duvri_list)} DUVRI caricati")
+except Exception as e:
+    print(f"⚠️ Errore inizializzazione database: {e}")
+    import traceback
+    traceback.print_exc()
 
 if __name__ == "__main__":
     # =============================================
@@ -3747,19 +3759,10 @@ if __name__ == "__main__":
     print("==========================")
 
     # =============================================
-    # INIZIALIZZAZIONE APPLICAZIONE
-    # =============================================
-    # Inizializza il database
-    init_db()
-
-    # Sincronizza tutti i DUVRI dal database alla memoria
-    sync_all_duvri_from_db()
-
-    print(f"🚀 Avviato con {len(duvri_list)} DUVRI in memoria")
-
-    # =============================================
     # AVVIO SERVER
     # =============================================
+    print(f"🚀 Avviato con {len(duvri_list)} DUVRI in memoria")
+
     if os.environ.get('PYTHONANYWHERE_DOMAIN'):
         # Produzione su PythonAnywhere
         print("📍 Modalità: PythonAnywhere (Produzione)")
