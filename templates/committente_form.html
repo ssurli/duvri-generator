@@ -295,24 +295,43 @@
                 <div class="row">
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Tipologia Struttura *</label>
-                        <select name="tipologia_struttura" class="form-select" required>
+                        <select id="tipologia_struttura_select" name="tipologia_struttura" class="form-select" required onchange="toggleTipologiaAltro()">
                             <option value="">Seleziona...</option>
                             <option value="ospedale" {{ 'selected' if data.get('tipologia_struttura') == 'ospedale' else '' }}>
                                 🏥 Ospedale
                             </option>
+                            <option value="distretto" {{ 'selected' if data.get('tipologia_struttura') == 'distretto' else '' }}>
+                                🏢 Distretto
+                            </option>
                             <option value="poliambulatorio" {{ 'selected' if data.get('tipologia_struttura') == 'poliambulatorio' else '' }}>
-                                🏢 Poliambulatorio
+                                🏥 Poliambulatorio
+                            </option>
+                            <option value="casa_comunita" {{ 'selected' if data.get('tipologia_struttura') == 'casa_comunita' else '' }}>
+                                🏘️ Casa di Comunità
                             </option>
                             <option value="rsa" {{ 'selected' if data.get('tipologia_struttura') == 'rsa' else '' }}>
-                                🏠 RSA/Casa di Cura
+                                🏠 RSA
                             </option>
                             <option value="laboratorio" {{ 'selected' if data.get('tipologia_struttura') == 'laboratorio' else '' }}>
                                 🔬 Laboratorio
                             </option>
+                            <option value="centro_direzionale" {{ 'selected' if data.get('tipologia_struttura') == 'centro_direzionale' else '' }}>
+                                🏛️ Centro Direzionale
+                            </option>
+                            <option value="centro_diurno" {{ 'selected' if data.get('tipologia_struttura') == 'centro_diurno' else '' }}>
+                                ☀️ Centro Diurno
+                            </option>
                             <option value="altro" {{ 'selected' if data.get('tipologia_struttura') == 'altro' else '' }}>
-                                📋 Altro
+                                📋 Altro (inserimento manuale)
                             </option>
                         </select>
+
+                        <!-- Campo manuale per "Altro" -->
+                        <div id="tipologia_altro_section" class="mt-2" style="display: {{ 'block' if data.get('tipologia_struttura') == 'altro' else 'none' }};">
+                            <input type="text" id="tipologia_altro_input" name="tipologia_struttura_altro" class="form-control"
+                                   value="{{ data.get('tipologia_struttura_altro', '') }}"
+                                   placeholder="Specificare tipologia struttura...">
+                        </div>
                     </div>
                     
                     <div class="col-md-4">
@@ -531,14 +550,19 @@
         <!-- ============================================ -->
         <!-- BOTTONI AZIONE -->
         <!-- ============================================ -->
-        
+
         <div class="d-flex justify-content-between mb-4">
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
                 ← Annulla
             </a>
-            <button type="submit" class="btn btn-primary btn-lg">
-                💾 Salva Dati Committente
-            </button>
+            <div>
+                <button type="submit" name="action" value="save" class="btn btn-outline-primary btn-lg me-2">
+                    💾 Salva
+                </button>
+                <button type="submit" name="action" value="save_and_continue" class="btn btn-primary btn-lg">
+                    💾 Salva e vai al Riepilogo →
+                </button>
+            </div>
         </div>
         
     </form>
@@ -546,6 +570,13 @@
 
 <!-- JavaScript per toggle sezioni -->
 <script>
+// Funzione per mostrare/nascondere campo "Altro" tipologia struttura
+function toggleTipologiaAltro() {
+    const select = document.getElementById('tipologia_struttura_select');
+    const altroSection = document.getElementById('tipologia_altro_section');
+    altroSection.style.display = select.value === 'altro' ? 'block' : 'none';
+}
+
 // Funzione per aggiornare i campi RSPP in base alla selezione
 function aggiornaRSPP() {
     const select = document.getElementById('rspp_select');

@@ -1705,6 +1705,7 @@ def compila_committente():
             'referente': request.form.get('referente'),
             'email': request.form.get('email'),
             'tipologia_struttura': request.form.get('tipologia_struttura'),
+            'tipologia_struttura_altro': request.form.get('tipologia_struttura_altro', ''),  # 🆕 Campo "Altro" manuale
             'area_installazione': request.form.get('area_installazione'),
             'presenza_pazienti': request.form.get('presenza_pazienti'),
             'alimentazione_disponibile': request.form.get('alimentazione_disponibile'),
@@ -1805,7 +1806,13 @@ def compila_committente():
             duvri['stato'] = 'in compilazione'
 
         flash('✅ Dati committente salvati con successo!', 'success')
-        return redirect(url_for('summary'))
+
+        # 🆕 Controlla quale pulsante è stato premuto
+        action = request.form.get('action', 'save')
+        if action == 'save_and_continue':
+            return redirect(url_for('summary'))
+        else:
+            return redirect(url_for('admin_dashboard'))
 
     # GET: mostra form con dati esistenti + oggetto sincronizzato
     data = duvri.get('dati_committente', {})

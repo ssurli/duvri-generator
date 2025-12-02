@@ -486,7 +486,30 @@
     {% if data.committente.get('importo') %}
     <tr><th>Importo Servizio</th><td>€ {{ data.committente.importo }}</td></tr>
     {% endif %}
-    <tr><th>Tipologia struttura</th><td>{{ data.committente.get('tipologia_struttura', '') }}</td></tr>
+    <tr><th>Tipologia struttura</th><td>
+        {% set tipologia = data.committente.get('tipologia_struttura', '') %}
+        {% if tipologia == 'altro' %}
+            {{ data.committente.get('tipologia_struttura_altro', 'Non specificato') }}
+        {% elif tipologia == 'ospedale' %}
+            Ospedale
+        {% elif tipologia == 'distretto' %}
+            Distretto
+        {% elif tipologia == 'poliambulatorio' %}
+            Poliambulatorio
+        {% elif tipologia == 'casa_comunita' %}
+            Casa di Comunità
+        {% elif tipologia == 'rsa' %}
+            RSA
+        {% elif tipologia == 'laboratorio' %}
+            Laboratorio
+        {% elif tipologia == 'centro_direzionale' %}
+            Centro Direzionale
+        {% elif tipologia == 'centro_diurno' %}
+            Centro Diurno
+        {% else %}
+            {{ tipologia }}
+        {% endif %}
+    </td></tr>
     <tr><th>Area installazione</th><td>{{ data.committente.get('area_installazione', '') }}</td></tr>
 </table>
 {% else %}
