@@ -1445,10 +1445,10 @@ def calcola_costi_sicurezza(data):
     # ========================================
     # 2. COSTI PER LAVORATORE
     # ========================================
-    
+
     costo_dpi_base = 150
     costo_dpi_rischi = 0
-    
+
     DPI_RISCHI = {
         'biologico': 100,
         'chimico': 120,
@@ -1459,41 +1459,54 @@ def calcola_costi_sicurezza(data):
         'rumore': 40,
         'vibrazioni': 30,
     }
-    
-    tutti_rischi = rischi_committente + rischi_appaltatore
-    
-    for rischio_str in tutti_rischi:
+
+    # 🆕 DEDUPLICA RISCHI INTERFERENTI
+    # L'interferenza è UNICA se il rischio esiste in committente O appaltatore (o entrambi)
+    tutti_rischi_raw = rischi_committente + rischi_appaltatore
+
+    # Identifica categorie di rischio UNICHE presenti
+    categorie_rischio_presenti = set()
+    for rischio_str in tutti_rischi_raw:
         rischio_lower = rischio_str.lower()
-        for chiave, costo in DPI_RISCHI.items():
-            if chiave in rischio_lower:
-                costo_dpi_rischi += costo
+        for categoria in DPI_RISCHI.keys():
+            if categoria in rischio_lower:
+                categorie_rischio_presenti.add(categoria)
                 break
-    
+
+    # Calcola costi DPI UNA VOLTA per categoria unica
+    for categoria in categorie_rischio_presenti:
+        costo_dpi_rischi += DPI_RISCHI[categoria]
+
+    print(f"\n🔄 RISCHI INTERFERENTI DEDUPLICATI:")
+    print(f"   Rischi committente: {len(rischi_committente)}")
+    print(f"   Rischi appaltatore: {len(rischi_appaltatore)}")
+    print(f"   Categorie uniche interferenti: {len(categorie_rischio_presenti)} → {categorie_rischio_presenti}")
+
     costo_formazione = 200
-    
+
     ha_rischi_sanitari = any(
-        keyword in rischio_str.lower()
-        for rischio_str in tutti_rischi
+        keyword in categoria
+        for categoria in categorie_rischio_presenti
         for keyword in ['biologico', 'chimico', 'radiologico', 'rumore', 'vibrazioni']
     )
     costo_sorveglianza = 150 if ha_rischi_sanitari else 0
-    
-    costo_per_lavoratore = (costo_dpi_base + costo_dpi_rischi + 
+
+    costo_per_lavoratore = (costo_dpi_base + costo_dpi_rischi +
                             costo_formazione + costo_sorveglianza)
     costo_totale_lavoratori = costo_per_lavoratore * numero_lavoratori
-    
+
     print(f"\n2️⃣ COSTI PER LAVORATORE:")
     print(f"   DPI base: €{costo_dpi_base}")
-    print(f"   DPI rischi specifici: €{costo_dpi_rischi}")
+    print(f"   DPI rischi specifici (deduplicati): €{costo_dpi_rischi}")
     print(f"   Formazione: €{costo_formazione}")
     print(f"   Sorveglianza sanitaria: €{costo_sorveglianza}")
     print(f"   → Per lavoratore: €{costo_per_lavoratore}")
     print(f"   → Totale ({numero_lavoratori} lavoratori): €{costo_totale_lavoratori:,.2f}")
-    
+
     # ========================================
-    # 3. COSTI SPECIFICI PER RISCHI
+    # 3. COSTI SPECIFICI PER RISCHI (DEDUPLICATI)
     # ========================================
-    
+
     COSTI_RISCHIO = {
         'biologico': {'impiantistica': 500, 'controlli': 300},
         'chimico': {'impiantistica': 600, 'controlli': 400},
@@ -1505,25 +1518,33 @@ def calcola_costi_sicurezza(data):
         'rumore': {'controlli': 300},
         'pazient': {'segnaletica': 400, 'altre_misure': 300},
     }
-    
+
+    # 🆕 Estendi categorie per includere tutte le possibili
+    for rischio_str in tutti_rischi_raw:
+        rischio_lower = rischio_str.lower()
+        for categoria in COSTI_RISCHIO.keys():
+            if categoria in rischio_lower:
+                categorie_rischio_presenti.add(categoria)
+                break
+
     costo_impiantistica = 0
     costo_controlli = 0
     costo_segnaletica = 0
     costo_presidi = 0
     costo_altre_misure = 0
-    
-    for rischio_str in tutti_rischi:
-        rischio_lower = rischio_str.lower()
-        for chiave, valori in COSTI_RISCHIO.items():
-            if chiave in rischio_lower:
-                costo_impiantistica += valori.get('impiantistica', 0)
-                costo_controlli += valori.get('controlli', 0)
-                costo_segnaletica += valori.get('segnaletica', 0)
-                costo_presidi += valori.get('presidi', 0)
-                costo_altre_misure += valori.get('altre_misure', 0)
-                break
-    
-    print(f"\n3️⃣ COSTI SPECIFICI RISCHI:")
+
+    # Calcola costi UNA SOLA VOLTA per ogni categoria unica
+    for categoria in categorie_rischio_presenti:
+        if categoria in COSTI_RISCHIO:
+            valori = COSTI_RISCHIO[categoria]
+            costo_impiantistica += valori.get('impiantistica', 0)
+            costo_controlli += valori.get('controlli', 0)
+            costo_segnaletica += valori.get('segnaletica', 0)
+            costo_presidi += valori.get('presidi', 0)
+            costo_altre_misure += valori.get('altre_misure', 0)
+
+    print(f"\n3️⃣ COSTI SPECIFICI RISCHI INTERFERENTI (deduplicati):")
+    print(f"   Categorie uniche: {categorie_rischio_presenti}")
     print(f"   Impiantistica: €{costo_impiantistica:,.2f}")
     print(f"   Controlli: €{costo_controlli:,.2f}")
     print(f"   Segnaletica: €{costo_segnaletica:,.2f}")
@@ -1645,7 +1666,7 @@ def calcola_costi_sicurezza(data):
         'costo_altre_misure': round(costo_altre_misure + costo_base, 2),
         'costi_presenti': True,
         'costi_calcolati_auto': True,
-        'note_costi_sicurezza': f'Calcolati parametricamente: importo €{importo_appalto:,.2f}, {numero_lavoratori} lavoratori, {durata_giorni} giorni, {len(tutti_rischi)} rischi. Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto).'
+        'note_costi_sicurezza': f'Calcolati parametricamente: importo €{importo_appalto:,.2f}, {numero_lavoratori} lavoratori, {durata_giorni} giorni, {len(categorie_rischio_presenti)} categorie rischio interferenti (deduplicati). Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto).'
     }
 
 # =============================================
