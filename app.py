@@ -1534,6 +1534,8 @@ def login():
         password = request.form.get('password')
 
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            # Pulisci eventuali flag appaltatore da accessi precedenti
+            session.pop('from_appaltatore_link', None)
             session['logged_in'] = True
             session['username'] = username
             flash('✅ Login effettuato con successo!', 'success')

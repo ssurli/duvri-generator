@@ -7,8 +7,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Riepilogo DUVRI</h1>
 
-        <!-- Pulsante Torna alla Dashboard (solo per committente, non per appaltatore) -->
-        {% if not session.get('from_appaltatore_link') %}
+        <!-- Pulsante Torna alla Dashboard (solo per committente loggato, non per appaltatore) -->
+        {% if session.get('logged_in') %}
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
             ← Torna alla Dashboard
         </a>
