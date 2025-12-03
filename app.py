@@ -776,40 +776,11 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     # Salva nel database
     current_data = get_current_duvri_data()
     current_data['appaltatore'] = dati_appaltatore
-    
-    # 🆕 CALCOLO AUTOMATICO COSTI SICUREZZA
-    # ⚠️ SOLO SE NON SONO STATI MODIFICATI MANUALMENTE
-    committente = current_data.get('committente', {})
-    
-    ha_importo = current_data.get('committente', {}).get('importo')
-    ha_lavoratori = dati_appaltatore.get('max_addetti')
-    ha_durata = dati_appaltatore.get('durata_giorni')
-    
-    # Verifica se committente ha attivato costi manuali
-    committente_usa_manuali = committente.get('usa_costi_manuali', False)
-    appaltatore_ha_modificato = dati_appaltatore.get('costi_modificati_manualmente', False)
-    
-    if ha_importo and ha_lavoratori and ha_durata and not (committente_usa_manuali or appaltatore_ha_modificato):
-        print("\n🔢 Calcolo costi sicurezza parametrico...")
-        try:
-            costi_calcolati = calcola_costi_sicurezza(current_data)
-            current_data['appaltatore'].update(costi_calcolati)
-            dati_appaltatore.update(costi_calcolati)  # ← IMPORTANTE!
-            print(f"✅ Costi calcolati e salvati: {sum([v for k,v in costi_calcolati.items() if k.startswith('costo_') and isinstance(v, (int,float))])}")
-        except Exception as e:
-            print(f"❌ Errore calcolo costi: {e}")
-            import traceback
-            traceback.print_exc()
-    elif committente_usa_manuali:
-        print("⚠️ Costi manuali committente - ricalcolo saltato")
-    elif appaltatore_ha_modificato:
-        print("⚠️ Costi modificati appaltatore - ricalcolo saltato")
-    else:
-        print(f"⚠️ Parametri mancanti per calcolo costi:")
-        print(f"   - Importo: {bool(ha_importo)}")
-        print(f"   - Lavoratori: {bool(ha_lavoratori)}")
-        print(f"   - Durata: {bool(ha_durata)}")
-    
+
+    # ❌ SCENARIO B: I COSTI NON SI RICALCOLANO quando appaltatore compila
+    # I costi sono già stati calcolati dal committente e sono FINALI
+    print("ℹ️ Scenario B: Costi già calcolati dal committente - nessun ricalcolo")
+
     # Aggiorna in memoria
     if duvri_id in duvri_list:
         duvri_list[duvri_id]['dati_appaltatore'] = dati_appaltatore
@@ -1351,31 +1322,23 @@ def calcola_costi_baseline_committente(data):
 
 def calcola_costi_sicurezza(data):
     """
-    Calcola i costi di sicurezza in modo parametrico usando CAMPI ESISTENTI.
-    
+    Calcola i costi di sicurezza SOLO dai dati del committente.
+
+    SCENARIO B - LOGICA SEMPLIFICATA:
+    - Il committente calcola TUTTI i costi in base a importo e rischi struttura
+    - L'appaltatore vede i costi finali ma NON li ricalcola
+    - La compilazione appaltatore è puramente documentale
+
     Parametri utilizzati:
-    - committente.importo → Importo appalto
-    - appaltatore.max_addetti → Numero lavoratori
-    - appaltatore.durata_giorni → Durata lavori (NUOVO campo)
-    - committente.rischi_struttura → Rischi committente
-    - appaltatore.rischi → Rischi appaltatore
+    - committente.importo_gara_base → Importo appalto
+    - committente.percentuale_costo_base → % costo base (default 2%)
+    - committente.rischi_struttura → Rischi della struttura sanitaria
     """
-    
-    # ========================================
-    # PARAMETRI DA DATI ESISTENTI
-    # ========================================
-    
-    appaltatore = data.get('appaltatore', {})
+
     committente = data.get('committente', {})
-    
-    # 🆕 Usa campi esistenti
-    # Usa importo_gara_base se presente, altrimenti fallback su importo vecchio
+
     importo_appalto = safe_float(committente.get('importo_gara_base') or committente.get('importo'))
-    numero_lavoratori = int(safe_float(appaltatore.get('max_addetti', 1)))
-    durata_giorni = int(safe_float(appaltatore.get('durata_giorni', 1)))
-    
     rischi_committente = committente.get('rischi_struttura', [])
-    rischi_appaltatore = appaltatore.get('rischi', [])
     
     # ========================================
     # ✅ VERIFICA SE CI SONO COSTI MANUALI
@@ -1407,27 +1370,16 @@ def calcola_costi_sicurezza(data):
         
         return costi_finali
     # ========================================
-    # CALCOLO AUTOMATICO
+    # CALCOLO AUTOMATICO SEMPLIFICATO
     # ========================================
-    print(f"\n💰 CALCOLO COSTI PARAMETRICO")
-    print(f"📊 Importo appalto (committente): €{importo_appalto:,.2f}")
-    print(f"👷 Lavoratori (appaltatore.max_addetti): {numero_lavoratori}")
-    print(f"📅 Durata (appaltatore.durata_giorni): {durata_giorni} giorni")
-    print(f"⚠️ Rischi committente: {len(rischi_committente)}")
-    print(f"⚠️ Rischi appaltatore: {len(rischi_appaltatore)}")
-    
+    print(f"\n💰 CALCOLO COSTI SEMPLIFICATO (Solo Committente)")
+    print(f"📊 Importo appalto: €{importo_appalto:,.2f}")
+    print(f"⚠️ Rischi struttura: {len(rischi_committente)}")
+
     # Validazione
     if importo_appalto <= 0:
         print("⚠️ ATTENZIONE: Importo appalto non valido, uso minimo €5.000")
         importo_appalto = 5000
-    
-    if numero_lavoratori <= 0:
-        print("⚠️ ATTENZIONE: Numero lavoratori non valido, uso 1")
-        numero_lavoratori = 1
-    
-    if durata_giorni <= 0:
-        print("⚠️ ATTENZIONE: Durata non valida, uso 5 giorni")
-        durata_giorni = 5
     
     # ========================================
     # 1. COSTO BASE (% su importo)
@@ -1441,70 +1393,9 @@ def calcola_costi_sicurezza(data):
     
     print(f"\n1️⃣ COSTO BASE:")
     print(f"   {percentuale_base*100:.1f}% di €{importo_appalto:,.2f} = €{costo_base:,.2f}")
-    
-    # ========================================
-    # 2. COSTI PER LAVORATORE
-    # ========================================
-
-    costo_dpi_base = 150
-    costo_dpi_rischi = 0
-
-    DPI_RISCHI = {
-        'biologico': 100,
-        'chimico': 120,
-        'radiologico': 150,
-        'elettric': 80,  # Cattura "elettrico", "elettrici"
-        'caduta': 120,
-        'quota': 120,    # Cattura "lavori in quota"
-        'rumore': 40,
-        'vibrazioni': 30,
-    }
-
-    # 🆕 DEDUPLICA RISCHI INTERFERENTI
-    # L'interferenza è UNICA se il rischio esiste in committente O appaltatore (o entrambi)
-    tutti_rischi_raw = rischi_committente + rischi_appaltatore
-
-    # Identifica categorie di rischio UNICHE presenti
-    categorie_rischio_presenti = set()
-    for rischio_str in tutti_rischi_raw:
-        rischio_lower = rischio_str.lower()
-        for categoria in DPI_RISCHI.keys():
-            if categoria in rischio_lower:
-                categorie_rischio_presenti.add(categoria)
-                break
-
-    # Calcola costi DPI UNA VOLTA per categoria unica
-    for categoria in categorie_rischio_presenti:
-        costo_dpi_rischi += DPI_RISCHI[categoria]
-
-    print(f"\n🔄 RISCHI INTERFERENTI DEDUPLICATI:")
-    print(f"   Rischi committente: {len(rischi_committente)}")
-    print(f"   Rischi appaltatore: {len(rischi_appaltatore)}")
-    print(f"   Categorie uniche interferenti: {len(categorie_rischio_presenti)} → {categorie_rischio_presenti}")
-
-    costo_formazione = 200
-
-    ha_rischi_sanitari = any(
-        keyword in categoria
-        for categoria in categorie_rischio_presenti
-        for keyword in ['biologico', 'chimico', 'radiologico', 'rumore', 'vibrazioni']
-    )
-    costo_sorveglianza = 150 if ha_rischi_sanitari else 0
-
-    costo_per_lavoratore = (costo_dpi_base + costo_dpi_rischi +
-                            costo_formazione + costo_sorveglianza)
-    costo_totale_lavoratori = costo_per_lavoratore * numero_lavoratori
-
-    print(f"\n2️⃣ COSTI PER LAVORATORE:")
-    print(f"   DPI base: €{costo_dpi_base}")
-    print(f"   DPI rischi specifici (deduplicati): €{costo_dpi_rischi}")
-    print(f"   Formazione: €{costo_formazione}")
-    print(f"   Sorveglianza sanitaria: €{costo_sorveglianza}")
-    print(f"   → Per lavoratore: €{costo_per_lavoratore}")
-    print(f"   → Totale ({numero_lavoratori} lavoratori): €{costo_totale_lavoratori:,.2f}")
 
     # ========================================
-    # 3. COSTI SPECIFICI PER RISCHI (DEDUPLICATI)
+    # 2. COSTI SPECIFICI PER RISCHI STRUTTURA
     # ========================================
 
     COSTI_RISCHIO = {
@@ -1519,8 +1410,9 @@ def calcola_costi_sicurezza(data):
         'pazient': {'segnaletica': 400, 'altre_misure': 300},
     }
 
-    # 🆕 Estendi categorie per includere tutte le possibili
-    for rischio_str in tutti_rischi_raw:
+    # Identifica categorie di rischio presenti
+    categorie_rischio_presenti = set()
+    for rischio_str in rischi_committente:
         rischio_lower = rischio_str.lower()
         for categoria in COSTI_RISCHIO.keys():
             if categoria in rischio_lower:
@@ -1533,7 +1425,7 @@ def calcola_costi_sicurezza(data):
     costo_presidi = 0
     costo_altre_misure = 0
 
-    # Calcola costi UNA SOLA VOLTA per ogni categoria unica
+    # Calcola costi per ogni categoria
     for categoria in categorie_rischio_presenti:
         if categoria in COSTI_RISCHIO:
             valori = COSTI_RISCHIO[categoria]
@@ -1543,130 +1435,47 @@ def calcola_costi_sicurezza(data):
             costo_presidi += valori.get('presidi', 0)
             costo_altre_misure += valori.get('altre_misure', 0)
 
-    print(f"\n3️⃣ COSTI SPECIFICI RISCHI INTERFERENTI (deduplicati):")
-    print(f"   Categorie uniche: {categorie_rischio_presenti}")
+    print(f"\n2️⃣ COSTI RISCHI STRUTTURA:")
+    print(f"   Categorie identificate: {categorie_rischio_presenti}")
     print(f"   Impiantistica: €{costo_impiantistica:,.2f}")
     print(f"   Controlli: €{costo_controlli:,.2f}")
     print(f"   Segnaletica: €{costo_segnaletica:,.2f}")
     print(f"   Presidi: €{costo_presidi:,.2f}")
     print(f"   Altre misure: €{costo_altre_misure:,.2f}")
-    
+
     # ========================================
-    # 4. COSTI LEGATI ALLA DURATA
+    # 3. TOTALE
     # ========================================
-    
-    numero_incontri = max(1, durata_giorni // 5)
-    costo_per_incontro = 250
-    costo_incontri = numero_incontri * costo_per_incontro
-    
-    numero_controlli_periodici = max(1, durata_giorni // 10)
-    costo_per_controllo = 200
-    costo_controlli_periodici = numero_controlli_periodici * costo_per_controllo
-    
-    costo_controlli += costo_controlli_periodici
-    
-    print(f"\n4️⃣ COSTI DURATA ({durata_giorni} giorni):")
-    print(f"   Incontri coordinamento: {numero_incontri} × €{costo_per_incontro} = €{costo_incontri:,.2f}")
-    print(f"   Controlli periodici: {numero_controlli_periodici} × €{costo_per_controllo} = €{costo_controlli_periodici:,.2f}")
-    
-    # ========================================
-    # 5. TOTALE
-    # ========================================
-    
-    costo_dpi_totale = costo_dpi_base * numero_lavoratori + costo_dpi_rischi * numero_lavoratori
-    
-    totale_generale = (costo_base + 
-                      costo_totale_lavoratori + 
-                      costo_impiantistica + 
-                      costo_controlli + 
-                      costo_segnaletica + 
-                      costo_presidi + 
-                      costo_altre_misure + 
-                      costo_incontri)
-    
+
+    totale_generale = (costo_base +
+                      costo_impiantistica +
+                      costo_controlli +
+                      costo_segnaletica +
+                      costo_presidi +
+                      costo_altre_misure)
+
     percentuale_su_appalto = (totale_generale / importo_appalto * 100) if importo_appalto > 0 else 0
-    
+
     print(f"\n💰 TOTALE COSTI SICUREZZA:")
     print(f"   €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% dell'appalto)")
-    
-    if percentuale_su_appalto < 3:
-        print(f"   ⚠️ Percentuale bassa (<3%)")
-    elif percentuale_su_appalto > 20:
-        print(f"   ⚠️ Percentuale alta (>20%)")
-    else:
-        print(f"   ✅ Percentuale nel range normale (3-20%)")
-    # ========================================
-    # 🆕 OVERRIDE CON VALORI MANUALI (se presenti)
-    # ========================================
-    
-    if committente.get('usa_costi_manuali'):
-        print(f"\n🖊️ OVERRIDE MANUALE ATTIVO")
-        
-        # Sostituisci solo i valori manuali forniti
-        if committente.get('costo_incontri_manuale'):
-            costo_incontri_orig = costo_incontri
-            costo_incontri = float(committente.get('costo_incontri_manuale'))
-            print(f"   Incontri: €{costo_incontri_orig:,.2f} → €{costo_incontri:,.2f} (manuale)")
-        
-        if committente.get('costo_dpi_manuale'):
-            costo_dpi_totale_orig = costo_dpi_totale
-            costo_dpi_totale = float(committente.get('costo_dpi_manuale'))
-            print(f"   DPI: €{costo_dpi_totale_orig:,.2f} → €{costo_dpi_totale:,.2f} (manuale)")
-        
-        if committente.get('costo_impiantistica_manuale'):
-            costo_impiantistica_orig = costo_impiantistica
-            costo_impiantistica = float(committente.get('costo_impiantistica_manuale'))
-            print(f"   Impiantistica: €{costo_impiantistica_orig:,.2f} → €{costo_impiantistica:,.2f} (manuale)")
-        
-        if committente.get('costo_segnaletica_manuale'):
-            costo_segnaletica_orig = costo_segnaletica
-            costo_segnaletica = float(committente.get('costo_segnaletica_manuale'))
-            print(f"   Segnaletica: €{costo_segnaletica_orig:,.2f} → €{costo_segnaletica:,.2f} (manuale)")
-        
-        if committente.get('costo_presidi_manuale'):
-            costo_presidi_orig = costo_presidi
-            costo_presidi = float(committente.get('costo_presidi_manuale'))
-            print(f"   Presidi: €{costo_presidi_orig:,.2f} → €{costo_presidi:,.2f} (manuale)")
-        
-        if committente.get('costo_controlli_manuale'):
-            costo_controlli_orig = costo_controlli
-            costo_controlli = float(committente.get('costo_controlli_manuale'))
-            print(f"   Controlli: €{costo_controlli_orig:,.2f} → €{costo_controlli:,.2f} (manuale)")
-        
-        if committente.get('costo_altre_misure_manuale'):
-            costo_altre_misure_base_orig = costo_altre_misure + costo_base
-            costo_altre_misure = float(committente.get('costo_altre_misure_manuale'))
-            costo_base = 0  # Annulla costo base se manuale
-            print(f"   Altre misure: €{costo_altre_misure_base_orig:,.2f} → €{costo_altre_misure:,.2f} (manuale)")
-        
-        # Ricalcola totale con valori manuali
-        totale_generale = (costo_incontri + 
-                          costo_dpi_totale + 
-                          costo_impiantistica + 
-                          costo_controlli + 
-                          costo_segnaletica + 
-                          costo_presidi + 
-                          costo_altre_misure +
-                          (costo_base if not committente.get('costo_altre_misure_manuale') else 0))
-        
-        percentuale_su_appalto = (totale_generale / importo_appalto * 100) if importo_appalto > 0 else 0
-        
-        print(f"\n💰 TOTALE CON VALORI MANUALI: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}%)")
+    print(f"   📝 Costi calcolati dal committente - appaltatore vede baseline finale")
+
     # ========================================
     # RETURN
     # ========================================
-    
+
+    # Distribuisci i costi nelle categorie standard (per compatibilità visualizzazione)
     return {
-        'costo_incontri': round(costo_incontri, 2),
-        'costo_dpi': round(costo_dpi_totale, 2),
+        'costo_incontri': 0,  # ❌ Non più basato su durata appaltatore
+        'costo_dpi': 0,  # ❌ Non più basato su lavoratori appaltatore
         'costo_impiantistica': round(costo_impiantistica, 2),
         'costo_segnaletica': round(costo_segnaletica, 2),
         'costo_presidi': round(costo_presidi, 2),
         'costo_controlli': round(costo_controlli, 2),
-        'costo_altre_misure': round(costo_altre_misure + costo_base, 2),
+        'costo_altre_misure': round(costo_altre_misure + costo_base, 2),  # Include costo base
         'costi_presenti': True,
         'costi_calcolati_auto': True,
-        'note_costi_sicurezza': f'Calcolati parametricamente: importo €{importo_appalto:,.2f}, {numero_lavoratori} lavoratori, {durata_giorni} giorni, {len(categorie_rischio_presenti)} categorie rischio interferenti (deduplicati). Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto).'
+        'note_costi_sicurezza': f'Costi calcolati dal committente: importo €{importo_appalto:,.2f}, {len(categorie_rischio_presenti)} categorie rischio struttura. Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto). Compilazione appaltatore documentale.'
     }
 
 # =============================================

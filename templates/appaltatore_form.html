@@ -11,11 +11,11 @@
     </div>
     {% endif %}
 
-    <!-- 🆕 CARD BASELINE COSTI COMMITTENTE -->
+    <!-- 🆕 CARD COSTI FINALI COMMITTENTE -->
     {% if baseline_committente %}
-    <div class="card mb-4 border-warning">
-        <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0">💰 Costi Baseline dal Committente</h5>
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">💰 Costi Finali per la Sicurezza</h5>
         </div>
         <div class="card-body">
             <div class="row mb-3">
@@ -75,17 +75,18 @@
             <hr>
             <div class="row">
                 <div class="col-12">
-                    <h5 class="text-success">
-                        💵 Totale Baseline Committente: € {{ "{:,.2f}".format(baseline_committente.totale_baseline) }}
-                    </h5>
-                    <div class="alert alert-info mt-3 mb-0">
-                        <strong>ℹ️ Come si aggiungono i tuoi costi:</strong>
-                        <ul class="mb-0 mt-2">
-                            <li><strong>Numero lavoratori:</strong> Ogni lavoratore genera costi per DPI (€150 base + rischi specifici), formazione (€200), sorveglianza sanitaria (€150 se necessaria)</li>
-                            <li><strong>Durata lavori:</strong> Determina incontri di coordinamento (€250 ogni 5 giorni) e controlli periodici (€200 ogni 10 giorni)</li>
-                            <li><strong>Tuoi rischi:</strong> Si sommano ai rischi del committente con gli stessi criteri della tabella sopra</li>
-                        </ul>
-                        <p class="mb-0 mt-2 fw-bold">Il totale finale sarà: Baseline (€ {{ "{:,.2f}".format(baseline_committente.totale_baseline) }}) + Costi derivanti dai tuoi dati</p>
+                    <h4 class="text-success fw-bold">
+                        💵 Totale Costi Sicurezza: € {{ "{:,.2f}".format(baseline_committente.totale_baseline) }}
+                    </h4>
+                    <div class="alert alert-success mt-3 mb-0">
+                        <strong>✅ Costi Calcolati dal Committente</strong>
+                        <p class="mb-2 mt-2">
+                            I costi per le misure di sicurezza sono stati calcolati dal committente
+                            in base all'importo dell'appalto e ai rischi della struttura sanitaria.
+                        </p>
+                        <p class="mb-0 fw-bold">
+                            📋 La tua compilazione è puramente <strong>documentale</strong> e non modifica i costi sopra indicati.
+                        </p>
                     </div>
                 </div>
             </div>
