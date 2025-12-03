@@ -1761,7 +1761,6 @@ def compila_committente():
             'costo_correzione': request.form.get('costo_correzione', '0'),
             'importo': request.form.get('importo', ''),
             'percentuale_costo_base': request.form.get('percentuale_costo_base', '2'),
-            'percentuale_costo_base': request.form.get('percentuale_costo_base', '2'),
 
             # 🆕 COSTI MANUALI
             'usa_costi_manuali': 'usa_costi_manuali' in request.form,
@@ -1840,6 +1839,33 @@ def compila_committente():
             return redirect(url_for('compila_committente', duvri_id=duvri_id))
         
         save_current_duvri_data(current_data)
+
+        # 🆕 Se ci sono costi manuali, trasferiscili subito alla sezione appaltatore
+        if dati_committente.get('usa_costi_manuali'):
+            try:
+                print("🖊️ Trasferimento costi manuali committente → appaltatore")
+                costi_da_trasferire = calcola_costi_sicurezza(current_data)
+
+                # Inizializza appaltatore se non esiste
+                if 'appaltatore' not in current_data:
+                    current_data['appaltatore'] = {}
+                if not duvri.get('dati_appaltatore'):
+                    duvri['dati_appaltatore'] = {}
+
+                # Aggiorna i costi
+                current_data['appaltatore'].update(costi_da_trasferire)
+                duvri['dati_appaltatore'].update(costi_da_trasferire)
+
+                # Salva di nuovo con i costi aggiornati
+                save_current_duvri_data(current_data)
+
+                totale_costi = sum([v for k,v in costi_da_trasferire.items()
+                                   if k.startswith('costo_') and isinstance(v, (int, float))])
+                print(f"✅ Costi manuali trasferiti: €{totale_costi:,.2f}")
+            except Exception as e:
+                print(f"⚠️ Errore trasferimento costi: {e}")
+                import traceback
+                traceback.print_exc()
 
         # Aggiorna stato
         if duvri['dati_appaltatore']:
