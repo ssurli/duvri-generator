@@ -24,9 +24,69 @@
             {% if session.get('username') %}
                 <span class="badge bg-primary me-2">👤 {{ session.get('username') }}</span>
             {% endif %}
+            <button type="button" class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#guidaModal">
+                ❓ Guida Rapida
+            </button>
             <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
                 🚪 Logout
             </a>
+        </div>
+    </div>
+
+    <!-- Modal Guida Rapida Dashboard -->
+    <div class="modal fade" id="guidaModal" tabindex="-1" aria-labelledby="guidaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="guidaModalLabel">📖 Guida Rapida - Dashboard Amministratore</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="fw-bold">🎯 Workflow Completo</h6>
+                    <ol class="mb-4">
+                        <li><strong>Crea Nuovo DUVRI</strong> - Inserisci nome progetto (opzionale) e clicca "➕ Crea Nuovo DUVRI"</li>
+                        <li><strong>Compila Dati Committente</strong> - Clicca "📝 Compila Committente" sul DUVRI creato</li>
+                        <li><strong>Invia Link all'Appaltatore</strong> - Clicca "🔗 Link Appaltatore" e invialo via email</li>
+                        <li><strong>Monitora Compilazione</strong> - Attendi che l'appaltatore compili i suoi dati</li>
+                        <li><strong>Genera PDF</strong> - Vai al "📄 Riepilogo" e scarica il PDF finale</li>
+                    </ol>
+
+                    <h6 class="fw-bold">💰 Calcolo Costi (Scenario B)</h6>
+                    <div class="alert alert-success">
+                        <p class="mb-2"><strong>✅ I costi vengono calcolati dal committente:</strong></p>
+                        <ul class="mb-0">
+                            <li>Quando compili il form committente, i costi si calcolano in base a:
+                                <ul>
+                                    <li>Importo appalto</li>
+                                    <li>Percentuale costo base (default 2%)</li>
+                                    <li>Rischi struttura sanitaria</li>
+                                </ul>
+                            </li>
+                            <li>L'appaltatore vede i costi FINALI ma non li modifica</li>
+                            <li>La compilazione appaltatore è documentale</li>
+                        </ul>
+                    </div>
+
+                    <h6 class="fw-bold">🔧 Funzioni Utili</h6>
+                    <ul>
+                        <li><strong>Duplica DUVRI:</strong> Crea copia di un DUVRI esistente</li>
+                        <li><strong>Elimina DUVRI:</strong> Rimuove definitivamente (attenzione!)</li>
+                        <li><strong>Torna alla Dashboard:</strong> Da summary, clicca "← Torna alla Dashboard"</li>
+                        <li><strong>Ricalcola Costi:</strong> Solo se usi "Inserimento Manuale" nel form committente</li>
+                    </ul>
+
+                    <h6 class="fw-bold">⚠️ Note Importanti</h6>
+                    <ul class="mb-0">
+                        <li>✅ I dati si salvano automaticamente nel database</li>
+                        <li>✅ L'appaltatore può compilare anche senza essere registrato (usa il link)</li>
+                        <li>⚠️ Assicurati di compilare PRIMA il committente, POI l'appaltatore</li>
+                        <li>📧 Il sistema supporta invio email automatico (se configurato)</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
         </div>
     </div>
 

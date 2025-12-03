@@ -2,8 +2,13 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>📋 Dati Appaltatore - DUVRI Dinamico</h2>
-    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">📋 Dati Appaltatore - DUVRI Dinamico</h2>
+        <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#guidaAppaltatoreModal">
+            ❓ Guida Rapida
+        </button>
+    </div>
+
     <!-- ALERT INFO OGGETTO -->
     {% if dati_committente and dati_committente.get('oggetto') %}
     <div class="alert alert-info">
@@ -85,7 +90,8 @@
                             in base all'importo dell'appalto e ai rischi della struttura sanitaria.
                         </p>
                         <p class="mb-0 fw-bold">
-                            📋 La tua compilazione è puramente <strong>documentale</strong> e non modifica i costi sopra indicati.
+                            ℹ️ I rischi dell'appaltatore sono stati preliminarmente considerati dal committente
+                            e potranno essere oggetto di rivalutazione finale.
                         </p>
                     </div>
                 </div>
@@ -569,6 +575,82 @@
         </div>
         
     </form>
+</div>
+
+<!-- Modal Guida Rapida Appaltatore -->
+<div class="modal fade" id="guidaAppaltatoreModal" tabindex="-1" aria-labelledby="guidaAppaltatoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="guidaAppaltatoreModalLabel">📖 Guida Rapida - Compilazione Appaltatore</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="fw-bold">👋 Benvenuto!</h6>
+                <p class="mb-3">
+                    Sei stato invitato a compilare la sezione Appaltatore del DUVRI (Documento Unico di Valutazione dei Rischi Interferenziali).
+                    Questa guida ti aiuterà a completare correttamente tutti i campi richiesti.
+                </p>
+
+                <h6 class="fw-bold">💰 Costi per la Sicurezza</h6>
+                <div class="alert alert-success mb-3">
+                    <p class="mb-2"><strong>✅ I costi che vedi sono definitivi:</strong></p>
+                    <ul class="mb-0">
+                        <li>Sono stati calcolati dal committente in base all'importo dell'appalto e ai rischi della struttura</li>
+                        <li>La tua compilazione è a scopo documentale e NON modifica questi costi</li>
+                        <li>I tuoi rischi sono stati preliminarmente considerati e potranno essere rivalutati in fase finale</li>
+                    </ul>
+                </div>
+
+                <h6 class="fw-bold">📝 Sezioni da Compilare</h6>
+                <ol class="mb-3">
+                    <li>
+                        <strong>Dati Anagrafici Impresa</strong> - Ragione sociale, CF, P.IVA, sede, contatti
+                        <div class="text-muted small">Tutti i campi sono obbligatori (*)</div>
+                    </li>
+                    <li>
+                        <strong>Figure Responsabili</strong> - Datore di Lavoro, RSPP, Responsabile Appalto
+                        <div class="text-muted small">Inserisci nome completo e contatti di ciascuna figura</div>
+                    </li>
+                    <li>
+                        <strong>Attività e Modalità</strong> - Descrivi le attività che svolgerai e come le organizzerai
+                        <div class="text-muted small">Includi numero lavoratori, durata, orari, luoghi di lavoro</div>
+                    </li>
+                    <li>
+                        <strong>Rischi delle Attività</strong> - Elenca i rischi specifici legati alle tue attività
+                        <div class="text-muted small">Descrivi in modo chiaro ogni rischio identificato</div>
+                    </li>
+                    <li>
+                        <strong>Macchine e Attrezzature</strong> - Indica quali strumenti utilizzerai
+                        <div class="text-muted small">Inserisci almeno una macchina o attrezzatura</div>
+                    </li>
+                    <li>
+                        <strong>Subappalti</strong> (se presenti) - Dichiara eventuali subappaltatori
+                        <div class="text-muted small">Compila solo se prevedi di subappaltare parte dei lavori</div>
+                    </li>
+                </ol>
+
+                <h6 class="fw-bold">✅ Come Completare la Compilazione</h6>
+                <ul class="mb-3">
+                    <li>Compila tutti i campi contrassegnati con asterisco (*) - sono obbligatori</li>
+                    <li>Scrivi in modo chiaro e dettagliato, specialmente per rischi e misure di sicurezza</li>
+                    <li>Al termine, clicca il pulsante <strong>"💾 Salva e Conferma"</strong> in fondo alla pagina</li>
+                    <li>Riceverai una conferma che i tuoi dati sono stati salvati correttamente</li>
+                </ul>
+
+                <h6 class="fw-bold">⚠️ Note Importanti</h6>
+                <ul class="mb-0">
+                    <li>✅ I dati si salvano SOLO quando clicchi "Salva e Conferma"</li>
+                    <li>✅ Puoi modificare i dati anche dopo il primo salvataggio (usa lo stesso link)</li>
+                    <li>⚠️ Assicurati di compilare tutte le sezioni prima di confermare</li>
+                    <li>📧 Per problemi o domande, contatta il committente che ti ha inviato il link</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- JavaScript per toggle campi -->
