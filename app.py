@@ -1267,6 +1267,88 @@ def calcola_e_confronta_costi(duvri_id):
                 # 'richiede_azione': False
             # }
 
+def calcola_costi_baseline_committente(data):
+    """
+    Calcola i costi baseline derivanti SOLO dai dati del committente.
+    Usato per mostrare all'appaltatore i costi fissi prima che compili i suoi dati.
+
+    Returns:
+        dict con:
+        - costo_base: Costo base (% su importo)
+        - dettaglio_rischi: Lista di {rischio, costi_generati}
+        - subtotale_rischi: Totale costi da rischi committente
+        - totale_baseline: Totale baseline committente
+    """
+    committente = data.get('committente', {})
+
+    importo_appalto = safe_float(committente.get('importo_gara_base') or committente.get('importo'))
+    rischi_committente = committente.get('rischi_struttura', [])
+
+    # Costo base (% su importo)
+    percentuale_base = float(committente.get('percentuale_costo_base', 2.0)) / 100
+    percentuale_base = max(0, min(percentuale_base, 0.03))
+    costo_base = max(importo_appalto * percentuale_base, 500) if percentuale_base > 0 else 0
+
+    # Mappatura rischi → costi
+    COSTI_RISCHIO_COMMITTENTE = {
+        'biologico': {'impiantistica': 500, 'controlli': 300},
+        'chimico': {'impiantistica': 600, 'controlli': 400},
+        'radiologico': {'impiantistica': 800, 'controlli': 500},
+        'elettric': {'impiantistica': 400, 'controlli': 200},
+        'caduta': {'impiantistica': 600, 'segnaletica': 300},
+        'quota': {'impiantistica': 600, 'segnaletica': 300},
+        'incendio': {'impiantistica': 500, 'presidi': 400},
+        'pazient': {'segnaletica': 400, 'altre_misure': 300},
+    }
+
+    # Calcola costi per ogni rischio committente
+    dettaglio_rischi = []
+    costo_impiantistica = 0
+    costo_controlli = 0
+    costo_segnaletica = 0
+    costo_presidi = 0
+    costo_altre_misure = 0
+
+    for rischio_str in rischi_committente:
+        rischio_lower = rischio_str.lower()
+        costi_rischio = {}
+
+        for chiave, valori in COSTI_RISCHIO_COMMITTENTE.items():
+            if chiave in rischio_lower:
+                costi_rischio = valori.copy()
+                costo_impiantistica += valori.get('impiantistica', 0)
+                costo_controlli += valori.get('controlli', 0)
+                costo_segnaletica += valori.get('segnaletica', 0)
+                costo_presidi += valori.get('presidi', 0)
+                costo_altre_misure += valori.get('altre_misure', 0)
+                break
+
+        if costi_rischio:
+            totale_rischio = sum(costi_rischio.values())
+            dettaglio_rischi.append({
+                'nome': rischio_str,
+                'costi': costi_rischio,
+                'totale': totale_rischio
+            })
+
+    subtotale_rischi = (costo_impiantistica + costo_controlli + costo_segnaletica +
+                       costo_presidi + costo_altre_misure)
+
+    return {
+        'importo_appalto': importo_appalto,
+        'percentuale_base': percentuale_base * 100,
+        'costo_base': costo_base,
+        'rischi_committente': rischi_committente,
+        'dettaglio_rischi': dettaglio_rischi,
+        'costo_impiantistica': costo_impiantistica,
+        'costo_controlli': costo_controlli,
+        'costo_segnaletica': costo_segnaletica,
+        'costo_presidi': costo_presidi,
+        'costo_altre_misure': costo_altre_misure,
+        'subtotale_rischi': subtotale_rischi,
+        'totale_baseline': costo_base + subtotale_rischi
+    }
+
 def calcola_costi_sicurezza(data):
     """
     Calcola i costi di sicurezza in modo parametrico usando CAMPI ESISTENTI.
@@ -1943,10 +2025,20 @@ def compila_appaltatore():
     # GET: mostra form con dati esistenti
     data = duvri.get('dati_appaltatore', {})
     dati_committente = duvri.get('dati_committente', {})  # 🆕 Aggiungi dati committente
-    
+
+    # 🆕 Calcola baseline costi committente per mostrare all'appaltatore
+    baseline_committente = None
+    if dati_committente and dati_committente.get('importo_gara_base'):
+        try:
+            current_data = get_current_duvri_data()
+            baseline_committente = calcola_costi_baseline_committente(current_data)
+        except Exception as e:
+            print(f"⚠️ Errore calcolo baseline committente: {e}")
+
     return render_template('appaltatore_form.html',
                          data=data,
                          dati_committente=dati_committente,  # 🆕 Passa al template
+                         baseline_committente=baseline_committente,  # 🆕 Baseline costi
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
                          duvri_id=duvri_id)
@@ -1977,10 +2069,20 @@ def appaltatore_form(link_univoco):
             for errore in errori:
                 flash(errore, 'danger')
             dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕
-            
+
+            # 🆕 Calcola baseline anche in caso di errore
+            baseline_committente = None
+            if dati_committente and dati_committente.get('importo_gara_base'):
+                try:
+                    current_data = get_current_duvri_data()
+                    baseline_committente = calcola_costi_baseline_committente(current_data)
+                except Exception as e:
+                    print(f"⚠️ Errore calcolo baseline committente: {e}")
+
             return render_template('appaltatore_form.html',
                                  data=request.form,
                                  dati_committente=dati_committente,  # 🆕 Nuovo parametro
+                                 baseline_committente=baseline_committente,  # 🆕 Baseline costi
                                  rischi_paragrafi=RISCHI_PARAGRAFI,
                                  rischi_hta=RISCHI_HTA,
                                  duvri_id=duvri_id)
@@ -1995,10 +2097,20 @@ def appaltatore_form(link_univoco):
     # GET: mostra form con dati esistenti
     data = duvri_trovato.get('dati_appaltatore', {})
     dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕 Passa dati committente
-    
+
+    # 🆕 Calcola baseline costi committente per mostrare all'appaltatore
+    baseline_committente = None
+    if dati_committente and dati_committente.get('importo_gara_base'):
+        try:
+            current_data = get_current_duvri_data()
+            baseline_committente = calcola_costi_baseline_committente(current_data)
+        except Exception as e:
+            print(f"⚠️ Errore calcolo baseline committente: {e}")
+
     return render_template('appaltatore_form.html',
                          data=data,
                          dati_committente=dati_committente,  # 🆕 Nuovo parametro
+                         baseline_committente=baseline_committente,  # 🆕 Baseline costi
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
                          duvri_id=duvri_id)

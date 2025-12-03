@@ -11,6 +11,88 @@
     </div>
     {% endif %}
 
+    <!-- 🆕 CARD BASELINE COSTI COMMITTENTE -->
+    {% if baseline_committente %}
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">💰 Costi Baseline dal Committente</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Importo Appalto:</strong></p>
+                    <h4 class="text-primary">€ {{ "{:,.2f}".format(baseline_committente.importo_appalto) }}</h4>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Costo Base ({{ "{:.1f}".format(baseline_committente.percentuale_base) }}%):</strong></p>
+                    <h5 class="text-secondary">€ {{ "{:,.2f}".format(baseline_committente.costo_base) }}</h5>
+                </div>
+            </div>
+
+            {% if baseline_committente.dettaglio_rischi %}
+            <h6 class="mt-3 mb-2">⚠️ Rischi Struttura Identificati dal Committente:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Rischio</th>
+                            <th class="text-end">Impiantistica</th>
+                            <th class="text-end">Controlli</th>
+                            <th class="text-end">Segnaletica</th>
+                            <th class="text-end">Presidi</th>
+                            <th class="text-end">Altre Misure</th>
+                            <th class="text-end">Subtotale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rischio in baseline_committente.dettaglio_rischi %}
+                        <tr>
+                            <td>{{ rischio.nome }}</td>
+                            <td class="text-end">{{ "€ {:,.0f}".format(rischio.costi.get('impiantistica', 0)) if rischio.costi.get('impiantistica') else '-' }}</td>
+                            <td class="text-end">{{ "€ {:,.0f}".format(rischio.costi.get('controlli', 0)) if rischio.costi.get('controlli') else '-' }}</td>
+                            <td class="text-end">{{ "€ {:,.0f}".format(rischio.costi.get('segnaletica', 0)) if rischio.costi.get('segnaletica') else '-' }}</td>
+                            <td class="text-end">{{ "€ {:,.0f}".format(rischio.costi.get('presidi', 0)) if rischio.costi.get('presidi') else '-' }}</td>
+                            <td class="text-end">{{ "€ {:,.0f}".format(rischio.costi.get('altre_misure', 0)) if rischio.costi.get('altre_misure') else '-' }}</td>
+                            <td class="text-end fw-bold">€ {{ "{:,.0f}".format(rischio.totale) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td>TOTALE RISCHI COMMITTENTE</td>
+                            <td class="text-end">€ {{ "{:,.0f}".format(baseline_committente.costo_impiantistica) }}</td>
+                            <td class="text-end">€ {{ "{:,.0f}".format(baseline_committente.costo_controlli) }}</td>
+                            <td class="text-end">€ {{ "{:,.0f}".format(baseline_committente.costo_segnaletica) }}</td>
+                            <td class="text-end">€ {{ "{:,.0f}".format(baseline_committente.costo_presidi) }}</td>
+                            <td class="text-end">€ {{ "{:,.0f}".format(baseline_committente.costo_altre_misure) }}</td>
+                            <td class="text-end">€ {{ "{:,.0f}".format(baseline_committente.subtotale_rischi) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Nessun rischio specifico identificato dal committente.</p>
+            {% endif %}
+
+            <hr>
+            <div class="row">
+                <div class="col-12">
+                    <h5 class="text-success">
+                        💵 Totale Baseline Committente: € {{ "{:,.2f}".format(baseline_committente.totale_baseline) }}
+                    </h5>
+                    <div class="alert alert-info mt-3 mb-0">
+                        <strong>ℹ️ Come si aggiungono i tuoi costi:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Numero lavoratori:</strong> Ogni lavoratore genera costi per DPI (€150 base + rischi specifici), formazione (€200), sorveglianza sanitaria (€150 se necessaria)</li>
+                            <li><strong>Durata lavori:</strong> Determina incontri di coordinamento (€250 ogni 5 giorni) e controlli periodici (€200 ogni 10 giorni)</li>
+                            <li><strong>Tuoi rischi:</strong> Si sommano ai rischi del committente con gli stessi criteri della tabella sopra</li>
+                        </ul>
+                        <p class="mb-0 mt-2 fw-bold">Il totale finale sarà: Baseline (€ {{ "{:,.2f}".format(baseline_committente.totale_baseline) }}) + Costi derivanti dai tuoi dati</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <form method="POST">
         
         <!-- ============================================ -->
