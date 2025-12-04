@@ -11,22 +11,6 @@
     </div>
     {% endif %}
 
-    <!-- DEBUG: Verifica variabile is_appaltatore -->
-    <div class="alert alert-{% if is_appaltatore is defined %}warning{% else %}danger{% endif %} alert-dismissible fade show">
-        <strong>🔍 DEBUG FORM:</strong>
-        {% if is_appaltatore is defined %}
-            is_appaltatore = <strong>{{ is_appaltatore }}</strong>
-            {% if is_appaltatore %}
-                → Dovresti vedere SOLO "Salva e Continua" (centrato)
-            {% else %}
-                → Dovresti vedere "Annulla" + "Salva Dati Appaltatore"
-            {% endif %}
-        {% else %}
-            <strong>VARIABILE NON DEFINITA!</strong>
-        {% endif %}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-
     <form method="POST">
         
         <!-- ============================================ -->
