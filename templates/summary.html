@@ -6,19 +6,6 @@
 <div class="container mt-4">
     <h1 class="mb-4">Riepilogo DUVRI</h1>
 
-    <!-- DEBUG: Verifica variabile is_appaltatore -->
-    {% if is_appaltatore is defined %}
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        <strong>🔍 DEBUG:</strong> is_appaltatore = {{ is_appaltatore }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% else %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <strong>⚠️ DEBUG:</strong> is_appaltatore NON DEFINITO
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endif %}
-
     <!-- Alert per DUVRI non completato -->
     {% if not data.committente or not data.appaltatore %}
     <div class="alert alert-warning">
