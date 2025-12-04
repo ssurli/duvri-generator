@@ -2067,7 +2067,38 @@ def appaltatore_duvri(link_univoco):
     # 🔥 IMPORTANTE: Sincronizza i dati dal database
     sync_db_to_memory(duvri_id)
 
-    # Mostra direttamente il form appaltatore
+    # ========== GESTIONE POST (SALVATAGGIO) ==========
+    if request.method == 'POST':
+        print(f"📝 POST ricevuto da appaltatore (route /appaltatore/{link_univoco})")
+
+        # Valida i dati prima di salvare
+        errori = valida_dati_appaltatore(request.form)
+
+        if errori:
+            print(f"❌ Validazione fallita: {len(errori)} errori")
+            for errore in errori:
+                print(f"   - {errore}")
+                flash(errore, 'danger')
+            dati_committente = duvri_trovato.get('dati_committente', {})
+
+            return render_template('appaltatore_form.html',
+                                 data=request.form,
+                                 dati_committente=dati_committente,
+                                 rischi_paragrafi=RISCHI_PARAGRAFI,
+                                 rischi_hta=RISCHI_HTA,
+                                 duvri_id=duvri_id,
+                                 is_appaltatore=True)
+
+        # Validazione OK: salva e redirect
+        print("✅ Validazione OK - procedo con salvataggio")
+        dati_appaltatore = processa_form_(request)
+        salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
+
+        print(f"💾 Dati salvati - session: from_appaltatore_link={session.get('from_appaltatore_link')}")
+        flash('✅ Dati salvati correttamente!', 'success')
+        return redirect(url_for('summary'))
+
+    # ========== GET: Mostra form ==========
     data = duvri_trovato.get('dati_appaltatore', {})
     dati_committente = duvri_trovato.get('dati_committente', {})
 
