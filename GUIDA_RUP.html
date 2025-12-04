@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guida per RUP - Sistema DUVRI USL Toscana Nord Ovest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+            color: white;
+            padding: 30px;
+            margin: -40px -40px 30px -40px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .credentials-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+
+        .credentials-box h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .credentials-box .cred-item {
+            background: white;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #ddd;
+        }
+
+        .credentials-box .cred-label {
+            color: #856404;
+            font-weight: bold;
+            font-family: 'Segoe UI', sans-serif;
+            margin-bottom: 5px;
+        }
+
+        .warning-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #721c24;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #0c5460;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #155724;
+        }
+
+        h2 {
+            color: #0066cc;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0066cc;
+            font-size: 24px;
+        }
+
+        h3 {
+            color: #004499;
+            margin: 25px 0 12px 0;
+            font-size: 18px;
+        }
+
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 6px;
+            border-left: 4px solid #0066cc;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #0066cc;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step-title {
+            display: inline-block;
+            font-weight: bold;
+            font-size: 18px;
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #c7254e;
+        }
+
+        .screenshot-placeholder {
+            background: #e9ecef;
+            border: 2px dashed #adb5bd;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 6px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .contact-section {
+            background: #e7f3ff;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 6px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th {
+            background: #0066cc;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .credentials-box {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Guida per Responsabili Unici del Progetto (RUP)</h1>
+            <p>Sistema di Gestione DUVRI Dinamico - Azienda USL Toscana Nord Ovest</p>
+            <p>Conforme al D.Lgs. 81/2008 - Art. 26</p>
+        </div>
+
+        <!-- CREDENZIALI -->
+        <div class="credentials-box">
+            <h3>🔐 Credenziali di Accesso Riservate</h3>
+            <div class="warning-box">
+                <strong>⚠️ IMPORTANTE:</strong> Queste credenziali sono strettamente riservate e personali. Non condividerle con terzi.
+                In caso di smarrimento o compromissione, contattare immediatamente il Servizio ICT.
+            </div>
+
+            <div class="cred-label">🌐 URL Sistema:</div>
+            <div class="cred-item">https://usltnoduvri.pythonanywhere.com</div>
+
+            <div class="cred-label">👤 Username:</div>
+            <div class="cred-item">[DA FORNIRE INDIVIDUALMENTE]</div>
+
+            <div class="cred-label">🔑 Password:</div>
+            <div class="cred-item">[DA FORNIRE INDIVIDUALMENTE]</div>
+
+            <p style="margin-top: 15px; font-size: 14px;">
+                <strong>Note di sicurezza:</strong>
+            </p>
+            <ul style="font-size: 14px;">
+                <li>Conservare le credenziali in luogo sicuro</li>
+                <li>Non annotare la password su supporti non protetti</li>
+                <li>Effettuare sempre il logout al termine della sessione</li>
+                <li>Utilizzare una connessione sicura (HTTPS)</li>
+            </ul>
+        </div>
+
+        <!-- PANORAMICA -->
+        <h2>📖 Panoramica del Sistema</h2>
+        <p>
+            Il sistema DUVRI Dinamico è progettato per semplificare e standardizzare la gestione dei Documenti
+            Unici di Valutazione dei Rischi da Interferenze (DUVRI) richiesti dall'Art. 26 del D.Lgs. 81/2008.
+        </p>
+
+        <div class="info-box">
+            <strong>Obiettivi principali:</strong>
+            <ul>
+                <li>✅ Compilazione guidata dei dati committente</li>
+                <li>✅ Generazione automatica link sicuro per appaltatore</li>
+                <li>✅ Calcolo automatico costi di sicurezza</li>
+                <li>✅ Gestione workflow digitale completo</li>
+                <li>✅ Generazione PDF conforme normativa</li>
+            </ul>
+        </div>
+
+        <!-- PROCESSO COMPLETO -->
+        <h2>🔄 Processo Completo DUVRI</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <span class="step-title">Accesso Sistema</span>
+            <p style="margin-top: 10px;">
+                Accedere all'URL fornito e inserire le credenziali personali.
+                Il sistema mostrerà la dashboard con l'elenco dei DUVRI gestiti.
+            </p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <span class="step-title">Creazione Nuovo DUVRI</span>
+            <p style="margin-top: 10px;">
+                Cliccare su <strong>"Nuovo DUVRI"</strong> e compilare:
+            </p>
+            <ul>
+                <li><strong>Nome Progetto:</strong> Identificativo chiaro dell'appalto</li>
+                <li><strong>Tipo DUVRI:</strong>
+                    <ul>
+                        <li><em>Gara (ex-ante):</em> Per documenti di gara</li>
+                        <li><em>Operativo:</em> Durante esecuzione appalto</li>
+                    </ul>
+                </li>
+                <li><strong>Fase Appalto:</strong> Stato corrente della procedura</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <span class="step-title">Compilazione Dati Committente</span>
+            <p style="margin-top: 10px;">
+                Completare il form committente con:
+            </p>
+            <ul>
+                <li>Dati anagrafici struttura sanitaria</li>
+                <li>Oggetto e importo appalto</li>
+                <li>Caratteristiche ambiente di lavoro</li>
+                <li>Rischi presenti nella struttura</li>
+                <li>Figure responsabili (Direzione Sanitaria, RSPP, DEC)</li>
+            </ul>
+
+            <div class="info-box" style="margin-top: 15px;">
+                <strong>💡 Suggerimento:</strong> I campi con asterisco (*) sono obbligatori.
+                Il sistema salva automaticamente i dati, è possibile compilare in più sessioni.
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <span class="step-title">Generazione Link per Appaltatore</span>
+            <p style="margin-top: 10px;">
+                Dopo aver salvato i dati committente, il sistema genera automaticamente un
+                <strong>link univoco e sicuro</strong> per l'appaltatore.
+            </p>
+            <p style="margin-top: 10px;">
+                <strong>Come trovare il link:</strong>
+            </p>
+            <ol>
+                <li>Dalla dashboard, cliccare sull'icona <strong>🔗</strong> accanto al DUVRI</li>
+                <li>Il link ha formato: <code>https://...​/appaltatore/[codice-univoco]</code></li>
+                <li>Copiare il link completo</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <span class="step-number">5</span>
+            <span class="step-title">Invio Link ad Appaltatore</span>
+            <p style="margin-top: 10px;">
+                Inviare il link all'appaltatore tramite:
+            </p>
+            <ul>
+                <li><strong>PEC (consigliato):</strong> Per tracciabilità legale</li>
+                <li><strong>Email certificata:</strong> Con conferma di lettura</li>
+            </ul>
+
+            <div class="info-box" style="margin-top: 15px;">
+                <strong>📧 Modello Email Consigliato:</strong>
+                <div style="background: white; padding: 15px; margin-top: 10px; border-radius: 4px; font-family: Arial;">
+                    <p><strong>Oggetto:</strong> DUVRI - Compilazione Dati Appaltatore - [Nome Appalto]</p>
+                    <p style="margin-top: 15px;">Spett.le [Ragione Sociale Appaltatore],</p>
+                    <p style="margin-top: 10px;">
+                        ai sensi dell'Art. 26 del D.Lgs. 81/2008, si prega di compilare la sezione
+                        relativa ai dati dell'impresa appaltatrice accedendo al seguente link sicuro:
+                    </p>
+                    <p style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-left: 3px solid #0066cc;">
+                        <strong>Link:</strong> [INSERIRE LINK GENERATO DAL SISTEMA]
+                    </p>
+                    <p>
+                        Il link è univoco e riservato alla Vostra impresa. La compilazione deve essere
+                        effettuata dal Datore di Lavoro o RSPP aziendale.
+                    </p>
+                    <p style="margin-top: 15px;"><strong>Termini:</strong> Si prega di completare entro [DATA]</p>
+                    <p style="margin-top: 15px;">Cordiali saluti,<br>[Nome RUP]<br>Azienda USL Toscana Nord Ovest</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">6</span>
+            <span class="step-title">Monitoraggio Compilazione</span>
+            <p style="margin-top: 10px;">
+                Dalla dashboard è possibile monitorare lo stato:
+            </p>
+            <ul>
+                <li><span style="color: orange;">🟡 In Compilazione:</span> Appaltatore non ha ancora completato</li>
+                <li><span style="color: green;">🟢 Completato:</span> Entrambe le parti hanno compilato</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <span class="step-number">7</span>
+            <span class="step-title">Verifica e Gestione Costi</span>
+            <p style="margin-top: 10px;">
+                Una volta che l'appaltatore ha compilato i dati, il sistema:
+            </p>
+            <ul>
+                <li>Calcola automaticamente i costi di sicurezza</li>
+                <li>Confronta con eventuali costi da gara</li>
+                <li>Segnala extra-costi o risparmi</li>
+            </ul>
+
+            <div class="warning-box" style="margin-top: 15px;">
+                <strong>⚠️ Attenzione agli Extra-Costi:</strong><br>
+                Se i costi operativi superano quelli previsti in gara del 10%, il sistema
+                lo segnala. È necessario gestire l'integrazione contrattuale secondo normativa.
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">8</span>
+            <span class="step-title">Generazione PDF Definitivo</span>
+            <p style="margin-top: 10px;">
+                Quando entrambe le parti hanno completato:
+            </p>
+            <ol>
+                <li>Accedere alla pagina riepilogo del DUVRI</li>
+                <li>Cliccare <strong>"Genera PDF Definitivo"</strong></li>
+                <li>Scaricare il documento per firma digitale</li>
+                <li>Far firmare digitalmente entrambe le parti</li>
+                <li>Caricare il PDF firmato nel sistema</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <span class="step-number">9</span>
+            <span class="step-title">Invio RSPP e Comunicazione</span>
+            <p style="margin-top: 10px;">
+                Il sistema fornisce un pulsante per inviare automaticamente il DUVRI
+                firmato agli RSPP di committente e appaltatore (se indicati) e a eventuali subappaltatori.
+            </p>
+        </div>
+
+        <!-- FUNZIONALITÀ AVANZATE -->
+        <h2>⚙️ Funzionalità Avanzate</h2>
+
+        <h3>📊 Gestione Extra-Costi</h3>
+        <p>
+            Se emergono costi superiori a quelli previsti in gara, il sistema offre strumenti per:
+        </p>
+        <ul>
+            <li>Calcolare la percentuale di scostamento</li>
+            <li>Generare documentazione per integrazione contrattuale</li>
+            <li>Giustificare aumenti secondo normativa</li>
+        </ul>
+
+        <h3>🔗 Gestione Subappalti</h3>
+        <p>
+            L'appaltatore può indicare fino a 3 subappaltatori. Il sistema:
+        </p>
+        <ul>
+            <li>Registra i dati dei subappaltatori</li>
+            <li>Verifica l'idoneità dichiarata</li>
+            <li>Include nel DUVRI le attività subappaltate</li>
+            <li>Invia automaticamente il DUVRI ai subappaltatori</li>
+        </ul>
+
+        <h3>📎 Allegati e Documentazione</h3>
+        <p>
+            È possibile caricare documenti aggiuntivi:
+        </p>
+        <ul>
+            <li>Certificazioni specifiche</li>
+            <li>Planimetrie</li>
+            <li>DVR aziendali</li>
+            <li>Altri documenti rilevanti</li>
+        </ul>
+
+        <!-- BEST PRACTICES -->
+        <h2>✅ Best Practices</h2>
+
+        <div class="success-box">
+            <h3 style="margin-top: 0;">Raccomandazioni Operative</h3>
+            <ol>
+                <li><strong>Tempistica:</strong> Inviare il link all'appaltatore con almeno 5-7 giorni di anticipo</li>
+                <li><strong>Completezza:</strong> Verificare che tutti i campi obbligatori siano compilati</li>
+                <li><strong>Controllo Rischi:</strong> Selezionare accuratamente i rischi presenti nella struttura</li>
+                <li><strong>Comunicazione:</strong> Mantenere traccia delle comunicazioni con l'appaltatore (PEC)</li>
+                <li><strong>Revisioni:</strong> In caso di modifiche sostanziali, aggiornare il DUVRI</li>
+                <li><strong>Archiviazione:</strong> Conservare il DUVRI firmato per tutta la durata dell'appalto + 10 anni</li>
+            </ol>
+        </div>
+
+        <!-- RISOLUZIONE PROBLEMI -->
+        <h2>🔧 Risoluzione Problemi Comuni</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Problema</th>
+                    <th>Soluzione</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Appaltatore non riesce ad accedere al link</td>
+                    <td>
+                        1. Verificare che il link sia completo<br>
+                        2. Controllare che non ci siano spazi extra<br>
+                        3. Rigenerare il link dalla dashboard se necessario
+                    </td>
+                </tr>
+                <tr>
+                    <td>Password dimenticata</td>
+                    <td>Contattare il Servizio ICT per reset credenziali</td>
+                </tr>
+                <tr>
+                    <td>Dati non salvati</td>
+                    <td>
+                        1. Verificare connessione internet<br>
+                        2. Non chiudere il browser durante il salvataggio<br>
+                        3. Attendere il messaggio di conferma "✅ Dati salvati"
+                    </td>
+                </tr>
+                <tr>
+                    <td>PDF non si genera</td>
+                    <td>
+                        1. Verificare che entrambe le parti abbiano completato<br>
+                        2. Aggiornare la pagina (F5)<br>
+                        3. Se persiste, segnalare al supporto tecnico
+                    </td>
+                </tr>
+                <tr>
+                    <td>Extra-costi rilevati</td>
+                    <td>
+                        1. Verificare accuratezza dati inseriti<br>
+                        2. Consultare procedura integrazione contrattuale<br>
+                        3. Documentare giustificazioni
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- NORMATIVA RIFERIMENTO -->
+        <h2>⚖️ Riferimenti Normativi</h2>
+        <ul>
+            <li><strong>D.Lgs. 81/2008</strong> - Testo Unico sulla Sicurezza sul Lavoro</li>
+            <li><strong>Art. 26</strong> - Obblighi connessi ai contratti d'appalto</li>
+            <li><strong>D.Lgs. 50/2016</strong> - Codice dei Contratti Pubblici</li>
+            <li><strong>Art. 95, comma 10</strong> - Costi della sicurezza non soggetti a ribasso</li>
+            <li><strong>Linee Guida ANAC</strong> - Per la determinazione dei costi di sicurezza</li>
+        </ul>
+
+        <!-- CONTATTI -->
+        <div class="contact-section">
+            <h2 style="margin-top: 0; border: none; padding: 0;">📞 Supporto e Assistenza</h2>
+
+            <h3>Supporto Tecnico Sistema</h3>
+            <p>
+                <strong>Servizio ICT - Azienda USL Toscana Nord Ovest</strong><br>
+                📧 Email: [email supporto ICT]<br>
+                ☎️ Tel: [numero supporto]<br>
+                🕒 Orario: Lun-Ven 9:00-17:00
+            </p>
+
+            <h3>Supporto Normativo DUVRI</h3>
+            <p>
+                <strong>Servizio Prevenzione e Protezione</strong><br>
+                📧 Email: [email SPP]<br>
+                ☎️ Tel: [numero SPP]
+            </p>
+
+            <h3>Questioni Amministrative Appalti</h3>
+            <p>
+                <strong>Ufficio Contratti e Appalti</strong><br>
+                📧 Email: [email ufficio contratti]<br>
+                ☎️ Tel: [numero ufficio]
+            </p>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>
+                <strong>Azienda USL Toscana Nord Ovest</strong><br>
+                Sistema di Gestione DUVRI Dinamico v1.0<br>
+                Documento riservato - Uso interno
+            </p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                Ultimo aggiornamento: Dicembre 2025
+            </p>
+        </div>
+    </div>
+</body>
+</html>
