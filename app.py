@@ -2326,9 +2326,22 @@ def summary():
             import traceback
             traceback.print_exc()
     
-    # Verifica se l'utente è un appaltatore (tramite link esterno)
+    # Verifica se l'utente è un appaltatore (tramite link esterno) o un admin
+    # LOGICA: Admin sempre vede dashboard, appaltatore vede logout
+    is_admin = session.get('logged_in', False)
     is_appaltatore = session.get('from_appaltatore_link', False)
-    print(f"🔍 SUMMARY - Session check: from_appaltatore_link={is_appaltatore}, duvri_id={duvri_id}")
+
+    # Se è admin, non è appaltatore (l'admin ha priorità)
+    if is_admin:
+        is_appaltatore = False
+    # Se la session non dice nulla, controlla il referrer
+    elif not is_appaltatore:
+        referrer = request.referrer or ''
+        if 'appaltatore_form' in referrer:
+            is_appaltatore = True
+            session['from_appaltatore_link'] = True  # Imposta per prossime richieste
+
+    print(f"🔍 SUMMARY - logged_in={is_admin}, from_appaltatore_link={session.get('from_appaltatore_link')}, Referrer: {request.referrer}, is_appaltatore={is_appaltatore}, duvri_id={duvri_id}")
 
     return render_template('summary.html',
                          data=data,
