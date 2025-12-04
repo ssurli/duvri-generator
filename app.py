@@ -1601,8 +1601,8 @@ os.makedirs(ALLEGATI_FOLDER, exist_ok=True)
 # =============================================
 
 # Credenziali admin (in produzione usare variabili d'ambiente)
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'duvri2024')  # CAMBIARE IN PRODUZIONE!
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'Admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Duvri-2025')  # CAMBIARE IN PRODUZIONE!
 
 def login_required(f):
     """Decoratore per proteggere le route amministrative"""
