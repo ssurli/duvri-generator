@@ -1941,17 +1941,22 @@ def appaltatore_form(link_univoco):
     # Imposta come DUVRI attivo
     session['current_duvri_id'] = duvri_id
     session['from_appaltatore_link'] = True
+    print(f"🔑 Session impostata: duvri_id={duvri_id}, from_appaltatore_link=True")
 
     if request.method == 'POST':
+        print(f"📝 POST ricevuto da appaltatore (link: {link_univoco})")
+
         # ✅ 1. VALIDA i dati prima di salvare
         errori = valida_dati_appaltatore(request.form)
 
         if errori:
+            print(f"❌ Validazione fallita: {len(errori)} errori")
             # ✅ 2. In caso di errori, RIMANI sul form
             for errore in errori:
+                print(f"   - {errore}")
                 flash(errore, 'danger')
             dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕
-            
+
             return render_template('appaltatore_form.html',
                                  data=request.form,
                                  dati_committente=dati_committente,  # 🆕 Nuovo parametro
@@ -1960,9 +1965,11 @@ def appaltatore_form(link_univoco):
                                  duvri_id=duvri_id)
 
         # ✅ 3. Solo se validazione OK, salva e redirect
+        print("✅ Validazione OK - procedo con salvataggio")
         dati_appaltatore = processa_form_(request)
         salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
 
+        print(f"💾 Dati salvati - session before redirect: from_appaltatore_link={session.get('from_appaltatore_link')}")
         flash('✅ Dati salvati correttamente!', 'success')
         return redirect(url_for('summary'))
 
@@ -2014,6 +2021,15 @@ def valida_dati_appaltatore(form_data):
 
     if not form_data.get('max_addetti') or int(form_data.get('max_addetti', 0)) < 1:
         errori.append('Il numero massimo di addetti deve essere almeno 1')
+
+    if not form_data.get('durata_giorni') or int(form_data.get('durata_giorni', 0)) < 1:
+        errori.append('La durata dei lavori deve essere almeno 1 giorno')
+
+    if not form_data.get('orario_lavoro', '').strip():
+        errori.append('L\'orario di lavoro è obbligatorio')
+
+    if not form_data.get('oggetto', '').strip():
+        errori.append('La descrizione delle attività è obbligatoria')
 
     return errori
 
@@ -2312,6 +2328,7 @@ def summary():
     
     # Verifica se l'utente è un appaltatore (tramite link esterno)
     is_appaltatore = session.get('from_appaltatore_link', False)
+    print(f"🔍 SUMMARY - Session check: from_appaltatore_link={is_appaltatore}, duvri_id={duvri_id}")
 
     return render_template('summary.html',
                          data=data,
