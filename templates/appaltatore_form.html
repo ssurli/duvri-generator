@@ -475,13 +475,20 @@
         <!-- ============================================ -->
         <!-- BOTTONI AZIONE -->
         <!-- ============================================ -->
-        
-        <div class="d-flex justify-content-between mb-4">
+
+        <div class="d-flex {% if is_appaltatore %}justify-content-center{% else %}justify-content-between{% endif %} mb-4">
+            {% if not is_appaltatore %}
+            <!-- Pulsante Annulla solo per Admin -->
             <a href="{{ url_for('summary') }}" class="btn btn-secondary">
                 ← Annulla
             </a>
+            {% endif %}
             <button type="submit" class="btn btn-primary btn-lg">
+                {% if is_appaltatore %}
+                💾 Salva e Continua
+                {% else %}
                 💾 Salva Dati Appaltatore
+                {% endif %}
             </button>
         </div>
         

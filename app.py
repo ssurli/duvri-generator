@@ -1917,13 +1917,14 @@ def compila_appaltatore():
     # GET: mostra form con dati esistenti
     data = duvri.get('dati_appaltatore', {})
     dati_committente = duvri.get('dati_committente', {})  # 🆕 Aggiungi dati committente
-    
+
     return render_template('appaltatore_form.html',
                          data=data,
                          dati_committente=dati_committente,  # 🆕 Passa al template
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         is_appaltatore=False)  # False perché è l'admin che compila
 
 @app.route('/appaltatore_form/<link_univoco>', methods=['GET', 'POST'])
 def appaltatore_form(link_univoco):
@@ -1962,7 +1963,8 @@ def appaltatore_form(link_univoco):
                                  dati_committente=dati_committente,  # 🆕 Nuovo parametro
                                  rischi_paragrafi=RISCHI_PARAGRAFI,
                                  rischi_hta=RISCHI_HTA,
-                                 duvri_id=duvri_id)
+                                 duvri_id=duvri_id,
+                                 is_appaltatore=True)  # Sempre True per questa route
 
         # ✅ 3. Solo se validazione OK, salva e redirect
         print("✅ Validazione OK - procedo con salvataggio")
@@ -1976,13 +1978,14 @@ def appaltatore_form(link_univoco):
     # GET: mostra form con dati esistenti
     data = duvri_trovato.get('dati_appaltatore', {})
     dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕 Passa dati committente
-    
+
     return render_template('appaltatore_form.html',
                          data=data,
                          dati_committente=dati_committente,  # 🆕 Nuovo parametro
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         is_appaltatore=True)  # Sempre True per questa route
 
 def valida_dati_appaltatore(form_data):
     """Valida i dati obbligatori del form appaltatore"""
