@@ -2310,11 +2310,15 @@ def summary():
             import traceback
             traceback.print_exc()
     
+    # Verifica se l'utente è un appaltatore (tramite link esterno)
+    is_appaltatore = session.get('from_appaltatore_link', False)
+
     return render_template('summary.html',
                          data=data,
                          confronto_costi=confronto_costi,
                          duvri_list=duvri_list,
                          current_duvri_id=duvri_id,
+                         is_appaltatore=is_appaltatore,
                          WEASYPRINT_AVAILABLE=WEASYPRINT_AVAILABLE,
                          XHTML2PDF_AVAILABLE=XHTML2PDF_AVAILABLE)
 @app.route('/gestione_extra_costi/<duvri_id>')

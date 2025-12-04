@@ -616,7 +616,7 @@
             <div class="text-center mt-5 p-4 border-top bg-light rounded">
                 <!-- PULSANTE PRINCIPALE (Admin/Appaltatore) -->
                 <div class="mb-3">
-                    {% if session.get('from_appaltatore_link') %}
+                    {% if is_appaltatore %}
                         <!-- APPALTATORE: esce con conferma finale -->
                         <a href="{{ url_for('logout') }}" class="btn btn-success btn-lg">
                             ✅ Completato - Esci dal Sistema
@@ -631,7 +631,7 @@
                 </div>
 
                 <!-- RESET (solo per Admin) -->
-                {% if not session.get('from_appaltatore_link') %}
+                {% if not is_appaltatore %}
                 <div class="mt-3">
                     <a href="{{ url_for('reset_data') }}" class="btn btn-outline-danger btn-sm"
                        onclick="return confirm('Sei sicuro di voler resettare tutti i dati? Questa azione è irreversibile.')">
