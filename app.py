@@ -1918,6 +1918,7 @@ def compila_appaltatore():
     data = duvri.get('dati_appaltatore', {})
     dati_committente = duvri.get('dati_committente', {})  # 🆕 Aggiungi dati committente
 
+    print(f"📋 FORM APPALTATORE (admin dashboard) - is_appaltatore=False")
     return render_template('appaltatore_form.html',
                          data=data,
                          dati_committente=dati_committente,  # 🆕 Passa al template
@@ -1979,6 +1980,7 @@ def appaltatore_form(link_univoco):
     data = duvri_trovato.get('dati_appaltatore', {})
     dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕 Passa dati committente
 
+    print(f"📋 FORM APPALTATORE (link esterno) - is_appaltatore=True")
     return render_template('appaltatore_form.html',
                          data=data,
                          dati_committente=dati_committente,  # 🆕 Nuovo parametro
