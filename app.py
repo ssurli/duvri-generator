@@ -1315,6 +1315,14 @@ def calcola_costi_sicurezza(data):
 
         costi_finali = {
             'costo_totale_forfettario': importo_forfettario,
+            # Azzera esplicitamente tutte le voci dettagliate
+            'costo_incontri': 0,
+            'costo_dpi': 0,
+            'costo_impiantistica': 0,
+            'costo_segnaletica': 0,
+            'costo_presidi': 0,
+            'costo_controlli': 0,
+            'costo_altre_misure': 0,
             'costi_presenti': True,
             'costi_calcolati_auto': False,
             'modalita_forfettario': True,
@@ -1794,6 +1802,7 @@ def compila_committente():
             'percentuale_costo_base': request.form.get('percentuale_costo_base', '2'),
 
             # 🆕 COSTI MANUALI
+            'modalita_costi': request.form.get('modalita_costi', 'automatico'),  # 🆕 Modalità calcolo costi
             'usa_costi_manuali': 'usa_costi_manuali' in request.form,
             'costo_incontri_manuale': request.form.get('costo_incontri_manuale', ''),
             'costo_dpi_manuale': request.form.get('costo_dpi_manuale', ''),
@@ -2295,34 +2304,61 @@ def summary():
     data['appaltatore']['allegati'] = get_allegati_list(duvri_id)
     
     # ========================================
-    # CALCOLO COSTI - RISPETTA MODALITÀ MANUALE
+    # CALCOLO COSTI - RISPETTA TUTTE LE MODALITÀ
     # ========================================
     if data.get('appaltatore'):
         committente = data.get('committente', {})
-        
-        # ✅ VERIFICA SE IL COMMITTENTE HA ATTIVATO COSTI MANUALI
+
+        # ✅ VERIFICA MODALITÀ CALCOLO COSTI
+        modalita_costi = committente.get('modalita_costi', 'automatico')
         usa_costi_manuali = committente.get('usa_costi_manuali', False)
-        
-        if usa_costi_manuali:
-            print("📝 Costi manuali attivi dal committente - nessun ricalcolo")
-            # Non ricalcola, i costi manuali sono già nei dati committente
-            # La funzione calcola_costi_sicurezza li gestirà correttamente
+
+        # Determina se serve ricalcolare
+        modalita_cambiata = False
+        if modalita_costi == 'forfettario' and not data['appaltatore'].get('modalita_forfettario'):
+            modalita_cambiata = True
+        elif modalita_costi == 'manuale' and not usa_costi_manuali:
+            modalita_cambiata = True
+        elif modalita_costi == 'automatico' and (data['appaltatore'].get('modalita_forfettario') or usa_costi_manuali):
+            modalita_cambiata = True
+
+        if modalita_cambiata or modalita_costi == 'forfettario':
+            # Ricalcola sempre quando:
+            # - La modalità è cambiata rispetto ai dati salvati
+            # - La modalità è forfettaria (per aggiornare l'importo se cambiato)
+            print(f"🔄 Ricalcolo costi per modalità: {modalita_costi}")
+            costi_calcolati = calcola_costi_sicurezza(data)
+
+            # Preserva le note esistenti (se non sono della modalità forfettaria)
+            if 'note_costi_sicurezza' in data['appaltatore'] and not costi_calcolati.get('modalita_forfettario'):
+                costi_calcolati['note_costi_sicurezza'] = data['appaltatore']['note_costi_sicurezza']
+
+            # Aggiorna e salva
+            data['appaltatore'].update(costi_calcolati)
+            save_current_duvri_data(data)
+            print(f"✅ Costi aggiornati - Modalità forfettaria: {costi_calcolati.get('modalita_forfettario', False)}")
+        elif usa_costi_manuali:
+            print("📝 Costi manuali attivi dal committente")
+            # Ricalcola per prendere i valori manuali aggiornati
+            costi_calcolati = calcola_costi_sicurezza(data)
+            data['appaltatore'].update(costi_calcolati)
+            save_current_duvri_data(data)
         else:
             # Modalità automatica: ricalcola se necessario
             costi_mancanti = not any(
                 data['appaltatore'].get(campo)
                 for campo in ['costo_incontri', 'costo_dpi', 'costo_impiantistica']
             )
-            
+
             # Ricalcola solo se mancanti o se sono costi automatici
             if costi_mancanti or data['appaltatore'].get('costi_calcolati_auto'):
                 print("🔢 Ricalcolo automatico costi...")
                 costi_calcolati = calcola_costi_sicurezza(data)
-                
+
                 # Preserva le note esistenti
                 if 'note_costi_sicurezza' in data['appaltatore']:
                     costi_calcolati['note_costi_sicurezza'] = data['appaltatore']['note_costi_sicurezza']
-                
+
                 # Aggiorna e salva
                 data['appaltatore'].update(costi_calcolati)
                 save_current_duvri_data(data)
