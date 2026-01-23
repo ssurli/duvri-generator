@@ -1296,14 +1296,42 @@ def calcola_costi_sicurezza(data):
     rischi_appaltatore = appaltatore.get('rischi', [])
     
     # ========================================
-    # ✅ VERIFICA SE CI SONO COSTI MANUALI
+    # ✅ VERIFICA MODALITÀ COSTI
     # ========================================
-    
+
+    modalita_costi = committente.get('modalita_costi', 'automatico')
+
+    # ========================================
+    # MODALITÀ 1: IMPORTO FORFETTARIO DA GARA
+    # ========================================
+
+    if modalita_costi == 'forfettario':
+        print("\n💰 MODALITÀ IMPORTO FORFETTARIO DA GARA ATTIVA")
+
+        # Prendi l'importo dalla sezione 3 del form committente
+        importo_forfettario = safe_float(committente.get('costi_sicurezza_gara', 0))
+
+        print(f"💰 IMPORTO FORFETTARIO: €{importo_forfettario:,.2f}")
+
+        costi_finali = {
+            'costo_totale_forfettario': importo_forfettario,
+            'costi_presenti': True,
+            'costi_calcolati_auto': False,
+            'modalita_forfettario': True,
+            'note_costi_sicurezza': f'Importo forfettario da documenti di gara: €{importo_forfettario:,.2f}'
+        }
+
+        return costi_finali
+
+    # ========================================
+    # MODALITÀ 2: INSERIMENTO MANUALE PER VOCE
+    # ========================================
+
     usa_costi_manuali = committente.get('usa_costi_manuali', False)
-    
-    if usa_costi_manuali:
-        print("\n🖊️ MODALITÀ COSTI MANUALI ATTIVA")
-        
+
+    if usa_costi_manuali or modalita_costi == 'manuale':
+        print("\n🖊️ MODALITÀ COSTI MANUALI PER VOCE ATTIVA")
+
         # Usa i valori manuali se presenti, altrimenti calcola
         costi_finali = {
             'costo_incontri': safe_float(committente.get('costo_incontri_manuale')) or 0,
@@ -1315,14 +1343,15 @@ def calcola_costi_sicurezza(data):
             'costo_altre_misure': safe_float(committente.get('costo_altre_misure_manuale')) or 0,
             'costi_presenti': True,
             'costi_calcolati_auto': False,
+            'modalita_forfettario': False,
             'note_costi_sicurezza': f'Costi inseriti manualmente dal committente.'
         }
-        
-        totale = sum([v for k, v in costi_finali.items() 
+
+        totale = sum([v for k, v in costi_finali.items()
                      if k.startswith('costo_') and isinstance(v, (int, float))])
-        
+
         print(f"💰 TOTALE MANUALE: €{totale:,.2f}")
-        
+
         return costi_finali
     # ========================================
     # CALCOLO AUTOMATICO
@@ -1563,6 +1592,7 @@ def calcola_costi_sicurezza(data):
         'costo_altre_misure': round(costo_altre_misure + costo_base, 2),
         'costi_presenti': True,
         'costi_calcolati_auto': True,
+        'modalita_forfettario': False,
         'note_costi_sicurezza': f'Calcolati parametricamente: importo €{importo_appalto:,.2f}, {numero_lavoratori} lavoratori, {durata_giorni} giorni, {len(tutti_rischi)} rischi. Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto).'
     }
 

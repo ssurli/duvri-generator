@@ -426,41 +426,66 @@
                 <h4>6️⃣ Definizione Costi Sicurezza da Interferenze (Opzionale)</h4>
             </div>
             <div class="card-body">
-                
+
                 <div class="alert alert-secondary">
                     <h5>ℹ️ Calcolo Costi</h5>
                     <p class="mb-2">Puoi scegliere tra:</p>
                     <ul class="mb-0">
                         <li><strong>Calcolo Automatico:</strong> Il sistema calcola i costi in base a parametri (lavoratori, durata, rischi)</li>
-                        <li><strong>Inserimento Manuale:</strong> Inserisci tu i costi per ogni voce (utile se hai già una stima)</li>
+                        <li><strong>Inserimento Manuale per Voce:</strong> Inserisci tu i costi per ogni singola voce (incontri, DPI, ecc.)</li>
+                        <li><strong>Importo Forfettario da Gara:</strong> Usa direttamente l'importo totale inserito nella sezione 3️⃣</li>
                     </ul>
                 </div>
-                
-                <!-- Checkbox Costi Manuali -->
-                <div class="form-check form-switch mb-3">
-                    <input type="checkbox" 
-                           class="form-check-input" 
-                           id="usa_costi_manuali" 
-                           name="usa_costi_manuali"
-                           {{ 'checked' if data.get('usa_costi_manuali') else '' }}>
-                    <label class="form-check-label fw-bold" for="usa_costi_manuali">
-                        🖊️ Inserisci costi manualmente (disabilita calcolo automatico)
-                    </label>
+
+                <!-- Radio Buttons per Modalità Costi -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Modalità Calcolo Costi:</label>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="modalita_costi" id="modalita_auto"
+                               value="automatico"
+                               {{ 'checked' if not data.get('modalita_costi') or data.get('modalita_costi') == 'automatico' else '' }}>
+                        <label class="form-check-label" for="modalita_auto">
+                            ⚙️ <strong>Calcolo Automatico</strong> - Costi calcolati in base a parametri
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="modalita_costi" id="modalita_manuale"
+                               value="manuale"
+                               {{ 'checked' if data.get('modalita_costi') == 'manuale' else '' }}>
+                        <label class="form-check-label" for="modalita_manuale">
+                            🖊️ <strong>Inserimento Manuale per Voce</strong> - Inserisci singole voci di costo
+                        </label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modalita_costi" id="modalita_forfettario"
+                               value="forfettario"
+                               {{ 'checked' if data.get('modalita_costi') == 'forfettario' else '' }}>
+                        <label class="form-check-label" for="modalita_forfettario">
+                            💰 <strong>Importo Forfettario da Gara</strong> - Usa importo totale dalla sezione 3️⃣
+                        </label>
+                    </div>
                 </div>
+
+                <!-- Hidden input per compatibilità retroattiva con usa_costi_manuali -->
+                <input type="hidden" name="usa_costi_manuali" id="usa_costi_manuali"
+                       value="{{ 'true' if data.get('modalita_costi') == 'manuale' else 'false' }}">
                 
                 <!-- Sezione Calcolo Automatico -->
-                <div id="calcolo_automatico_section" 
-                     style="display: {{ 'none' if data.get('usa_costi_manuali') else 'block' }};">
+                <div id="calcolo_automatico_section"
+                     style="display: {{ 'block' if not data.get('modalita_costi') or data.get('modalita_costi') == 'automatico' else 'none' }};">
                     <h5>⚙️ Parametri Calcolo Automatico</h5>
                     <div class="row">
                         <div class="col-md-12">
-                            <label class="form-label">Percentuale Costo Base (%) 
+                            <label class="form-label">Percentuale Costo Base (%)
                                 <small class="text-muted">
                                     ℹ️ Percentuale sull'importo appalto per costi base (default 2%)
                                 </small>
                             </label>
-                            <input type="number" step="0.1" name="percentuale_costo_base" 
-                                   class="form-control" 
+                            <input type="number" step="0.1" name="percentuale_costo_base"
+                                   class="form-control"
                                    value="{{ data.get('percentuale_costo_base', '2.0') }}"
                                    placeholder="2.0"
                                    min="0" max="5">
@@ -478,8 +503,8 @@
                 </div>
                 
                 <!-- Sezione Costi Manuali -->
-                <div id="costi_manuali_section" 
-                     style="display: {{ 'block' if data.get('usa_costi_manuali') else 'none' }};">
+                <div id="costi_manuali_section"
+                     style="display: {{ 'block' if data.get('modalita_costi') == 'manuale' else 'none' }};">
                     <h5>💰 Inserimento Manuale Costi</h5>
                     <div class="row">
                         <div class="col-md-6">
@@ -536,14 +561,53 @@
                         
                         <div class="col-md-4">
                             <label class="form-label">Altre misure (€)</label>
-                            <input type="number" step="0.01" name="costo_altre_misure_manuale" 
-                                   class="form-control" 
+                            <input type="number" step="0.01" name="costo_altre_misure_manuale"
+                                   class="form-control"
                                    value="{{ data.get('costo_altre_misure_manuale', '') }}"
                                    placeholder="0.00">
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Sezione Importo Forfettario -->
+                <div id="costi_forfettario_section"
+                     style="display: {{ 'block' if data.get('modalita_costi') == 'forfettario' else 'none' }};">
+                    <h5>💰 Importo Forfettario da Gara</h5>
+
+                    <div class="alert alert-info">
+                        <h6><strong>📋 Modalità Importo Forfettario</strong></h6>
+                        <p class="mb-2">
+                            In questa modalità verrà utilizzato l'<strong>importo totale</strong> inserito nella sezione
+                            <strong>3️⃣ Importi Appalto e Costi Sicurezza da Gara</strong>.
+                        </p>
+                        <p class="mb-0">
+                            <small>
+                                ✅ Nel riepilogo e nel PDF verrà mostrato solo l'importo complessivo, senza dettaglio delle singole voci.<br>
+                                ℹ️ Questo è utile quando hai già un importo definito nei documenti di gara.
+                            </small>
+                        </p>
+                    </div>
+
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <strong>Importo costi sicurezza da utilizzare:</strong>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span class="badge bg-primary fs-5">
+                                        € <span id="costi_sicurezza_display">{{ data.get('costi_sicurezza_gara', '0.00') }}</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <hr>
+                            <small class="text-muted">
+                                💡 Se l'importo è 0 o non è stato inserito, torna alla sezione 3️⃣ per compilarlo.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -624,19 +688,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Toggle costi manuali vs automatici
-    const checkboxCostiManuali = document.getElementById('usa_costi_manuali');
+    // Gestione Radio Buttons per Modalità Costi
+    const radioAuto = document.getElementById('modalita_auto');
+    const radioManuale = document.getElementById('modalita_manuale');
+    const radioForfettario = document.getElementById('modalita_forfettario');
     const calcoloAutoSection = document.getElementById('calcolo_automatico_section');
     const costiManualiSection = document.getElementById('costi_manuali_section');
+    const costiForfettarioSection = document.getElementById('costi_forfettario_section');
+    const usaCostiManualiHidden = document.getElementById('usa_costi_manuali');
 
-    if (checkboxCostiManuali) {
-        checkboxCostiManuali.addEventListener('change', function() {
-            if (this.checked) {
-                calcoloAutoSection.style.display = 'none';
-                costiManualiSection.style.display = 'block';
-            } else {
-                calcoloAutoSection.style.display = 'block';
-                costiManualiSection.style.display = 'none';
-            }
+    function toggleCostiSections() {
+        if (radioAuto && radioAuto.checked) {
+            calcoloAutoSection.style.display = 'block';
+            costiManualiSection.style.display = 'none';
+            costiForfettarioSection.style.display = 'none';
+            if (usaCostiManualiHidden) usaCostiManualiHidden.value = 'false';
+        } else if (radioManuale && radioManuale.checked) {
+            calcoloAutoSection.style.display = 'none';
+            costiManualiSection.style.display = 'block';
+            costiForfettarioSection.style.display = 'none';
+            if (usaCostiManualiHidden) usaCostiManualiHidden.value = 'true';
+        } else if (radioForfettario && radioForfettario.checked) {
+            calcoloAutoSection.style.display = 'none';
+            costiManualiSection.style.display = 'none';
+            costiForfettarioSection.style.display = 'block';
+            if (usaCostiManualiHidden) usaCostiManualiHidden.value = 'false';
+        }
+    }
+
+    if (radioAuto) radioAuto.addEventListener('change', toggleCostiSections);
+    if (radioManuale) radioManuale.addEventListener('change', toggleCostiSections);
+    if (radioForfettario) radioForfettario.addEventListener('change', toggleCostiSections);
+
+    // Aggiorna display dell'importo forfettario quando cambia il campo nella sezione 3
+    const costiSicurezzaGaraInput = document.querySelector('input[name="costi_sicurezza_gara"]');
+    const costiSicurezzaDisplay = document.getElementById('costi_sicurezza_display');
+
+    if (costiSicurezzaGaraInput && costiSicurezzaDisplay) {
+        costiSicurezzaGaraInput.addEventListener('input', function() {
+            const value = parseFloat(this.value) || 0;
+            costiSicurezzaDisplay.textContent = value.toFixed(2);
         });
     }
 

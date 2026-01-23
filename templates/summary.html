@@ -212,60 +212,89 @@
                 <h5 class="mt-4">💰 Dettaglio Costi per la Sicurezza</h5>
 
                 {% if data.appaltatore.costi_presenti %}
-                    
-                    <!-- Visualizzazione Costi (solo lettura) -->
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Voce</th>
-                                <th class="text-end" style="width: 200px;">Importo (€)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Incontri e coordinamento</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_incontri or 0) }}</td>
-                            </tr>
-                            <tr>
-                                <td>DPI specifici</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_dpi or 0) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Impiantistica ausiliaria</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_impiantistica or 0) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Segnaletica</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_segnaletica or 0) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Presidi antincendio</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_presidi or 0) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Controlli periodici</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_controlli or 0) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Altre misure</td>
-                                <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_altre_misure or 0) }}</td>
-                            </tr>
-                            <tr class="table-warning fw-bold">
-                                <td>TOTALE</td>
-                                <td class="text-end">
-                                    € {{ "{:,.2f}".format(
-                                        (data.appaltatore.costo_incontri or 0) +
-                                        (data.appaltatore.costo_dpi or 0) +
-                                        (data.appaltatore.costo_impiantistica or 0) +
-                                        (data.appaltatore.costo_segnaletica or 0) +
-                                        (data.appaltatore.costo_presidi or 0) +
-                                        (data.appaltatore.costo_controlli or 0) +
-                                        (data.appaltatore.costo_altre_misure or 0)
-                                    ) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                    {% if data.appaltatore.modalita_forfettario %}
+                        <!-- MODALITÀ FORFETTARIA: mostra solo totale -->
+                        <div class="alert alert-info">
+                            <h6><strong>💰 Importo Forfettario da Gara</strong></h6>
+                            <p class="mb-0">
+                                L'importo dei costi di sicurezza è stato definito forfettariamente
+                                nei documenti di gara e non prevede dettaglio per singole voci.
+                            </p>
+                        </div>
+
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Descrizione</th>
+                                    <th class="text-end" style="width: 200px;">Importo (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-warning fw-bold">
+                                    <td>Costi Sicurezza da Interferenze (Importo Forfettario)</td>
+                                    <td class="text-end">
+                                        € {{ "{:,.2f}".format(data.appaltatore.costo_totale_forfettario or 0) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    {% else %}
+                        <!-- MODALITÀ DETTAGLIATA: mostra tutte le voci -->
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Voce</th>
+                                    <th class="text-end" style="width: 200px;">Importo (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Incontri e coordinamento</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_incontri or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>DPI specifici</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_dpi or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Impiantistica ausiliaria</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_impiantistica or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Segnaletica</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_segnaletica or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Presidi antincendio</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_presidi or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Controlli periodici</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_controlli or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Altre misure</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(data.appaltatore.costo_altre_misure or 0) }}</td>
+                                </tr>
+                                <tr class="table-warning fw-bold">
+                                    <td>TOTALE</td>
+                                    <td class="text-end">
+                                        € {{ "{:,.2f}".format(
+                                            (data.appaltatore.costo_incontri or 0) +
+                                            (data.appaltatore.costo_dpi or 0) +
+                                            (data.appaltatore.costo_impiantistica or 0) +
+                                            (data.appaltatore.costo_segnaletica or 0) +
+                                            (data.appaltatore.costo_presidi or 0) +
+                                            (data.appaltatore.costo_controlli or 0) +
+                                            (data.appaltatore.costo_altre_misure or 0)
+                                        ) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    {% endif %}
                     
                     <!-- Info sul metodo di calcolo 
                     {% if data.appaltatore.note_costi_sicurezza %}
