@@ -1880,6 +1880,34 @@ def compila_committente():
         
         save_current_duvri_data(current_data)
 
+        # 🆕 RICALCOLA COSTI APPALTATORE se esiste e se modalità è cambiata
+        if current_data.get('appaltatore') and current_data['appaltatore'].get('max_addetti'):
+            modalita_costi = dati_committente.get('modalita_costi', 'automatico')
+            print(f"\n🔄 Committente salvato - Ricalcolo costi per modalità: {modalita_costi}")
+
+            try:
+                # Ricalcola i costi con la nuova modalità
+                costi_aggiornati = calcola_costi_sicurezza(current_data)
+
+                # Aggiorna i dati appaltatore
+                current_data['appaltatore'].update(costi_aggiornati)
+
+                # Salva i dati aggiornati
+                save_current_duvri_data(current_data)
+
+                print(f"✅ Costi appaltatore aggiornati")
+                print(f"   Modalità forfettaria: {costi_aggiornati.get('modalita_forfettario', False)}")
+                if costi_aggiornati.get('modalita_forfettario'):
+                    print(f"   Importo forfettario: €{costi_aggiornati.get('costo_totale_forfettario', 0):,.2f}")
+                else:
+                    totale = sum([v for k, v in costi_aggiornati.items()
+                                 if k.startswith('costo_') and isinstance(v, (int, float))])
+                    print(f"   Totale costi: €{totale:,.2f}")
+            except Exception as e:
+                print(f"⚠️ Errore ricalcolo costi: {e}")
+                import traceback
+                traceback.print_exc()
+
         # Aggiorna stato
         if duvri['dati_appaltatore']:
             duvri['stato'] = 'completato'
