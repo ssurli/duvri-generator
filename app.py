@@ -1952,45 +1952,51 @@ def compila_appaltatore():
     if request.method == 'POST':
         # Processa e salva dati usando funzione unificata
         dati_appaltatore = processa_form_(request)
-        salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
-        print("\n🔍 DEBUG - Dati dopo salvataggio:")
-        data_check = get_current_duvri_data()
-        print(f"Costi appaltatore: {data_check.get('appaltatore', {}).get('costo_incontri', 'NON PRESENTE')}")
-        flash('✅ Dati appaltatore salvati con successo!', 'success')
-        return redirect(url_for('summary'))
-    if request.method == 'POST':
-        dati_appaltatore = processa_form_(request)
-        
+
         print("\n" + "="*80)
         print("🔍 DEBUG SALVATAGGIO APPALTATORE")
         print("="*80)
         print(f"Max addetti: {dati_appaltatore.get('max_addetti')}")
         print(f"Durata giorni: {dati_appaltatore.get('durata_giorni')}")
-        
+        print(f"Ragione sociale: {dati_appaltatore.get('ragione_sociale')}")
+
         salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
-        
+
         # 🆕 VERIFICA DOPO IL SALVATAGGIO
         print("\n📊 VERIFICA DATI SALVATI:")
         data_check = get_current_duvri_data()
         app_check = data_check.get('appaltatore', {})
         print(f"   Costi presenti: {app_check.get('costi_presenti', False)}")
         print(f"   Costo incontri: {app_check.get('costo_incontri', 'NON PRESENTE')}")
-        print(f"   Costo DPI: {app_check.get('costo_dpi', 'NON PRESENTE')}")
-        print(f"   Totale costi: {sum([v for k,v in app_check.items() if k.startswith('costo_') and isinstance(v, (int, float))])}")
+        print(f"   Ragione sociale salvata: {app_check.get('ragione_sociale', 'NON PRESENTE')}")
+        if app_check:
+            totale = sum([v for k,v in app_check.items() if k.startswith('costo_') and isinstance(v, (int, float))])
+            print(f"   Totale costi: €{totale:,.2f}")
         print("="*80 + "\n")
-        
+
         flash('✅ Dati appaltatore salvati con successo!', 'success')
         return redirect(url_for('summary'))
-    # GET: mostra form con dati esistenti
-    data = duvri.get('dati_appaltatore', {})
-    dati_committente = duvri.get('dati_committente', {})  # 🆕 Aggiungi dati committente
+
+    # GET: carica dati dal database (non dalla memoria!)
+    print(f"\n📖 Caricamento form appaltatore - DUVRI {duvri_id}")
+    current_data = get_current_duvri_data()
+    data = current_data.get('appaltatore', {})
+    dati_committente = current_data.get('committente', {})
+
+    print(f"   Dati appaltatore trovati: {bool(data)}")
+    if data:
+        print(f"   Ragione sociale: {data.get('ragione_sociale', 'NON PRESENTE')}")
+        print(f"   Max addetti: {data.get('max_addetti', 'NON PRESENTE')}")
+    else:
+        print("   ⚠️ Nessun dato appaltatore trovato")
     
     return render_template('appaltatore_form.html',
                          data=data,
-                         dati_committente=dati_committente,  # 🆕 Passa al template
+                         dati_committente=dati_committente,
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         current_duvri_id=duvri_id)
 
 @app.route('/appaltatore_form/<link_univoco>', methods=['GET', 'POST'])
 def appaltatore_form(link_univoco):
