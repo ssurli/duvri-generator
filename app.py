@@ -2001,12 +2001,17 @@ def compila_appaltatore():
 @app.route('/appaltatore_form/<link_univoco>', methods=['GET', 'POST'])
 def appaltatore_form(link_univoco):
     """Route per appaltatore esterno tramite link"""
+    print(f"\n🔗 ACCESSO APPALTATORE ESTERNO - Link: {link_univoco[:8]}...")
+
     # Trova DUVRI usando funzione unificata
     duvri_trovato, duvri_id = trova_duvri_per_link(link_univoco)
 
     if not duvri_trovato:
+        print(f"❌ Link non valido: {link_univoco}")
         return render_template('errore_appaltatore.html',
                              messaggio="Link DUVRI non valido. Contatta il committente.")
+
+    print(f"✅ DUVRI trovato: {duvri_id}")
 
     # 🔥 Sincronizza i dati dal database
     sync_db_to_memory(duvri_id)
@@ -2016,39 +2021,65 @@ def appaltatore_form(link_univoco):
     session['from_appaltatore_link'] = True
 
     if request.method == 'POST':
+        print("\n" + "="*80)
+        print("📝 SALVATAGGIO APPALTATORE ESTERNO")
+        print("="*80)
+
         # ✅ 1. VALIDA i dati prima di salvare
         errori = valida_dati_appaltatore(request.form)
 
         if errori:
             # ✅ 2. In caso di errori, RIMANI sul form
-            for errore in errori:
+            print(f"❌ Errori di validazione: {len(errori)}")
+            for idx, errore in enumerate(errori, 1):
+                print(f"   {idx}. {errore}")
                 flash(errore, 'danger')
-            dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕
-            
+
+            # Carica dati committente dal database
+            current_data = get_current_duvri_data()
+            dati_committente = current_data.get('committente', {})
+
             return render_template('appaltatore_form.html',
                                  data=request.form,
-                                 dati_committente=dati_committente,  # 🆕 Nuovo parametro
+                                 dati_committente=dati_committente,
                                  rischi_paragrafi=RISCHI_PARAGRAFI,
                                  rischi_hta=RISCHI_HTA,
-                                 duvri_id=duvri_id)
+                                 duvri_id=duvri_id,
+                                 current_duvri_id=duvri_id)
 
         # ✅ 3. Solo se validazione OK, salva e redirect
+        print("✅ Validazione OK - Procedo con salvataggio")
         dati_appaltatore = processa_form_(request)
+
+        print(f"   Ragione sociale: {dati_appaltatore.get('ragione_sociale')}")
+        print(f"   Max addetti: {dati_appaltatore.get('max_addetti')}")
+        print(f"   Durata giorni: {dati_appaltatore.get('durata_giorni')}")
+
         salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
+
+        print("✅ Dati salvati - Redirect a summary")
+        print("="*80 + "\n")
 
         flash('✅ Dati salvati correttamente!', 'success')
         return redirect(url_for('summary'))
 
-    # GET: mostra form con dati esistenti
-    data = duvri_trovato.get('dati_appaltatore', {})
-    dati_committente = duvri_trovato.get('dati_committente', {})  # 🆕 Passa dati committente
-    
+    # GET: carica dati dal database (non dalla memoria!)
+    print(f"📖 Caricamento form per appaltatore esterno - DUVRI {duvri_id}")
+    current_data = get_current_duvri_data()
+    data = current_data.get('appaltatore', {})
+    dati_committente = current_data.get('committente', {})
+
+    print(f"   Dati appaltatore esistenti: {bool(data)}")
+    if data:
+        print(f"   Ragione sociale: {data.get('ragione_sociale', 'NON PRESENTE')}")
+
     return render_template('appaltatore_form.html',
                          data=data,
-                         dati_committente=dati_committente,  # 🆕 Nuovo parametro
+                         dati_committente=dati_committente,
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         current_duvri_id=duvri_id)
 
 def valida_dati_appaltatore(form_data):
     """Valida i dati obbligatori del form appaltatore"""
