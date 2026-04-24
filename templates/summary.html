@@ -4,7 +4,14 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Riepilogo DUVRI</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Riepilogo DUVRI</h1>
+        {% if not session.get('from_appaltatore_link') %}
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            🏠 Torna alla Dashboard
+        </a>
+        {% endif %}
+    </div>
 
     <!-- Alert per DUVRI non completato -->
     {% if not data.committente or not data.appaltatore %}
