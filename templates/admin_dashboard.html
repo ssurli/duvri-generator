@@ -84,6 +84,7 @@
                         <!-- Link per Appaltatore -->
                         <div class="mb-3">
                             <label class="form-label"><strong>Link Appaltatore:</strong></label>
+                            {% if duvri.link_appaltatore %}
                             <div class="input-group">
                                 <input type="text" class="form-control"
                                        value="{{ url_for('appaltatore_duvri', link_univoco=duvri.link_appaltatore, _external=True) }}"
@@ -93,6 +94,9 @@
                                     📋 Copia
                                 </button>
                             </div>
+                            {% else %}
+                            <div class="text-muted small">Link non disponibile</div>
+                            {% endif %}
                         </div>
 
                         <!-- Pulsanti Azione -->
@@ -106,11 +110,17 @@
                                 👁️ Riepilogo
                             </a>
                             <!-- 🔥 NUOVO PULSANTE APPALTATORE -->
+                            {% if duvri.link_appaltatore %}
                             <a href="{{ url_for('appaltatore_form', link_univoco=duvri.link_appaltatore) }}"
                                class="btn btn-warning btn-sm"
                                target="_blank">
                                 👤 Appaltatore
                             </a>
+                            {% else %}
+                            <button class="btn btn-warning btn-sm" disabled title="Link appaltatore non disponibile">
+                                👤 Appaltatore
+                            </button>
+                            {% endif %}
                         </div>
 
                         <!-- Pulsanti Elimina e Duplica -->
@@ -201,6 +211,7 @@
                                             <!-- Link per Appaltatore -->
                                             <div class="mb-2">
                                                 <label class="form-label"><strong>Link Appaltatore:</strong></label>
+                                                {% if duvri.link_appaltatore %}
                                                 <div class="input-group input-group-sm">
                                                     <input type="text" class="form-control form-control-sm"
                                                            value="{{ url_for('appaltatore_duvri', link_univoco=duvri.link_appaltatore, _external=True) }}"
@@ -210,6 +221,9 @@
                                                         📋
                                                     </button>
                                                 </div>
+                                                {% else %}
+                                                <div class="text-muted small">Link non disponibile</div>
+                                                {% endif %}
                                             </div>
 
                                             <!-- Pulsanti Azione compatti -->
@@ -223,11 +237,17 @@
                                                     👁️
                                                 </a>
                                                 <!-- 🔥 NUOVO PULSANTE APPALTATORE -->
+                                                {% if duvri.link_appaltatore %}
                                                 <a href="{{ url_for('appaltatore_form', link_univoco=duvri.link_appaltatore) }}"
                                                    class="btn btn-warning btn-sm"
                                                    target="_blank">
                                                     👤
                                                 </a>
+                                                {% else %}
+                                                <button class="btn btn-warning btn-sm" disabled title="Link appaltatore non disponibile">
+                                                    👤
+                                                </button>
+                                                {% endif %}
                                                 <button type="button" class="btn btn-outline-danger btn-sm"
                                                         data-bs-toggle="modal" data-bs-target="#deleteModalOld-{{ duvri.id }}">
                                                     🗑️

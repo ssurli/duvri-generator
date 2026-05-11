@@ -1689,6 +1689,29 @@ def admin_dashboard():
     # 🔥 FORZA SINCRONIZZAZIONE
     sync_all_duvri_from_db()
 
+    # 🔧 FIX: garantisce che ogni DUVRI abbia un link_appaltatore valido
+    # (evita BuildError in url_for quando il campo è None nel DB / in memoria)
+    duvri_da_aggiornare = []
+    for duvri_id, duvri in duvri_list.items():
+        if not duvri.get('link_appaltatore'):
+            nuovo_link = str(uuid.uuid4())
+            duvri['link_appaltatore'] = nuovo_link
+            duvri_da_aggiornare.append((duvri_id, nuovo_link))
+
+    if duvri_da_aggiornare:
+        try:
+            conn = get_db_connection()
+            for duvri_id, nuovo_link in duvri_da_aggiornare:
+                conn.execute(
+                    'UPDATE duvri SET link_appaltatore = ? WHERE id = ?',
+                    (nuovo_link, duvri_id)
+                )
+            conn.commit()
+            conn.close()
+            print(f"🔧 Generati {len(duvri_da_aggiornare)} link_appaltatore mancanti")
+        except Exception as e:
+            print(f"❌ Errore aggiornamento link_appaltatore: {e}")
+
     return render_template('admin_dashboard.html',
                          duvri_list=duvri_list,
                          current_duvri_id=session.get('current_duvri_id'))
