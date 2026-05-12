@@ -468,9 +468,28 @@ def sync_all_duvri_from_db():
     try:
         conn = get_db_connection()
         duvri_from_db = conn.execute('SELECT * FROM duvri').fetchall()
-        conn.close()
 
         print(f"📊 Trovati {len(duvri_from_db)} DUVRI nel database")
+
+        # 🔧 Genera e PERSISTE link_appaltatore mancanti (NULL nel DB).
+        # Senza persistenza, worker diversi su PythonAnywhere genererebbero
+        # UUID effimeri diversi → il link mostrato all'admin non viene
+        # ritrovato quando l'appaltatore lo apre su un altro worker.
+        link_aggiornati = 0
+        for duvri_db in duvri_from_db:
+            if not duvri_db['link_appaltatore']:
+                nuovo_link = str(uuid.uuid4())
+                conn.execute(
+                    'UPDATE duvri SET link_appaltatore = ? WHERE id = ?',
+                    (nuovo_link, duvri_db['id'])
+                )
+                link_aggiornati += 1
+        if link_aggiornati:
+            conn.commit()
+            print(f"🔧 Persistiti {link_aggiornati} link_appaltatore mancanti")
+            duvri_from_db = conn.execute('SELECT * FROM duvri').fetchall()
+
+        conn.close()
 
         for duvri_db in duvri_from_db:
             duvri_id = duvri_db['id']
@@ -478,7 +497,7 @@ def sync_all_duvri_from_db():
                 duvri_list[duvri_id] = {
                     'id': duvri_id,
                     'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Senza Nome',
-                    'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # ✅ CARICA DA DB
+                    'link_appaltatore': duvri_db['link_appaltatore'],
                     'stato': duvri_db['stato'] or 'bozza',
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -486,6 +505,9 @@ def sync_all_duvri_from_db():
                     'signatures': json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
                 }
                 print(f"✅ Sincronizzato DUVRI {duvri_id} da DB a memoria")
+            elif not duvri_list[duvri_id].get('link_appaltatore') and duvri_db['link_appaltatore']:
+                # Allinea memoria con DB se il link è stato appena persistito
+                duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
 
         print(f"📊 Memoria: {len(duvri_list)} DUVRI")
 
