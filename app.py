@@ -86,8 +86,6 @@ def salva_duvri_estar(file, duvri_id):
 # =============================================
 # PERCORSI ASSOLUTI (PythonAnywhere compatibili)
 # =============================================
-# DATA_FILE = os.path.join(BASE_DIR, "data", "duvri_data.json")# per far sì che vada solo su duvri.db
-# TOKENS_FILE = os.path.join(BASE_DIR, "data", "access_tokens.json")#
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads", "ditte")
 ALLEGATI_FOLDER = os.path.join(BASE_DIR, "uploads", "allegati")
 # Database "in memoria" per i DUVRI
@@ -372,45 +370,6 @@ def save_current_duvri_data(data):
     try:
         conn = get_db_connection()
         
-        # Salva anche link_appaltatore se presente in memoria
-        link_appaltatore = None
-        if duvri_id in duvri_list:
-            link_appaltatore = duvri_list[duvri_id].get('link_appaltatore')
-        
-        conn.execute(
-            '''UPDATE duvri SET
-               committente_data = ?, appaltatore_data = ?, signatures = ?, 
-               link_appaltatore = ?, updated_at = ?
-               WHERE id = ?''',
-            (
-                json.dumps(data.get('committente', {})),
-                json.dumps(data.get('appaltatore', {})),
-                json.dumps(data.get('signatures', {})),
-                link_appaltatore,
-                datetime.now(),
-                duvri_id
-            )
-        )
-        conn.commit()
-        conn.close()
-
-        sync_db_to_memory(duvri_id)
-        return True
-
-    except Exception as e:
-        print(f"❌ ERRORE save_current_duvri_data: {e}")
-        return False
-
-def save_current_duvri_data(data):
-    """Salva i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
-
-    if not duvri_id:
-        return False
-
-    try:
-        conn = get_db_connection()
-        
         # 🆕 Salva anche link_appaltatore se presente in memoria
         link_appaltatore = None
         if duvri_id in duvri_list:
@@ -613,7 +572,7 @@ def prepara_dati_per_pdf(duvri_id, data):
     # Solo se DUVRI completato con appaltatore
     if data.get('appaltatore') and data.get('appaltatore').get('max_addetti'):
         try:
-            confronto_costi = calcola_e_confronta_costi(duvri_id)
+            confronto_costi = calcola_e_confronta_costi(duvri_id, data)
             print(f"✅ [PDF Helper] Confronto costi calcolato: {confronto_costi.get('stato') if confronto_costi else 'None'}")
             
             if confronto_costi and confronto_costi.get('richiede_azione'):
@@ -852,12 +811,14 @@ def get_allegati_list(duvri_id):
 # =============================================
 # FUNZIONE COSTI
 # =============================================
-def calcola_e_confronta_costi(duvri_id):
+def calcola_e_confronta_costi(duvri_id, data=None):
     """
-    VERSIONE CORRETTA con gestione completa dei 2 scenari normativi
+    VERSIONE CORRETTA con gestione completa dei 2 scenari normativi.
+    Se `data` è fornito, evita una rilettura dal database.
     """
-    
-    data = get_current_duvri_data()
+
+    if data is None:
+        data = get_current_duvri_data()
     committente = data.get('committente', {})
     appaltatore = data.get('appaltatore', {})
     
@@ -939,7 +900,7 @@ def calcola_e_confronta_costi(duvri_id):
                 
                 soglia_euro = ConfigScenarioNormativo.SOGLIA_COMPENSAZIONE_EURO
                 soglia_perc = ConfigScenarioNormativo.SOGLIA_COMPENSAZIONE_PERCENTUALE
-            except:
+            except (ImportError, AttributeError):
                 # Fallback se config non disponibile
                 soglia_euro = 1000.0
                 soglia_perc = 3.0
@@ -1117,155 +1078,6 @@ def calcola_e_confronta_costi(duvri_id):
         }
 
 
-# def calcola_e_confronta_costi(duvri_id):
-   # """
-   # Calcola costi operativi e confronta con quelli di gara.
-   # Restituisce dizionario con analisi completa.
-   # """
-   
-   # data = get_current_duvri_data()
-   # committente = data.get('committente', {})
-    # appaltatore = data.get('appaltatore', {})
-    
-   # Informazioni gara
-    # tipo_duvri = committente.get('tipo_duvri', 'operativo')
-  # costi_inclusi = committente.get('costi_inclusi_gara', False)
-   # costi_gara = safe_float(committente.get('costi_sicurezza_gara'))
-   # importo_gara = safe_float(committente.get('importo_gara_base'))
-    
-    # Converti stringhe vuote a 0
-   # costi_gara_str = committente.get('costi_sicurezza_gara', 0) or 0
-   # importo_gara_str = committente.get('importo_gara_base', 0) or 0
-
-    # try:
-        # costi_gara = float(costi_gara_str)
-    # except (ValueError, TypeError):
-        # costi_gara = 0
-
-    # try:
-        # importo_gara = float(importo_gara_str)
-    # except (ValueError, TypeError):
-        # importo_gara = 0
-    
-    # print(f"\n💰 CONFRONTO COSTI - DUVRI {duvri_id}")
-    # print(f"   Tipo DUVRI: {tipo_duvri}")
-    # print(f"   Costi inclusi in gara: {costi_inclusi}")
-    # print(f"   Costi da gara: €{costi_gara:,.2f}")
-    
-    # Calcola costi operativi
-    # try:
-        # costi_operativi_dict = calcola_costi_sicurezza(data)
-        # totale_operativo = sum([v for k, v in costi_operativi_dict.items() 
-                               # if k.startswith('costo_') and isinstance(v, (int, float))])
-    # except Exception as e:
-        # print(f"⚠️ Errore calcolo costi: {e}")
-        # totale_operativo = 0
-        # costi_operativi_dict = {}
-    
-    # print(f"   Costi operativi: €{totale_operativo:,.2f}")
-    
-    # LOGICA DECISIONALE
-    
-    # if tipo_duvri == 'ricognitivo':
-        # DUVRI per documenti gara - primo calcolo
-        # return {
-            # 'tipo': 'RICOGNITIVO',
-            # 'stato': 'PRIMO_CALCOLO',
-            # 'totale_operativo': totale_operativo,
-            # 'costi_operativi_dict': costi_operativi_dict,
-            # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-            # 'messaggio': f'Costi stimati per documenti gara: €{totale_operativo:,.2f}',
-            # 'alert_type': 'info',
-            # 'richiede_azione': False
-        # }
-    
-    # elif not costi_inclusi or costi_gara == 0:
-    # DUVRI operativo senza costi di gara previsti
-    # ⚠️ TUTTI I COSTI SONO EXTRA-COSTI!
-    
-        # if totale_operativo > 0:
-            # Ci sono costi operativi ma nessun costo previsto in gara
-            # → Integrazione contrattuale necessaria
-            # return {
-                # 'tipo': 'OPERATIVO_SENZA_BASE',
-                # 'stato': 'EXTRA_COSTI_TOTALI',
-                # 'costi_gara': 0,
-                # 'totale_operativo': totale_operativo,
-                # 'costi_operativi_dict': costi_operativi_dict,
-                # 'delta': totale_operativo,  # Tutto è extra
-                # 'percentuale_delta': 0,  # Non ha senso calcolare %
-                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                # 'messaggio': f'⚠️ ATTENZIONE: Costi sicurezza non previsti in gara. Tutti i costi operativi (€{totale_operativo:,.2f}) richiedono integrazione contrattuale.',
-                # 'alert_type': 'warning',
-                # 'richiede_azione': True,
-                # 'azione_richiesta': 'integrazione_contrattuale'
-            # }
-        # else:
-            # Nessun costo operativo e nessun costo in gara
-            # return {
-                # 'tipo': 'OPERATIVO_SENZA_BASE',
-                # 'stato': 'NESSUN_COSTO',
-                # 'totale_operativo': 0,
-                # 'costi_operativi_dict': costi_operativi_dict,
-                # 'messaggio': 'Nessun costo di sicurezza da interferenze rilevato',
-                # 'alert_type': 'success',
-                # 'richiede_azione': False
-            # }
-    # else:
-        # DUVRI operativo CON costi di gara - CONFRONTO
-        # delta = totale_operativo - costi_gara
-        # percentuale_delta = (delta / costi_gara * 100) if costi_gara > 0 else 0
-        
-        # print(f"   Delta: €{delta:,.2f} ({percentuale_delta:+.1f}%)")
-        
-        # if delta > 0:
-            # EXTRA-COSTI rilevati
-            # return {
-                # 'tipo': 'OPERATIVO_CON_BASE',
-                # 'stato': 'EXTRA_COSTI',
-                # 'costi_gara': costi_gara,
-                # 'totale_operativo': totale_operativo,
-                # 'costi_operativi_dict': costi_operativi_dict,
-                # 'delta': delta,
-                # 'percentuale_delta': percentuale_delta,
-                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                # 'messaggio': f'⚠️ ATTENZIONE: Rilevati extra-costi per €{delta:,.2f} (+{percentuale_delta:.1f}%)',
-                # 'alert_type': 'warning',
-                # 'richiede_azione': True,
-                # 'azione_richiesta': 'integrazione_contrattuale'
-            # }
-        
-        # elif delta < 0:
-            # RISPARMIO (raro ma possibile)
-            # return {
-                # 'tipo': 'OPERATIVO_CON_BASE',
-                # 'stato': 'RISPARMIO',
-                # 'costi_gara': costi_gara,
-                # 'totale_operativo': totale_operativo,
-                # 'costi_operativi_dict': costi_operativi_dict,
-                # 'delta': abs(delta),
-                # 'percentuale_delta': abs(percentuale_delta),
-                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                # 'messaggio': f'✅ Risparmio: €{abs(delta):,.2f} (-{abs(percentuale_delta):.1f}%) rispetto ai costi di gara',
-                # 'alert_type': 'success',
-                # 'richiede_azione': False
-            # }
-        
-        # else:
-            # PERFETTA CORRISPONDENZA (rarissimo)
-            # return {
-                # 'tipo': 'OPERATIVO_CON_BASE',
-                # 'stato': 'CONFERMATO',
-                # 'costi_gara': costi_gara,
-                # 'totale_operativo': totale_operativo,
-                # 'costi_operativi_dict': costi_operativi_dict,
-                # 'delta': 0,
-                # 'percentuale_delta': 0,
-                # 'percentuale_gara': (totale_operativo / importo_gara * 100) if importo_gara > 0 else 0,
-                # 'messaggio': '✅ Costi operativi corrispondono esattamente ai costi di gara',
-                # 'alert_type': 'success',
-                # 'richiede_azione': False
-            # }
 
 def calcola_costi_sicurezza(data):
     """
@@ -1603,15 +1415,6 @@ def calcola_costi_sicurezza(data):
         'modalita_forfettario': False,
         'note_costi_sicurezza': f'Calcolati parametricamente: importo €{importo_appalto:,.2f}, {numero_lavoratori} lavoratori, {durata_giorni} giorni, {len(tutti_rischi)} rischi. Totale: €{totale_generale:,.2f} ({percentuale_su_appalto:.1f}% appalto).'
     }
-
-# =============================================
-# CONFIGURAZIONE UPLOAD FILE
-# =============================================
-ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
-
-def allowed_file(filename):
-    """Verifica se il file ha un'estensione permessa"""
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_logo_path():
     """Restituisce il percorso del logo"""
@@ -2330,39 +2133,11 @@ def summary():
     if not duvri_id:
         flash('Prima crea o seleziona un DUVRI', 'warning')
         return redirect(url_for('admin_dashboard'))
+    # Carica dati dal database (una sola lettura)
     data = get_current_duvri_data()
-    
-    print("\n" + "="*80)
-    print("🔍 DEBUG SUMMARY")
-    print("="*80)
-    print(f"Duvri ID: {duvri_id}")
-    print(f"Committente presente: {bool(data.get('committente'))}")
-    print(f"Appaltatore presente: {bool(data.get('appaltatore'))}")
-    
-    if data.get('committente'):
-        comm = data['committente']
-        print(f"\n📋 COMMITTENTE:")
-        print(f"   Importo gara base: {comm.get('importo_gara_base')}")
-        print(f"   Usa costi manuali: {comm.get('usa_costi_manuali')}")
-    
-    if data.get('appaltatore'):
-        app = data['appaltatore']
-        print(f"\n👷 APPALTATORE:")
-        print(f"   Max addetti: {app.get('max_addetti')}")
-        print(f"   Durata giorni: {app.get('durata_giorni')}")
-        print(f"   Costi presenti: {app.get('costi_presenti')}")
-        print(f"   Costo incontri: {app.get('costo_incontri')}")
-        
-        if app.get('costi_presenti'):
-            totale = sum([v for k,v in app.items() if k.startswith('costo_') and isinstance(v, (int, float))])
-            print(f"   TOTALE COSTI: €{totale:,.2f}")
-        else:
-            print(f"   ❌ COSTI NON PRESENTI")
-    
-    print("="*80 + "\n")
-    # Carica dati dal database
-    data = get_current_duvri_data()
-    
+
+    print(f"🔍 SUMMARY - Duvri {duvri_id} | committente: {bool(data.get('committente'))} | appaltatore: {bool(data.get('appaltatore'))}")
+
     # Aggiungi lista allegati ai dati
     if 'appaltatore' not in data:
         data['appaltatore'] = {}
@@ -2434,7 +2209,7 @@ def summary():
     confronto_costi = None
     if data.get('appaltatore') and data['appaltatore'].get('max_addetti'):
         try:
-            confronto_costi = calcola_e_confronta_costi(duvri_id)
+            confronto_costi = calcola_e_confronta_costi(duvri_id, data)
             print(f"✅ Confronto costi: {confronto_costi['stato']}")
         except Exception as e:
             print(f"⚠️ Errore confronto costi: {e}")
@@ -2621,7 +2396,7 @@ def registra_determina(duvri_id):
     # Converti data
     try:
         data_determina = datetime.strptime(data_str, '%Y-%m-%d')
-    except:
+    except ValueError:
         flash('Formato data non valido', 'danger')
         return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
     
@@ -2974,11 +2749,12 @@ def generate_pdf():
             
             html_content = render_template("pdf_template.html", **dati_pdf)
             print(f"✅ HTML generato: {len(html_content)} caratteri")
-            # Salva HTML per debug
-            html_debug_path = os.path.join(output_folder, f"DEBUG_{filename_base}.html")
-            with open(html_debug_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            print(f"💾 HTML salvato per debug in: {html_debug_path}")
+            # Salva HTML per debug solo in modalità debug
+            if current_app.debug:
+                html_debug_path = os.path.join(output_folder, f"DEBUG_{filename_base}.html")
+                with open(html_debug_path, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                print(f"💾 HTML salvato per debug in: {html_debug_path}")
         except Exception as e:
             print(f"❌ ERRORE rendering HTML: {str(e)}")
             raise
