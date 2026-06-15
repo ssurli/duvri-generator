@@ -369,16 +369,15 @@ def save_current_duvri_data(data):
 
     try:
         conn = get_db_connection()
-        
-        # 🆕 Salva anche link_appaltatore se presente in memoria
-        link_appaltatore = None
-        if duvri_id in duvri_list:
-            link_appaltatore = duvri_list[duvri_id].get('link_appaltatore')
-        
+
+        # Aggiorna link solo se abbiamo un valore esplicito in memoria;
+        # COALESCE evita di sovrascrivere un link valido in DB con NULL.
+        link_appaltatore = duvri_list.get(duvri_id, {}).get('link_appaltatore')
+
         conn.execute(
             '''UPDATE duvri SET
-               committente_data = ?, appaltatore_data = ?, signatures = ?, 
-               link_appaltatore = ?, updated_at = ?
+               committente_data = ?, appaltatore_data = ?, signatures = ?,
+               link_appaltatore = COALESCE(?, link_appaltatore), updated_at = ?
                WHERE id = ?''',
             (
                 json.dumps(data.get('committente', {})),
@@ -1550,8 +1549,8 @@ def nuovo_duvri():
     try:
         conn = get_db_connection()
         conn.execute(
-            'INSERT INTO duvri (id, nome_progetto, created_at, updated_at) VALUES (?, ?, ?, ?)',
-            (duvri_id, nome_progetto, datetime.now(), datetime.now())
+            'INSERT INTO duvri (id, nome_progetto, link_appaltatore, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+            (duvri_id, nome_progetto, link_appaltatore, datetime.now(), datetime.now())
         )
         conn.commit()
         conn.close()
