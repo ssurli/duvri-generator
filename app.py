@@ -179,11 +179,24 @@ RISCHI_COMMITTENTE = [
 # ========================================
 
 def safe_float(value, default=0.0):
-    """Converte un valore in float in modo sicuro"""
+    """Converte un valore in float in modo sicuro.
+
+    Gestisce anche i formati numerici europei/italiani che arrivano dai form
+    (soprattutto da tastiere mobili o locale IT): virgola decimale, simbolo €,
+    separatori delle migliaia e spazi. Es. "1.000,50", "€ 5000", "5000,5".
+    Prima un valore con la virgola faceva crashare il salvataggio (float() diretto).
+    """
     if value is None or value == '':
         return default
-    try:
+    if isinstance(value, (int, float)):
         return float(value)
+    try:
+        # Rimuove simbolo valuta e spazi (inclusi gli spazi unicode non-breaking)
+        s = str(value).strip().replace('€', '').replace(' ', '').replace('\xa0', '')
+        if ',' in s:
+            # Formato europeo: il punto è separatore migliaia, la virgola è decimale
+            s = s.replace('.', '').replace(',', '.')
+        return float(s)
     except (ValueError, TypeError):
         return default
 
@@ -784,9 +797,22 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
 
 def valida_duvri_access(duvri_id):
     """Valida l'accesso a un DUVRI"""
-    if not duvri_id or duvri_id not in duvri_list:
+    if not duvri_id:
         flash('❌ Seleziona prima un DUVRI', 'error')
         return False, redirect(url_for('admin_dashboard'))
+
+    # 🆕 FIX multi-worker: la memoria (duvri_list) NON è condivisa tra i processi
+    # worker del server (es. PythonAnywhere). Se il DUVRI non è nella memoria di
+    # questo worker ma esiste nel database, ricaricalo al volo invece di rifiutare
+    # il salvataggio. Senza questo, un "salva committente" gestito da un worker
+    # diverso da quello che ha creato il documento veniva rimbalzato alla dashboard.
+    if duvri_id not in duvri_list:
+        sync_all_duvri_from_db()
+
+    if duvri_id not in duvri_list:
+        flash('❌ Seleziona prima un DUVRI', 'error')
+        return False, redirect(url_for('admin_dashboard'))
+
     return True, None
 
 def get_allegati_list(duvri_id):
@@ -1660,9 +1686,9 @@ def compila_committente():
             ''', (
                 dati_committente.get('tipo_duvri', 'operativo'),
                 dati_committente.get('fase_appalto', 'esecuzione'),
-                float(dati_committente.get('importo_gara_base') or 0),
+                safe_float(dati_committente.get('importo_gara_base')),
                 1 if dati_committente.get('costi_inclusi_gara') else 0,
-                float(dati_committente.get('costi_sicurezza_gara') or 0),
+                safe_float(dati_committente.get('costi_sicurezza_gara')),
                 duvri_estar_filename,
                 json.dumps(dati_committente),
                 datetime.now(),
@@ -3631,8 +3657,13 @@ def load_duvri_on_every_request():
         db_count = conn.execute('SELECT COUNT(*) as count FROM duvri').fetchone()['count']
         conn.close()
 
-        if db_count > 0 and len(duvri_list) == 0:
-            print(f"🔄 Ricaricamento automatico: {db_count} DUVRI dal database")
+        # 🆕 FIX: ricarica quando la memoria di questo worker ha MENO DUVRI del
+        # database (non solo quando è completamente vuota). Con più worker, un
+        # documento creato da un altro processo non veniva mai visto qui, facendo
+        # fallire il salvataggio del committente. sync_all_duvri_from_db() aggiunge
+        # solo gli id mancanti, quindi non sovrascrive le modifiche in memoria.
+        if db_count > len(duvri_list):
+            print(f"🔄 Ricaricamento automatico: {db_count} DUVRI nel DB, {len(duvri_list)} in memoria")
             sync_all_duvri_from_db()
 
     except Exception as e:
