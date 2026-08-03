@@ -55,8 +55,10 @@
         <!-- Progetti recenti (massimo 10) -->
         {% for duvri_id, duvri in sorted_duvri_list %}
             {% if loop.index <= 10 %}
+            {% set is_firmato = duvri.stato in ['firmato', 'firmato_committente', 'firmato_appaltatore', 'completato_firme_digitali'] %}
+            {% set is_completato = duvri.stato == 'completato' %}
             <div class="col-md-6 mb-3">
-                <div class="card {% if duvri.stato == 'completato' or duvri.stato == 'firmato_appaltatore' %}border-success{% elif duvri.stato == 'firmato' %}border-primary{% endif %}">
+                <div class="card {% if is_firmato %}border-success{% elif is_completato %}border-info{% endif %}">
                     <div class="card-body">
                         <h5 class="card-title">
                             {{ duvri.nome_progetto }}
@@ -70,12 +72,16 @@
                                 ID: {{ duvri.id }}<br>
                                 Creato: {{ duvri.created_at }}<br>
                                 Stato:
-                                <span class="badge {% if duvri.stato == 'completato' or duvri.stato == 'firmato_appaltatore' %}bg-success{% elif duvri.stato == 'firmato' %}bg-primary{% elif duvri.stato == 'in compilazione' %}bg-info{% elif duvri.stato == 'bozza' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                <span class="badge {% if is_firmato %}bg-success{% elif is_completato %}bg-primary{% elif duvri.stato == 'in compilazione' %}bg-info{% elif duvri.stato == 'bozza' %}bg-secondary{% else %}bg-warning{% endif %}">
                                     {{ duvri.stato }}
                                 </span>
-                                {% if duvri.stato == 'completato' or duvri.stato == 'firmato_appaltatore' %}
+                                {% if is_firmato %}
                                 <a href="{{ url_for('download_duvri_pdf', duvri_id=duvri.id) }}" class="badge bg-success text-decoration-none" title="Scarica PDF firmato">
                                     ✅ PDF Firmato
+                                </a>
+                                {% elif is_completato %}
+                                <a href="{{ url_for('download_duvri_pdf', duvri_id=duvri.id) }}" class="badge bg-primary text-decoration-none" title="Scarica PDF (documento completato, non ancora firmato)">
+                                    📄 Scarica PDF
                                 </a>
                                 {% endif %}
                             </small>
@@ -172,8 +178,10 @@
                         <div class="row">
                             {% for duvri_id, duvri in sorted_duvri_list %}
                                 {% if loop.index > 10 %}
+                                {% set is_firmato = duvri.stato in ['firmato', 'firmato_committente', 'firmato_appaltatore', 'completato_firme_digitali'] %}
+                                {% set is_completato = duvri.stato == 'completato' %}
                                 <div class="col-md-6 mb-3">
-                                    <div class="card {% if duvri.stato == 'completato' or duvri.stato == 'firmato_appaltatore' %}border-success{% elif duvri.stato == 'firmato' %}border-primary{% endif %}">
+                                    <div class="card {% if is_firmato %}border-success{% elif is_completato %}border-info{% endif %}">
                                         <div class="card-body">
                                             <h6 class="card-title">
                                                 {{ duvri.nome_progetto }}
@@ -187,12 +195,16 @@
                                                     ID: {{ duvri.id }}<br>
                                                     Creato: {{ duvri.created_at }}<br>
                                                     Stato:
-                                                    <span class="badge {% if duvri.stato == 'completato' or duvri.stato == 'firmato_appaltatore' %}bg-success{% elif duvri.stato == 'firmato' %}bg-primary{% elif duvri.stato == 'in compilazione' %}bg-info{% elif duvri.stato == 'bozza' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                                    <span class="badge {% if is_firmato %}bg-success{% elif is_completato %}bg-primary{% elif duvri.stato == 'in compilazione' %}bg-info{% elif duvri.stato == 'bozza' %}bg-secondary{% else %}bg-warning{% endif %}">
                                                         {{ duvri.stato }}
                                                     </span>
-                                                    {% if duvri.stato == 'completato' or duvri.stato == 'firmato_appaltatore' %}
+                                                    {% if is_firmato %}
                                                     <a href="{{ url_for('download_duvri_pdf', duvri_id=duvri.id) }}" class="badge bg-success text-decoration-none" title="Scarica PDF firmato">
                                                         ✅ PDF Firmato
+                                                    </a>
+                                                    {% elif is_completato %}
+                                                    <a href="{{ url_for('download_duvri_pdf', duvri_id=duvri.id) }}" class="badge bg-primary text-decoration-none" title="Scarica PDF (documento completato, non ancora firmato)">
+                                                        📄 Scarica PDF
                                                     </a>
                                                     {% endif %}
                                                 </small>

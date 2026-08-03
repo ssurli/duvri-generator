@@ -124,6 +124,62 @@
                     </div>
                 </div>
 
+                <!-- 🆕 FIGURE DI RIFERIMENTO: RUP-AC, RUP-ES, DEC -->
+                <div class="alert alert-light border mt-3">
+                    <h6 class="mb-3">👔 Figure di Riferimento del Committente (RUP e DEC)</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">RUP-AC — Amministrazione Contraente</label>
+                            <input type="text" name="rup_ac" class="form-control"
+                                   value="{{ data.get('rup_ac', '') }}"
+                                   placeholder="es. Dott. Mario Rossi">
+                            <small class="text-muted">
+                                Dipendente dell'amministrazione pubblica titolare del contratto: cura
+                                programmazione, progettazione, gara e vigila sull'esecuzione dell'appalto.
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">RUP-ES — Esecuzione</label>
+                            <input type="text" name="rup_es" class="form-control"
+                                   value="{{ data.get('rup_es', '') }}"
+                                   placeholder="es. Ing. Laura Bianchi">
+                            <small class="text-muted">
+                                Controparte tecnica / referente operativo incaricato di seguire la corretta
+                                messa in opera e la fornitura dei beni o servizi richiesti dal contratto.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">DEC — Direttore Esecuzione Contratto</label>
+                            <input type="text" name="dec" class="form-control"
+                                   value="{{ data.get('dec', '') or data.get('referente', '') }}"
+                                   placeholder="es. Geom. Paolo Verdi">
+                            <small class="text-muted">
+                                Nominativo del Direttore dell'Esecuzione del Contratto (DEC).
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🆕 RIFERIMENTI DI GARA: CIG e CUP (opzionali) -->
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">CIG — Codice Identificativo Gara</label>
+                        <input type="text" name="cig" class="form-control"
+                               value="{{ data.get('cig', '') }}"
+                               placeholder="es. 1234567ABC">
+                        <small class="text-muted">Opzionale — riferimento di gara</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">CUP — Codice Unico Progetto</label>
+                        <input type="text" name="cup" class="form-control"
+                               value="{{ data.get('cup', '') }}"
+                               placeholder="es. B12C34567890123">
+                        <small class="text-muted">Opzionale — riferimento di gara</small>
+                    </div>
+                </div>
+
                 <!-- RSPP COMMITTENTE (opzionale) -->
                 <div class="alert alert-secondary mt-3">
                     <h6 class="mb-2">🛡️ RSPP Committente (D.Lgs. 81/08 - Art. 26)</h6>

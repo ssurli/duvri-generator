@@ -476,10 +476,22 @@
 {% if data and data.committente %}
 <table>
     <tr><th>RUP/RES committente</th><td>{{ data.committente.get('nome', '') }}</td></tr>
+    {% if data.committente.get('rup_ac') %}
+    <tr><th>RUP-AC (Amm. Contraente)</th><td>{{ data.committente.get('rup_ac', '') }}</td></tr>
+    {% endif %}
+    {% if data.committente.get('rup_es') %}
+    <tr><th>RUP-ES (Esecuzione)</th><td>{{ data.committente.get('rup_es', '') }}</td></tr>
+    {% endif %}
     <tr><th>Codice Fiscale/P.IVA</th><td>{{ data.committente.get('codice_fiscale', '') }}</td></tr>
     <tr><th>Indirizzo</th><td>{{ data.committente.get('indirizzo', '') }}</td></tr>
-    <tr><th>DEC</th><td>{{ data.committente.get('referente', '') }}</td></tr>
+    <tr><th>DEC</th><td>{{ data.committente.get('dec', '') or data.committente.get('referente', '') }}</td></tr>
     <tr><th>Email</th><td>{{ data.committente.get('email', '') }}</td></tr>
+    {% if data.committente.get('cig') %}
+    <tr><th>CIG</th><td>{{ data.committente.get('cig', '') }}</td></tr>
+    {% endif %}
+    {% if data.committente.get('cup') %}
+    <tr><th>CUP</th><td>{{ data.committente.get('cup', '') }}</td></tr>
+    {% endif %}
 	{% if data.committente.get('oggetto') %}
     <tr><th>Oggetto Servizio</th><td>{{ data.committente.oggetto }}</td></tr>
     {% endif %}
