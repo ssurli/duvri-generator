@@ -177,6 +177,19 @@ RISCHI_COMMITTENTE = [
 ]
 
 # ========================================
+# STATI DEL DUVRI
+# ========================================
+# Stati che indicano l'avvenuta firma (caricamento di un PDF firmato).
+# Solo questi stati devono mostrare l'indicatore "PDF Firmato" in dashboard
+# e non devono essere sovrascritti dalle semplici modifiche ai dati.
+STATI_FIRMATI = (
+    'firmato',
+    'firmato_committente',
+    'firmato_appaltatore',
+    'completato_firme_digitali',
+)
+
+# ========================================
 # FUNZIONI HELPER
 # ========================================
 
@@ -816,13 +829,14 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     
     save_current_duvri_data(current_data)
 
-    # Aggiorna stato
+    # Aggiorna stato senza sovrascrivere uno stato di firma già raggiunto
     if duvri_id in duvri_list:
         duvri = duvri_list[duvri_id]
-        if duvri.get('dati_committente'):
-            duvri['stato'] = 'completato'
-        else:
-            duvri['stato'] = 'in compilazione'
+        if duvri.get('stato') not in STATI_FIRMATI:
+            if duvri.get('dati_committente'):
+                duvri['stato'] = 'completato'
+            else:
+                duvri['stato'] = 'in compilazione'
 
 def valida_duvri_access(duvri_id):
     """Valida l'accesso a un DUVRI"""
@@ -1686,6 +1700,10 @@ def index():
 @login_required
 def admin_dashboard():
     """Dashboard solo per l'amministratore - vede tutti i DUVRI"""
+    # L'admin è in contesto amministrativo: azzera l'eventuale flag
+    # 'from_appaltatore_link' rimasto attivo dopo l'apertura di un link appaltatore
+    session.pop('from_appaltatore_link', None)
+
     # 🔥 FORZA SINCRONIZZAZIONE
     sync_all_duvri_from_db()
 
@@ -1782,8 +1800,16 @@ def compila_committente():
             'nome': request.form.get('nome'),
             'codice_fiscale': request.form.get('codice_fiscale'),
             'indirizzo': request.form.get('indirizzo'),
-            'referente': request.form.get('referente'),
+            # DEC = Direttore Esecuzione Contratto (manteniamo 'referente' per compatibilità)
+            'referente': request.form.get('dec', '') or request.form.get('referente', ''),
             'email': request.form.get('email'),
+
+            # 🆕 FIGURE DI RIFERIMENTO E RIFERIMENTI DI GARA
+            'rup_ac': request.form.get('rup_ac', ''),   # RUP Amministrazione Contraente
+            'rup_es': request.form.get('rup_es', ''),   # RUP Esecuzione
+            'dec': request.form.get('dec', ''),         # Direttore Esecuzione Contratto
+            'cig': request.form.get('cig', ''),         # Codice Identificativo Gara
+            'cup': request.form.get('cup', ''),         # Codice Unico Progetto
             'tipologia_struttura': request.form.get('tipologia_struttura'),
             'tipologia_struttura_altro': request.form.get('tipologia_struttura_altro', ''),  # 🆕 Campo "Altro" manuale
             'area_installazione': request.form.get('area_installazione'),
@@ -1908,11 +1934,14 @@ def compila_committente():
                 import traceback
                 traceback.print_exc()
 
-        # Aggiorna stato
-        if duvri['dati_appaltatore']:
-            duvri['stato'] = 'completato'
-        else:
-            duvri['stato'] = 'in compilazione'
+        # Aggiorna stato SENZA sovrascrivere uno stato di firma già raggiunto.
+        # Modificare i dati committente non deve mai far apparire il DUVRI come
+        # "firmato": lo stato di firma si imposta solo caricando un PDF firmato.
+        if duvri.get('stato') not in STATI_FIRMATI:
+            if duvri['dati_appaltatore']:
+                duvri['stato'] = 'completato'
+            else:
+                duvri['stato'] = 'in compilazione'
 
         flash('✅ Dati committente salvati con successo!', 'success')
 
@@ -3305,9 +3334,22 @@ def download_duvri_pdf(duvri_id):
 
         duvri = duvri_list[duvri_id]
 
-        if duvri.get('stato') != 'completato':
+        stato = duvri.get('stato')
+        if stato != 'completato' and stato not in STATI_FIRMATI:
             flash("PDF non disponibile. Il DUVRI non è stato completato.", "warning")
             return redirect(url_for('admin_dashboard'))
+
+        # Se esiste un PDF firmato caricato, servilo direttamente
+        firme_digitali = duvri.get('firme_digitali', {})
+        for ruolo in ('appaltatore', 'committente'):
+            firma = firme_digitali.get(ruolo, {})
+            file_path = firma.get('file_path')
+            if file_path and os.path.exists(file_path):
+                return send_file(
+                    file_path,
+                    as_attachment=True,
+                    download_name=f"DUVRI_{duvri['nome_progetto']}_firmato.pdf"
+                )
 
         # Cerca il PDF nella cartella output
         output_dir = "output"
