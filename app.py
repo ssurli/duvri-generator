@@ -2179,13 +2179,61 @@ def appaltatore_duvri(link_univoco):
     # 🔥 IMPORTANTE: Sincronizza i dati dal database
     sync_db_to_memory(duvri_id)
 
-    # Mostra direttamente il form appaltatore
-    data = duvri_trovato.get('dati_appaltatore', {})
+    # 📝 SALVATAGGIO: il template appaltatore_form.html usa <form method="POST">
+    # senza action, quindi invia i dati a QUESTA stessa URL (/appaltatore/<link>).
+    # Senza questo blocco il POST veniva ignorato: i dati compilati venivano
+    # scartati e il form risultava vuoto alla riapertura.
+    if request.method == 'POST':
+        print("\n" + "="*80)
+        print("📝 SALVATAGGIO APPALTATORE (link /appaltatore/)")
+        print("="*80)
+
+        # 1. Valida i dati prima di salvare
+        errori = valida_dati_appaltatore(request.form)
+
+        if errori:
+            # In caso di errori rimani sul form mostrando quanto inserito
+            print(f"❌ Errori di validazione: {len(errori)}")
+            for errore in errori:
+                flash(errore, 'danger')
+
+            current_data = get_current_duvri_data()
+            dati_committente = current_data.get('committente', {})
+
+            return render_template('appaltatore_form.html',
+                                 data=request.form,
+                                 dati_committente=dati_committente,
+                                 rischi_paragrafi=RISCHI_PARAGRAFI,
+                                 rischi_hta=RISCHI_HTA,
+                                 duvri_id=duvri_id,
+                                 current_duvri_id=duvri_id)
+
+        # 2. Validazione OK: elabora e salva
+        dati_appaltatore = processa_form_(request)
+        print(f"   Ragione sociale: {dati_appaltatore.get('ragione_sociale')}")
+        print(f"   Max addetti: {dati_appaltatore.get('max_addetti')}")
+        print(f"   Durata giorni: {dati_appaltatore.get('durata_giorni')}")
+
+        salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
+
+        print("✅ Dati salvati - Redirect a summary")
+        print("="*80 + "\n")
+
+        flash('✅ Dati salvati correttamente!', 'success')
+        return redirect(url_for('summary'))
+
+    # GET: mostra il form appaltatore con i dati dal database
+    current_data = get_current_duvri_data()
+    data = current_data.get('appaltatore', {})
+    dati_committente = current_data.get('committente', {})
+
     return render_template('appaltatore_form.html',
                          data=data,
+                         dati_committente=dati_committente,
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         current_duvri_id=duvri_id)
 
 @app.route('/emergency_recover')
 def emergency_recover():
