@@ -81,6 +81,18 @@
 
   <!-- MAIN CONTENT -->
   <main class="container flex-grow-1">
+    <!-- MESSAGGI FLASH (successo / errori validazione / avvisi) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% set alert_class = 'danger' if category in ['error', 'danger'] else ('success' if category == 'success' else ('warning' if category == 'warning' else 'info')) %}
+          <div class="alert alert-{{ alert_class }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </main>
 
