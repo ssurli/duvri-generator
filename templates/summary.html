@@ -170,7 +170,10 @@
             <div class="mt-4">
                 <h5>💰 Costi di Sicurezza</h5>
 				<!-- 🆕 BOX CONFRONTO COSTI -->
-                {% if confronto_costi %}
+                <!-- In modalità forfettaria non ha senso il confronto algebrico
+                     operativo/gara: il dettaglio "Importo Forfettario da Gara"
+                     più sotto mostra già l'importo corretto. -->
+                {% if confronto_costi and confronto_costi.tipo != 'FORFETTARIO' %}
                 <div class="alert alert-{{ confronto_costi.alert_type }} mb-3">
                     <h6 class="alert-heading">
                         {% if confronto_costi.stato == 'EXTRA_COSTI' %}
