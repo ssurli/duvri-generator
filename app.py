@@ -674,6 +674,92 @@ def invia_notifica_semplice(duvri_id, dati_committente, dati_appaltatore):
     print("=" * 50)
     return True
 
+
+def invia_notifica_dati_appaltatore(duvri_id, dati_appaltatore, dati_committente=None):
+    """Invia una notifica email all'indirizzo aziendale quando l'appaltatore
+    salva i propri dati dal form (pulsante "Salva Dati Appaltatore").
+
+    La configurazione SMTP e il destinatario sono letti dalle variabili
+    d'ambiente (vedi .env.example):
+        - NOTIFICA_EMAIL : indirizzo email aziendale che riceve la notifica
+        - SMTP_HOST      : server SMTP (es. smtp.gmail.com)
+        - SMTP_PORT      : porta SMTP (default 587, STARTTLS)
+        - SMTP_USER      : utente/account SMTP
+        - SMTP_PASSWORD  : password o app-password SMTP
+        - SMTP_FROM      : mittente (opzionale, default = SMTP_USER)
+
+    Se la configurazione non è completa la notifica viene solo registrata nel
+    log, senza interrompere il salvataggio dei dati.
+    """
+    dati_committente = dati_committente or {}
+
+    destinatario = os.environ.get('NOTIFICA_EMAIL', '').strip()
+    smtp_host = os.environ.get('SMTP_HOST', '').strip()
+    smtp_port = int(os.environ.get('SMTP_PORT') or 587)
+    smtp_user = os.environ.get('SMTP_USER', '').strip()
+    smtp_password = os.environ.get('SMTP_PASSWORD', '').strip()
+    mittente = (os.environ.get('SMTP_FROM') or smtp_user).strip()
+
+    ragione_sociale = dati_appaltatore.get('ragione_sociale') or 'N/D'
+    oggetto_appalto = (dati_appaltatore.get('oggetto')
+                       or dati_committente.get('oggetto') or 'N/D')
+    data_ora = datetime.now().strftime('%d/%m/%Y %H:%M')
+
+    # Log sempre presente (comportamento coerente con invia_notifica_semplice)
+    print("=" * 50)
+    print("📧 NOTIFICA: DATI APPALTATORE SALVATI")
+    print("=" * 50)
+    print(f"DUVRI: {duvri_id}")
+    print(f"APPALTATORE: {ragione_sociale}")
+    print(f"OGGETTO: {oggetto_appalto}")
+    print(f"DATA: {data_ora}")
+    print(f"DESTINATARIO: {destinatario or 'NON CONFIGURATO'}")
+    print("=" * 50)
+
+    # Senza configurazione minima non si tenta l'invio: solo log
+    if not (destinatario and smtp_host and smtp_user and smtp_password):
+        print("⚠️ Configurazione email incompleta: notifica registrata solo su log "
+              "(imposta NOTIFICA_EMAIL, SMTP_HOST, SMTP_USER, SMTP_PASSWORD)")
+        return False
+
+    corpo = f"""Un appaltatore ha completato e salvato i propri dati nel DUVRI.
+
+Riepilogo:
+- DUVRI ID: {duvri_id}
+- Ragione sociale appaltatore: {ragione_sociale}
+- P.IVA: {dati_appaltatore.get('piva', 'N/D')}
+- Email appaltatore: {dati_appaltatore.get('email', 'N/D')}
+- Telefono appaltatore: {dati_appaltatore.get('telefono', 'N/D')}
+- Oggetto dell'appalto: {oggetto_appalto}
+- Committente: {dati_committente.get('nome', 'N/D')}
+- Data e ora salvataggio: {data_ora}
+
+Questa è una notifica automatica generata dal sistema DUVRI Generator.
+"""
+
+    try:
+        import smtplib
+        from email.message import EmailMessage
+
+        msg = EmailMessage()
+        msg['Subject'] = f"[DUVRI] Dati appaltatore salvati - {ragione_sociale}"
+        msg['From'] = mittente
+        msg['To'] = destinatario
+        msg.set_content(corpo)
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+
+        print(f"✅ Notifica email inviata a: {destinatario}")
+        return True
+    except Exception as e:
+        print(f"❌ Errore invio notifica email: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 # =============================================
 # FUNZIONI AUSILIARIE UNIFICATE
 # =============================================
@@ -2088,6 +2174,19 @@ def appaltatore_form(link_univoco):
 
         print("✅ Dati salvati - Redirect a summary")
         print("="*80 + "\n")
+
+        # 📧 Notifica email all'indirizzo aziendale: l'appaltatore ha
+        # completato e salvato i propri dati. L'invio non deve mai bloccare
+        # il salvataggio, quindi è racchiuso in un try/except.
+        try:
+            current_data = get_current_duvri_data()
+            invia_notifica_dati_appaltatore(
+                duvri_id,
+                dati_appaltatore,
+                current_data.get('committente', {})
+            )
+        except Exception as e:
+            print(f"⚠️ Notifica email non inviata: {e}")
 
         flash('✅ Dati salvati correttamente!', 'success')
         return redirect(url_for('summary'))

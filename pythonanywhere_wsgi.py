@@ -30,6 +30,19 @@ os.environ['SECRET_KEY'] = 'TUA_SECRET_KEY_QUI'
 os.environ['FLASK_ENV'] = 'production'
 os.environ['PYTHONANYWHERE_DOMAIN'] = 'pythonanywhere'
 
+# --------------------------------------------
+# NOTIFICA EMAIL "SALVA DATI APPALTATORE"
+# --------------------------------------------
+# Decommenta e compila per abilitare l'invio della notifica email
+# all'indirizzo aziendale quando un appaltatore salva i propri dati.
+# (In produzione il file .env NON viene caricato: imposta qui le variabili.)
+# os.environ['NOTIFICA_EMAIL'] = 'tua-email-aziendale@esempio.it'
+# os.environ['SMTP_HOST'] = 'smtp.gmail.com'
+# os.environ['SMTP_PORT'] = '587'
+# os.environ['SMTP_USER'] = 'iltuoaccount@gmail.com'
+# os.environ['SMTP_PASSWORD'] = 'la_tua_app_password'
+# os.environ['SMTP_FROM'] = 'iltuoaccount@gmail.com'
+
 # ============================================
 # IMPORTA L'APP FLASK
 # ============================================

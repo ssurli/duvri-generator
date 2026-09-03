@@ -128,6 +128,31 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 Copia l'output e sostituiscilo nel file WSGI al posto di `TUA_SECRET_KEY_QUI`.
 
+### 6.1 Configura notifica email (opzionale)
+
+Per ricevere una **notifica email al tuo indirizzo aziendale** ogni volta che
+un appaltatore preme **"Salva Dati Appaltatore"**, aggiungi queste variabili
+nel file WSGI (subito sotto `SECRET_KEY`):
+
+```python
+os.environ['NOTIFICA_EMAIL'] = 'tua-email-aziendale@esempio.it'
+os.environ['SMTP_HOST'] = 'smtp.gmail.com'
+os.environ['SMTP_PORT'] = '587'
+os.environ['SMTP_USER'] = 'iltuoaccount@gmail.com'
+os.environ['SMTP_PASSWORD'] = 'la_tua_app_password'
+os.environ['SMTP_FROM'] = 'iltuoaccount@gmail.com'   # opzionale
+```
+
+Note importanti:
+
+- Con **Gmail** serve una *App Password* (Google Account → Sicurezza →
+  Verifica in due passaggi → Password per le app), non la password normale.
+- Su PythonAnywhere **Free Tier** l'invio SMTP è consentito solo verso i
+  server nella whitelist (Gmail è incluso). Per altri provider serve un
+  account a pagamento.
+- Se queste variabili **non** sono impostate, l'app funziona comunque: la
+  notifica viene solo scritta nel log, senza inviare email.
+
 ### 7. Configura Directory Statiche
 
 Nella sezione **Web** > **Static files**:
