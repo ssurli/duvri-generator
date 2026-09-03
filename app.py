@@ -747,8 +747,14 @@ Questa è una notifica automatica generata dal sistema DUVRI Generator.
         msg['To'] = destinatario
         msg.set_content(corpo)
 
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+        # Porta 465 = SSL implicito (tipico Zimbra); altrimenti STARTTLS (587/25)
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=20)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=20)
             server.starttls()
+
+        with server:
             server.login(smtp_user, smtp_password)
             server.send_message(msg)
 
