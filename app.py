@@ -2226,11 +2226,14 @@ def appaltatore_duvri(link_univoco):
 
     # Mostra direttamente il form appaltatore
     data = duvri_trovato.get('dati_appaltatore', {})
+    dati_committente = duvri_trovato.get('dati_committente', {})
     return render_template('appaltatore_form.html',
                          data=data,
+                         dati_committente=dati_committente,
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         current_duvri_id=duvri_id)
 
 @app.route('/emergency_recover')
 def emergency_recover():
