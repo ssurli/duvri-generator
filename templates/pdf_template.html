@@ -523,6 +523,13 @@
         {% endif %}
     </td></tr>
     <tr><th>Area installazione</th><td>{{ data.committente.get('area_installazione', '') }}</td></tr>
+    {% set sedi_operative = data.committente.get('sedi_operative', []) %}
+    {% if data.committente.get('multi_sede') or sedi_operative %}
+    <tr>
+        <th>Operatività su più sedi</th>
+        <td>Sì — Province / sedi interessate: <strong>{{ sedi_operative | join(', ') if sedi_operative else 'non specificate' }}</strong></td>
+    </tr>
+    {% endif %}
 </table>
 {% else %}
 <p>Dati committente non disponibili</p>
@@ -669,6 +676,10 @@
         <strong>Impresa appaltatrice:</strong> {{ data.appaltatore.get('ragione_sociale', '[Nome appaltatore]') if data and data.appaltatore else '[Nome appaltatore]' }}<br>
         <strong>Oggetto dell'appalto:</strong> {{ data.committente.get('oggetto', '[Descrizione specifica]') if data and data.committente else '[Descrizione specifica]' }}<br>
         <strong>Luogo di esecuzione:</strong> {{ data.committente.get('indirizzo', '[Indirizzo]') if data and data.committente else '[Indirizzo]' }} - {{ data.committente.get('area_installazione', '[Area specifica]') if data and data.committente else '[Area specifica]' }}<br>
+        {% set sedi_luogo = data.committente.get('sedi_operative', []) if data and data.committente else [] %}
+        {% if sedi_luogo %}
+        <strong>Sedi / province di operatività:</strong> {{ sedi_luogo | join(', ') }}<br>
+        {% endif %}
         <strong>Durata prevista:</strong> {{ data.appaltatore.get('durata_giorni', '[N]') if data and data.appaltatore else '[N]' }} giorni<br>
         <strong>Data documento:</strong> {{ datetime.now().strftime('%d/%m/%Y') }}<br>
     </p>

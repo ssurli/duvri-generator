@@ -1795,6 +1795,30 @@ def compila_committente():
     duvri = duvri_list[duvri_id]
 
     if request.method == 'POST':
+        # 🆕 RSPP COMMITTENTE — supporto selezione multipla.
+        # Le aree possono essere selezionate singolarmente o entrambe (appalto su
+        # zone diverse). I nominativi/email vengono composti lato server per non
+        # dipendere dal JavaScript ed essere robusti anche con JS disabilitato.
+        RSPP_AREE_MAP = {
+            'nord': ('Ing. Milena Pepe', 'milena.pepe@uslnordovest.toscana.it'),
+            'sud': ('Ing. Maria Rosaria Libone', 'mariarosaria.libone@uslnordovest.toscana.it'),
+        }
+        rspp_aree = request.form.getlist('rspp_aree')
+        rspp_nomi, rspp_emails = [], []
+        for area in ('nord', 'sud'):
+            if area in rspp_aree:
+                nome_area, email_area = RSPP_AREE_MAP[area]
+                rspp_nomi.append(nome_area)
+                rspp_emails.append(email_area)
+        rspp_nome_manuale = request.form.get('rspp_nome_manuale', '').strip()
+        rspp_email_manuale = request.form.get('rspp_email_manuale', '').strip()
+        if 'altro' in rspp_aree and rspp_nome_manuale:
+            rspp_nomi.append(rspp_nome_manuale)
+            if rspp_email_manuale:
+                rspp_emails.append(rspp_email_manuale)
+        rspp_nome_finale = ' / '.join(rspp_nomi)
+        rspp_email_finale = ' / '.join(rspp_emails)
+
         # Processa il form
         dati_committente = {
             'nome': request.form.get('nome'),
@@ -1813,6 +1837,9 @@ def compila_committente():
             'tipologia_struttura': request.form.get('tipologia_struttura'),
             'tipologia_struttura_altro': request.form.get('tipologia_struttura_altro', ''),  # 🆕 Campo "Altro" manuale
             'area_installazione': request.form.get('area_installazione'),
+            # 🆕 Operatività su più sedi/province (Lucca, Versilia, Massa, Pisa, Livorno)
+            'multi_sede': 'multi_sede' in request.form,
+            'sedi_operative': request.form.getlist('sedi_operative'),
             'presenza_pazienti': request.form.get('presenza_pazienti'),
             'alimentazione_disponibile': request.form.get('alimentazione_disponibile'),
             'tipo_pavimento': request.form.get('tipo_pavimento'),
@@ -1847,9 +1874,13 @@ def compila_committente():
             'costi_inclusi_gara': 'costi_inclusi_gara' in request.form,
             'costi_sicurezza_gara': request.form.get('costi_sicurezza_gara', '0'),
 
-            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26)
-            'rspp_nome': request.form.get('rspp_nome', ''),
-            'rspp_email': request.form.get('rspp_email', '')
+            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26) — composti dalle aree selezionate
+            'rspp_nome': rspp_nome_finale,
+            'rspp_email': rspp_email_finale,
+            # Campi ausiliari per ripopolare correttamente il form in modifica
+            'rspp_aree': rspp_aree,
+            'rspp_nome_manuale': rspp_nome_manuale,
+            'rspp_email_manuale': rspp_email_manuale
         }
         
         # 🆕 GESTIONE UPLOAD DUVRI ESTAR

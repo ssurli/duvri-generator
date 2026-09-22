@@ -28,6 +28,21 @@
         </p>
     </div>
 
+    <!-- 🆕 LINK DOWNLOAD DUVRI STATICO -->
+    <div class="alert alert-primary d-flex align-items-center justify-content-between flex-wrap">
+        <div class="me-3">
+            <strong>📎 DUVRI Statico di riferimento</strong>
+            <div class="small mb-0">
+                Scarica il DUVRI statico (documento generale di riferimento sui rischi della struttura)
+                da consultare prima di compilare i dati.
+            </div>
+        </div>
+        <a href="{{ url_for('download_pdf', filename='duvri_statico') }}" target="_blank" rel="noopener"
+           class="btn btn-primary mt-2 mt-md-0">
+            ⬇️ Scarica DUVRI Statico (PDF)
+        </a>
+    </div>
+
     <form method="POST">
         
         <!-- ============================================ -->
