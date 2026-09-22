@@ -652,7 +652,7 @@
             {% endif %}
         </td>
     </tr>
-    <tr><th>Max addetti contemporanei</th><td>{{ data.appaltatore.get('max_addetti', '') }}</td></tr>
+    <tr><th>Max addetti contemporanei</th><td>{{ data.appaltatore.get('max_addetti', '') or 'Variabile / non applicabile' }}</td></tr>
 </table>
 
 <h4>Specifiche dell'apparecchiatura HTA</h4>
@@ -662,7 +662,7 @@
     <tr><th>Peso apparecchiatura</th><td>{{ data.appaltatore.get('peso_kg', '') }} kg</td></tr>
     <tr><th>Dimensioni (LxPxA)</th><td>{{ data.appaltatore.get('dimensioni', '') }}</td></tr>
     <tr><th>Tensione di alimentazione</th><td>{{ data.appaltatore.get('tensione', '') }} V</td></tr>
-    <tr><th>Durata installazione</th><td>{{ data.appaltatore.get('durata_giorni', '') }} giorni</td></tr>
+    <tr><th>Durata installazione</th><td>{% set _dur = data.appaltatore.get('durata_giorni', '') %}{% if _dur %}{{ _dur }} giorni{% else %}Secondo contratto (continuativa / giornate variabili){% endif %}</td></tr>
     <tr><th>Numero tecnici</th><td>{{ data.appaltatore.get('numero_tecnici', '') }}</td></tr>
     <tr><th>Tipo di installazione</th><td>{{ data.appaltatore.get('tipo_installazione', '') }}</td></tr>
 </table>
@@ -680,7 +680,8 @@
         {% if sedi_luogo %}
         <strong>Sedi / province di operatività:</strong> {{ sedi_luogo | join(', ') }}<br>
         {% endif %}
-        <strong>Durata prevista:</strong> {{ data.appaltatore.get('durata_giorni', '[N]') if data and data.appaltatore else '[N]' }} giorni<br>
+        {% set _dur_prev = data.appaltatore.get('durata_giorni', '') if data and data.appaltatore else '' %}
+        <strong>Durata prevista:</strong> {% if _dur_prev %}{{ _dur_prev }} giorni{% else %}secondo contratto (durata continuativa / giornate variabili){% endif %}<br>
         <strong>Data documento:</strong> {{ datetime.now().strftime('%d/%m/%Y') }}<br>
     </p>
 </div>
@@ -1034,8 +1035,9 @@
         <strong>🔄 Modalità calcolo:</strong> Costi calcolati parametricamente in base a:
         <ul style="margin: 5px 0 0 20px;">
             <li>Importo appalto: € {{ "{:,.2f}".format((data.committente.get('importo_gara_base') or data.committente.get('importo'))|float) if data and data.committente else '0' }}</li>
-            <li>Numero lavoratori: {{ data.appaltatore.get('max_addetti', 'N/D') if data and data.appaltatore else 'N/D' }}</li>
-            <li>Durata lavori: {{ data.appaltatore.get('durata_giorni', 'N/D') if data and data.appaltatore else 'N/D' }} giorni</li>
+            <li>Numero lavoratori: {{ (data.appaltatore.get('max_addetti', '') if data and data.appaltatore else '') or 'variabile / non applicabile' }}</li>
+            {% set _dur_calc = data.appaltatore.get('durata_giorni', '') if data and data.appaltatore else '' %}
+            <li>Durata lavori: {% if _dur_calc %}{{ _dur_calc }} giorni{% else %}secondo contratto (continuativa){% endif %}</li>
             <li>Rischi committente: {{ data.committente.rischi_struttura|length if data and data.committente and data.committente.get('rischi_struttura') else 0 }}</li>
             <li>Rischi appaltatore: {{ data.appaltatore.rischi|length if data and data.appaltatore and data.appaltatore.get('rischi') else 0 }}</li>
             {% if data and data.committente and data.committente.get('percentuale_costo_base') %}

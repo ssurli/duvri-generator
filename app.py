@@ -2085,8 +2085,14 @@ def appaltatore_form(link_univoco):
         print("📝 SALVATAGGIO APPALTATORE ESTERNO")
         print("="*80)
 
-        # ✅ 1. VALIDA i dati prima di salvare
-        errori = valida_dati_appaltatore(request.form)
+        # ✅ 1. VALIDA i dati prima di salvare.
+        # I parametri operativi (max addetti/durata) sono obbligatori solo se
+        # il committente usa il calcolo automatico dei costi; in forfettario/
+        # manuale non incidono e restano facoltativi.
+        committente_corrente = get_current_duvri_data().get('committente', {})
+        modalita_costi_committente = committente_corrente.get('modalita_costi', 'automatico')
+        richiedi_operativi = (modalita_costi_committente == 'automatico')
+        errori = valida_dati_appaltatore(request.form, richiedi_operativi=richiedi_operativi)
 
         if errori:
             # ✅ 2. In caso di errori, RIMANI sul form
@@ -2141,8 +2147,15 @@ def appaltatore_form(link_univoco):
                          duvri_id=duvri_id,
                          current_duvri_id=duvri_id)
 
-def valida_dati_appaltatore(form_data):
-    """Valida i dati obbligatori del form appaltatore"""
+def valida_dati_appaltatore(form_data, richiedi_operativi=True):
+    """Valida i dati obbligatori del form appaltatore.
+
+    richiedi_operativi: se True (committente in modalità calcolo costi
+    'automatico') max_addetti è obbligatorio perché alimenta la formula.
+    Se False (forfettario/manuale) i parametri operativi non incidono sul
+    calcolo e restano facoltativi (es. contratti pluriennali/continuativi o
+    operatività su più sedi in cui addetti/durata perdono di significato).
+    """
     errori = []
 
     # Campi obbligatori (come definito nel template con required)
@@ -2176,8 +2189,9 @@ def valida_dati_appaltatore(form_data):
     if not form_data.get('resp_appalto_nome', '').strip():
         errori.append('Il nominativo del responsabile appalto è obbligatorio')
 
-    if not form_data.get('max_addetti') or int(form_data.get('max_addetti', 0)) < 1:
-        errori.append('Il numero massimo di addetti deve essere almeno 1')
+    if richiedi_operativi:
+        if not form_data.get('max_addetti') or safe_float(form_data.get('max_addetti')) < 1:
+            errori.append('Il numero massimo di addetti deve essere almeno 1')
 
     return errori
 
