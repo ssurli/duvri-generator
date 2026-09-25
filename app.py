@@ -349,9 +349,9 @@ def init_db():
     
     conn.close()
     print("✅ Database inizializzato")
-def get_current_duvri_data():
-    """Ottiene i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
+def get_current_duvri_data(duvri_id=None):
+    """Ottiene i dati del DUVRI corrente (o di quello indicato)"""
+    duvri_id = duvri_id or session.get('current_duvri_id')
 
     if not duvri_id:
         return {"committente": {}, "appaltatore": {}, "signatures": {}}
@@ -375,48 +375,9 @@ def get_current_duvri_data():
         print(f"❌ ERRORE get_current_duvri_data: {e}")
         return {"committente": {}, "appaltatore": {}, "signatures": {}}
 
-def save_current_duvri_data(data):
-    """Salva i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
-
-    if not duvri_id:
-        return False
-
-    try:
-        conn = get_db_connection()
-        
-        # Salva anche link_appaltatore se presente in memoria
-        link_appaltatore = None
-        if duvri_id in duvri_list:
-            link_appaltatore = duvri_list[duvri_id].get('link_appaltatore')
-        
-        conn.execute(
-            '''UPDATE duvri SET
-               committente_data = ?, appaltatore_data = ?, signatures = ?, 
-               link_appaltatore = ?, updated_at = ?
-               WHERE id = ?''',
-            (
-                json.dumps(data.get('committente', {})),
-                json.dumps(data.get('appaltatore', {})),
-                json.dumps(data.get('signatures', {})),
-                link_appaltatore,
-                datetime.now(),
-                duvri_id
-            )
-        )
-        conn.commit()
-        conn.close()
-
-        sync_db_to_memory(duvri_id)
-        return True
-
-    except Exception as e:
-        print(f"❌ ERRORE save_current_duvri_data: {e}")
-        return False
-
-def save_current_duvri_data(data):
-    """Salva i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
+def save_current_duvri_data(data, duvri_id=None):
+    """Salva i dati del DUVRI corrente (o di quello indicato)"""
+    duvri_id = duvri_id or session.get('current_duvri_id')
 
     if not duvri_id:
         return False
@@ -468,7 +429,9 @@ def sync_db_to_memory(duvri_id):
             duvri_list[duvri_id]['dati_committente'] = json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {}
             duvri_list[duvri_id]['dati_appaltatore'] = json.loads(duvri_db['appaltatore_data']) if duvri_db['appaltatore_data'] else {}
             duvri_list[duvri_id]['signatures'] = json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
-            duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
+            # Non sovrascrivere un link valido in memoria con un NULL del DB
+            if duvri_db['link_appaltatore']:
+                duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
             print(f"✅ Sincronizzato DUVRI {duvri_id} da DB a memoria")
 
     except Exception as e:
@@ -488,10 +451,20 @@ def sync_all_duvri_from_db():
         for duvri_db in duvri_from_db:
             duvri_id = duvri_db['id']
             if duvri_id not in duvri_list:
+                link_appaltatore = duvri_db['link_appaltatore']
+                if not link_appaltatore:
+                    # Link mancante nel DB: generalo e persistilo subito
+                    link_appaltatore = str(uuid.uuid4())
+                    conn = get_db_connection()
+                    conn.execute('UPDATE duvri SET link_appaltatore = ? WHERE id = ?',
+                                 (link_appaltatore, duvri_id))
+                    conn.commit()
+                    conn.close()
+                    print(f"🔗 Link appaltatore mancante per {duvri_id}: generato e salvato")
                 duvri_list[duvri_id] = {
                     'id': duvri_id,
                     'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Senza Nome',
-                    'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # ✅ CARICA DA DB
+                    'link_appaltatore': link_appaltatore,
                     'stato': duvri_db['stato'] or 'bozza',
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -782,12 +755,13 @@ def trova_duvri_per_link(link_univoco):
 
 def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     """Salva i dati dell'appaltatore in modo unificato"""
-    # Salva in memoria
-    if duvri_id in duvri_list:
-        duvri_list[duvri_id]['dati_appaltatore'] = dati_appaltatore
+    # Carica dal database il DUVRI indicato (non quello in sessione)
+    current_data = get_current_duvri_data(duvri_id)
 
-    # Salva nel database
-    current_data = get_current_duvri_data()
+    # Merge con i dati esistenti: il form non contiene i campi dei costi
+    # (costo_*, costi_modificati_manualmente, note_costi_sicurezza...),
+    # che altrimenti andrebbero persi a ogni nuovo salvataggio
+    dati_appaltatore = {**current_data.get('appaltatore', {}), **dati_appaltatore}
     current_data['appaltatore'] = dati_appaltatore
     
     # 🆕 CALCOLO AUTOMATICO COSTI SICUREZZA
@@ -827,7 +801,8 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     if duvri_id in duvri_list:
         duvri_list[duvri_id]['dati_appaltatore'] = dati_appaltatore
     
-    save_current_duvri_data(current_data)
+    if not save_current_duvri_data(current_data, duvri_id):
+        return False
 
     # Aggiorna stato senza sovrascrivere uno stato di firma già raggiunto
     if duvri_id in duvri_list:
@@ -837,6 +812,16 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
                 duvri['stato'] = 'completato'
             else:
                 duvri['stato'] = 'in compilazione'
+            # Persisti lo stato: altrimenti al riavvio torna 'bozza'
+            try:
+                conn = get_db_connection()
+                conn.execute('UPDATE duvri SET stato = ? WHERE id = ?', (duvri['stato'], duvri_id))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"❌ Errore salvataggio stato: {e}")
+
+    return True
 
 def valida_duvri_access(duvri_id):
     """Valida l'accesso a un DUVRI"""
@@ -1765,8 +1750,8 @@ def nuovo_duvri():
     try:
         conn = get_db_connection()
         conn.execute(
-            'INSERT INTO duvri (id, nome_progetto, created_at, updated_at) VALUES (?, ?, ?, ?)',
-            (duvri_id, nome_progetto, datetime.now(), datetime.now())
+            'INSERT INTO duvri (id, nome_progetto, link_appaltatore, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+            (duvri_id, nome_progetto, link_appaltatore, datetime.now(), datetime.now())
         )
         conn.commit()
         conn.close()
@@ -1993,7 +1978,7 @@ def compila_appaltatore():
 
         # 🆕 VERIFICA DOPO IL SALVATAGGIO
         print("\n📊 VERIFICA DATI SALVATI:")
-        data_check = get_current_duvri_data()
+        data_check = get_current_duvri_data(duvri_id)
         app_check = data_check.get('appaltatore', {})
         print(f"   Costi presenti: {app_check.get('costi_presenti', False)}")
         print(f"   Costo incontri: {app_check.get('costo_incontri', 'NON PRESENTE')}")
@@ -2008,7 +1993,7 @@ def compila_appaltatore():
 
     # GET: carica dati dal database (non dalla memoria!)
     print(f"\n📖 Caricamento form appaltatore - DUVRI {duvri_id}")
-    current_data = get_current_duvri_data()
+    current_data = get_current_duvri_data(duvri_id)
     data = current_data.get('appaltatore', {})
     dati_committente = current_data.get('committente', {})
 
@@ -2068,8 +2053,10 @@ def appaltatore_form(link_univoco):
             current_data = get_current_duvri_data()
             dati_committente = current_data.get('committente', {})
 
+            # processa_form_ restituisce un dict con 'rischi' come lista:
+            # con request.form (MultiDict) le checkbox dei rischi andrebbero perse
             return render_template('appaltatore_form.html',
-                                 data=request.form,
+                                 data=processa_form_(request),
                                  dati_committente=dati_committente,
                                  rischi_paragrafi=RISCHI_PARAGRAFI,
                                  rischi_hta=RISCHI_HTA,
@@ -2084,7 +2071,17 @@ def appaltatore_form(link_univoco):
         print(f"   Max addetti: {dati_appaltatore.get('max_addetti')}")
         print(f"   Durata giorni: {dati_appaltatore.get('durata_giorni')}")
 
-        salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
+        if not salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
+            print("❌ Salvataggio fallito")
+            flash('❌ Errore durante il salvataggio. Riprova o contatta il committente.', 'danger')
+            current_data = get_current_duvri_data(duvri_id)
+            return render_template('appaltatore_form.html',
+                                 data=dati_appaltatore,
+                                 dati_committente=current_data.get('committente', {}),
+                                 rischi_paragrafi=RISCHI_PARAGRAFI,
+                                 rischi_hta=RISCHI_HTA,
+                                 duvri_id=duvri_id,
+                                 current_duvri_id=duvri_id)
 
         print("✅ Dati salvati - Redirect a summary")
         print("="*80 + "\n")
@@ -2145,7 +2142,11 @@ def valida_dati_appaltatore(form_data):
     if not form_data.get('resp_appalto_nome', '').strip():
         errori.append('Il nominativo del responsabile appalto è obbligatorio')
 
-    if not form_data.get('max_addetti') or int(form_data.get('max_addetti', 0)) < 1:
+    try:
+        max_addetti = int(form_data.get('max_addetti') or 0)
+    except ValueError:
+        max_addetti = 0
+    if max_addetti < 1:
         errori.append('Il numero massimo di addetti deve essere almeno 1')
 
     return errori
@@ -2862,10 +2863,11 @@ def duplica_duvri(duvri_id):
         # 2. Salva il nuovo DUVRI nel database SQLite
         conn = get_db_connection()
         conn.execute(
-            'INSERT INTO duvri (id, nome_progetto, committente_data, appaltatore_data, signatures, stato, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO duvri (id, nome_progetto, link_appaltatore, committente_data, appaltatore_data, signatures, stato, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (
                 nuovo_id,
                 nuovo_duvri['nome_progetto'],
+                nuovo_duvri['link_appaltatore'],
                 json.dumps(nuovo_duvri.get('dati_committente', {})),
                 json.dumps(nuovo_duvri.get('dati_appaltatore', {})),
                 json.dumps(nuovo_duvri.get('signatures', {})),
