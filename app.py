@@ -259,7 +259,8 @@ def init_db():
         ("importo_gara_base", "REAL"),
         ("costi_inclusi_gara", "INTEGER DEFAULT 0"),
         ("costi_sicurezza_gara", "REAL"),
-        ("duvri_estar_filename", "TEXT")
+        ("duvri_estar_filename", "TEXT"),
+        ("firme_digitali", "TEXT")
     ]
     
     for colonna, tipo in colonne_da_aggiungere:
@@ -414,6 +415,13 @@ def save_current_duvri_data(data, duvri_id=None):
         print(f"❌ ERRORE save_current_duvri_data: {e}")
         return False
 
+def firme_digitali_da_db(duvri_db):
+    """Legge le firme digitali salvate nel DB (dict vuoto se assenti)"""
+    try:
+        return json.loads(duvri_db['firme_digitali']) if duvri_db['firme_digitali'] else {}
+    except (IndexError, KeyError, ValueError):
+        return {}
+
 def sync_db_to_memory(duvri_id):
     """Sincronizza i dati dal database alla memoria"""
     try:
@@ -429,6 +437,7 @@ def sync_db_to_memory(duvri_id):
             duvri_list[duvri_id]['dati_committente'] = json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {}
             duvri_list[duvri_id]['dati_appaltatore'] = json.loads(duvri_db['appaltatore_data']) if duvri_db['appaltatore_data'] else {}
             duvri_list[duvri_id]['signatures'] = json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
+            duvri_list[duvri_id]['firme_digitali'] = firme_digitali_da_db(duvri_db)
             # Non sovrascrivere un link valido in memoria con un NULL del DB
             if duvri_db['link_appaltatore']:
                 duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
@@ -469,7 +478,8 @@ def sync_all_duvri_from_db():
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
                     'dati_appaltatore': json.loads(duvri_db['appaltatore_data']) if duvri_db['appaltatore_data'] else {},
-                    'signatures': json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
+                    'signatures': json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {},
+                    'firme_digitali': firme_digitali_da_db(duvri_db)
                 }
                 print(f"✅ Sincronizzato DUVRI {duvri_id} da DB a memoria")
 
@@ -738,7 +748,8 @@ def trova_duvri_per_link(link_univoco):
                     'created_at': row['created_at'],
                     'dati_committente': json.loads(row['committente_data']) if row['committente_data'] else {},
                     'dati_appaltatore': json.loads(row['appaltatore_data']) if row['appaltatore_data'] else {},
-                    'signatures': json.loads(row['signatures']) if row['signatures'] else {}
+                    'signatures': json.loads(row['signatures']) if row['signatures'] else {},
+                    'firme_digitali': firme_digitali_da_db(row)
                 }
                 print(f"💾 DUVRI caricato in memoria")
             
@@ -3138,7 +3149,7 @@ def unisci_pdf_duvri(duvri_id, pdf_base_path, output_path_completo):
 
         # 2. Cerca PDF allegati
         print(f"\n🔍 Ricerca allegati per duvri_id: {duvri_id}")
-        cartella_allegati = os.path.join(current_app.config['UPLOAD_FOLDER'], str(duvri_id))
+        cartella_allegati = os.path.join(ALLEGATI_FOLDER, f"duvri_{duvri_id}")
         print(f"📂 Percorso cartella allegati: {cartella_allegati}")
         print(f"📊 Cartella esiste: {os.path.exists(cartella_allegati)}")
 
@@ -3354,7 +3365,7 @@ def download_duvri_pdf(duvri_id):
                 )
 
         # Cerca il PDF nella cartella output
-        output_dir = "output"
+        output_dir = os.path.join(BASE_DIR, "output")
         if os.path.exists(output_dir):
             for file in os.listdir(output_dir):
                 if file.startswith(f"DUVRI_{duvri_id}_"):
@@ -3466,8 +3477,10 @@ def upload_signed(tipo_firma):
                 # Aggiorna anche nel database
                 conn = get_db_connection()
                 conn.execute(
-                    'UPDATE duvri SET stato = ?, updated_at = ? WHERE id = ?',
-                    (duvri_list[duvri_id]['stato'], datetime.now(), duvri_id)
+                    'UPDATE duvri SET stato = ?, firme_digitali = ?, updated_at = ? WHERE id = ?',
+                    (duvri_list[duvri_id]['stato'],
+                     json.dumps(duvri_list[duvri_id]['firme_digitali']),
+                     datetime.now(), duvri_id)
                 )
                 conn.commit()
                 conn.close()
@@ -3504,10 +3517,11 @@ def download_per_firma(tipo_firma):
             data_oggi = datetime.now().strftime('%Y-%m-%d')
             filename_base = f"DUVRI_{nome_ditta}_{data_oggi}.pdf"
             filename_completo = f"DUVRI_{nome_ditta}_{data_oggi}_PER_FIRMA_APPALTATORE.pdf"
-            output_path_base = os.path.join("output", filename_base)
-            output_path_completo = os.path.join("output", filename_completo)
+            output_dir = os.path.join(BASE_DIR, "output")
+            output_path_base = os.path.join(output_dir, filename_base)
+            output_path_completo = os.path.join(output_dir, filename_completo)
 
-            os.makedirs("output", exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
 
             # Genera il PDF base con tutti i dati (sezione 2.6.3 inclusa)
             dati_pdf = prepara_dati_per_pdf(duvri_id, data)
@@ -3630,10 +3644,10 @@ def _genera_pdf_base(duvri_id, destinazione):
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"DUVRI_{duvri_id}_{destinazione}_{timestamp}.pdf"
-    output_path = os.path.join("output", filename)
+    output_path = os.path.join(BASE_DIR, "output", filename)
 
     # Assicurati che la cartella output esista
-    os.makedirs("output", exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "output"), exist_ok=True)
 
     if WEASYPRINT_AVAILABLE:
         HTML(string=html_content).write_pdf(output_path)

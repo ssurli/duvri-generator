@@ -7,3 +7,5 @@ Pillow==10.0.1
 cairocffi==1.6.1
 PyPDF2>=3.0.0
 python-dotenv==1.0.0
+reportlab==4.0.9  # xhtml2pdf 0.2.13 non funziona con reportlab >= 4.1 (ImportError ShowBoundaryValue)
+pydyf==0.10.0  # weasyprint 61.0 non funziona con pydyf >= 0.11
