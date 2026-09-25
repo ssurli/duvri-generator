@@ -503,7 +503,7 @@ def load_all_duvri_from_db():
             duvri_list[duvri_id] = {
                 'id': duvri_id,
                 'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Senza Nome',
-                'link_appaltatore': str(uuid.uuid4()),  # Nuovo link per sicurezza
+                'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # mai cambiare un link già trasmesso
                 'stato': duvri_db['stato'] or 'bozza',
                 'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -2258,7 +2258,7 @@ def emergency_recover():
                 duvri_list[duvri_id] = {
                     'id': duvri_id,
                     'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Recuperato',
-                    'link_appaltatore': str(uuid.uuid4()),  # Nuovo link per sicurezza
+                    'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # mai cambiare un link già trasmesso
                     'stato': duvri_db['stato'] or 'bozza',
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -3894,7 +3894,7 @@ def recover_duvri():
             duvri_list[duvri_id] = {
                 'id': duvri_id,
                 'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Recuperato',
-                'link_appaltatore': str(uuid.uuid4()),
+                'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # mai cambiare un link già trasmesso
                 'stato': duvri_db['stato'] or 'bozza',
                 'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
