@@ -28,6 +28,21 @@
         </p>
     </div>
 
+    <!-- 🆕 LINK DOWNLOAD DUVRI STATICO -->
+    <div class="alert alert-primary d-flex align-items-center justify-content-between flex-wrap">
+        <div class="me-3">
+            <strong>📎 DUVRI Statico di riferimento</strong>
+            <div class="small mb-0">
+                Scarica il DUVRI statico (documento generale di riferimento sui rischi della struttura)
+                da consultare prima di compilare i dati.
+            </div>
+        </div>
+        <a href="{{ url_for('download_pdf', filename='duvri_statico') }}" target="_blank" rel="noopener"
+           class="btn btn-primary mt-2 mt-md-0">
+            ⬇️ Scarica DUVRI Statico (PDF)
+        </a>
+    </div>
+
     <form method="POST">
         
         <!-- ============================================ -->
@@ -332,25 +347,45 @@
             </div>
             <div class="card-body">
                 
+                {% set _mode_costi = (dati_committente.get('modalita_costi', 'automatico') if dati_committente else 'automatico') %}
+                {% set op_required = (_mode_costi == 'automatico') %}
+
+                {% if op_required %}
                 <div class="alert alert-info">
-                    <strong>ℹ️ Informazione:</strong> Questi dati sono utilizzati per il calcolo automatico dei costi di sicurezza da parte del committente.
+                    <strong>ℹ️ Informazione:</strong> Questi dati alimentano il <strong>calcolo automatico</strong>
+                    dei costi di sicurezza da parte del committente e sono quindi obbligatori.
                 </div>
-                
+                {% else %}
+                <div class="alert alert-secondary">
+                    <strong>ℹ️ Informazione:</strong> Il committente ha impostato i costi in modalità
+                    <strong>{{ 'forfettaria' if _mode_costi == 'forfettario' else 'manuale' }}</strong>:
+                    questi parametri <u>non incidono</u> sul calcolo dei costi. Compilali se applicabili,
+                    altrimenti lasciali vuoti — ad es. contratto pluriennale/continuativo con giornate
+                    variabili, oppure operatività su più sedi.
+                </div>
+                {% endif %}
+
                 <div class="row">
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Numero Massimo Addetti *</label>
-                        <input type="number" name="max_addetti" class="form-control" 
-                               value="{{ data.get('max_addetti', '') }}" required min="1"
+                        <label class="form-label fw-bold">Numero Massimo Addetti
+                            {% if op_required %}*{% else %}<small class="text-muted fw-normal">(opzionale)</small>{% endif %}
+                        </label>
+                        <input type="number" name="max_addetti" class="form-control"
+                               value="{{ data.get('max_addetti', '') }}"
+                               {% if op_required %}required min="1"{% else %}min="0"{% endif %}
                                placeholder="es. 3">
-                        <small class="text-muted">Lavoratori presenti contemporaneamente</small>
+                        <small class="text-muted">Lavoratori presenti contemporaneamente{% if not op_required %} (per singola sede in caso di più sedi){% endif %}</small>
                     </div>
-                    
+
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Durata Lavori (giorni) *</label>
-                        <input type="number" name="durata_giorni" class="form-control" 
-                               value="{{ data.get('durata_giorni', '') }}" required min="1"
+                        <label class="form-label fw-bold">Durata Lavori (giorni)
+                            {% if op_required %}*{% else %}<small class="text-muted fw-normal">(opzionale)</small>{% endif %}
+                        </label>
+                        <input type="number" name="durata_giorni" class="form-control"
+                               value="{{ data.get('durata_giorni', '') }}"
+                               {% if op_required %}required min="1"{% else %}min="0"{% endif %}
                                placeholder="es. 10">
-                        <small class="text-muted">Giorni lavorativi previsti</small>
+                        <small class="text-muted">{% if op_required %}Giorni lavorativi previsti{% else %}Lasciare vuoto per contratti continuativi / pluriennali{% endif %}</small>
                     </div>
                     
                     <div class="col-md-4">

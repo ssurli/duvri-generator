@@ -1791,6 +1791,30 @@ def compila_committente():
     duvri = duvri_list[duvri_id]
 
     if request.method == 'POST':
+        # 🆕 RSPP COMMITTENTE — supporto selezione multipla.
+        # Le aree possono essere selezionate singolarmente o entrambe (appalto su
+        # zone diverse). I nominativi/email vengono composti lato server per non
+        # dipendere dal JavaScript ed essere robusti anche con JS disabilitato.
+        RSPP_AREE_MAP = {
+            'nord': ('Ing. Milena Pepe', 'milena.pepe@uslnordovest.toscana.it'),
+            'sud': ('Ing. Maria Rosaria Libone', 'mariarosaria.libone@uslnordovest.toscana.it'),
+        }
+        rspp_aree = request.form.getlist('rspp_aree')
+        rspp_nomi, rspp_emails = [], []
+        for area in ('nord', 'sud'):
+            if area in rspp_aree:
+                nome_area, email_area = RSPP_AREE_MAP[area]
+                rspp_nomi.append(nome_area)
+                rspp_emails.append(email_area)
+        rspp_nome_manuale = request.form.get('rspp_nome_manuale', '').strip()
+        rspp_email_manuale = request.form.get('rspp_email_manuale', '').strip()
+        if 'altro' in rspp_aree and rspp_nome_manuale:
+            rspp_nomi.append(rspp_nome_manuale)
+            if rspp_email_manuale:
+                rspp_emails.append(rspp_email_manuale)
+        rspp_nome_finale = ' / '.join(rspp_nomi)
+        rspp_email_finale = ' / '.join(rspp_emails)
+
         # Processa il form
         dati_committente = {
             'nome': request.form.get('nome'),
@@ -1809,6 +1833,9 @@ def compila_committente():
             'tipologia_struttura': request.form.get('tipologia_struttura'),
             'tipologia_struttura_altro': request.form.get('tipologia_struttura_altro', ''),  # 🆕 Campo "Altro" manuale
             'area_installazione': request.form.get('area_installazione'),
+            # 🆕 Operatività su più sedi/province (Lucca, Versilia, Massa, Pisa, Livorno)
+            'multi_sede': 'multi_sede' in request.form,
+            'sedi_operative': request.form.getlist('sedi_operative'),
             'presenza_pazienti': request.form.get('presenza_pazienti'),
             'alimentazione_disponibile': request.form.get('alimentazione_disponibile'),
             'tipo_pavimento': request.form.get('tipo_pavimento'),
@@ -1843,9 +1870,13 @@ def compila_committente():
             'costi_inclusi_gara': 'costi_inclusi_gara' in request.form,
             'costi_sicurezza_gara': request.form.get('costi_sicurezza_gara', '0'),
 
-            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26)
-            'rspp_nome': request.form.get('rspp_nome', ''),
-            'rspp_email': request.form.get('rspp_email', '')
+            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26) — composti dalle aree selezionate
+            'rspp_nome': rspp_nome_finale,
+            'rspp_email': rspp_email_finale,
+            # Campi ausiliari per ripopolare correttamente il form in modifica
+            'rspp_aree': rspp_aree,
+            'rspp_nome_manuale': rspp_nome_manuale,
+            'rspp_email_manuale': rspp_email_manuale
         }
         
         # 🆕 GESTIONE UPLOAD DUVRI ESTAR
@@ -2050,8 +2081,14 @@ def appaltatore_form(link_univoco):
         print("📝 SALVATAGGIO APPALTATORE ESTERNO")
         print("="*80)
 
-        # ✅ 1. VALIDA i dati prima di salvare
-        errori = valida_dati_appaltatore(request.form)
+        # ✅ 1. VALIDA i dati prima di salvare.
+        # I parametri operativi (max addetti/durata) sono obbligatori solo se
+        # il committente usa il calcolo automatico dei costi; in forfettario/
+        # manuale non incidono e restano facoltativi.
+        committente_corrente = get_current_duvri_data().get('committente', {})
+        modalita_costi_committente = committente_corrente.get('modalita_costi', 'automatico')
+        richiedi_operativi = (modalita_costi_committente == 'automatico')
+        errori = valida_dati_appaltatore(request.form, richiedi_operativi=richiedi_operativi)
 
         if errori:
             # ✅ 2. In caso di errori, RIMANI sul form
@@ -2118,8 +2155,15 @@ def appaltatore_form(link_univoco):
                          duvri_id=duvri_id,
                          current_duvri_id=duvri_id)
 
-def valida_dati_appaltatore(form_data):
-    """Valida i dati obbligatori del form appaltatore"""
+def valida_dati_appaltatore(form_data, richiedi_operativi=True):
+    """Valida i dati obbligatori del form appaltatore.
+
+    richiedi_operativi: se True (committente in modalità calcolo costi
+    'automatico') max_addetti è obbligatorio perché alimenta la formula.
+    Se False (forfettario/manuale) i parametri operativi non incidono sul
+    calcolo e restano facoltativi (es. contratti pluriennali/continuativi o
+    operatività su più sedi in cui addetti/durata perdono di significato).
+    """
     errori = []
 
     # Campi obbligatori (come definito nel template con required)
@@ -2153,12 +2197,9 @@ def valida_dati_appaltatore(form_data):
     if not form_data.get('resp_appalto_nome', '').strip():
         errori.append('Il nominativo del responsabile appalto è obbligatorio')
 
-    try:
-        max_addetti = int(form_data.get('max_addetti') or 0)
-    except ValueError:
-        max_addetti = 0
-    if max_addetti < 1:
-        errori.append('Il numero massimo di addetti deve essere almeno 1')
+    if richiedi_operativi:
+        if not form_data.get('max_addetti') or safe_float(form_data.get('max_addetti')) < 1:
+            errori.append('Il numero massimo di addetti deve essere almeno 1')
 
     return errori
 
@@ -2193,11 +2234,14 @@ def appaltatore_duvri(link_univoco):
 
     # Mostra direttamente il form appaltatore
     data = duvri_trovato.get('dati_appaltatore', {})
+    dati_committente = duvri_trovato.get('dati_committente', {})
     return render_template('appaltatore_form.html',
                          data=data,
+                         dati_committente=dati_committente,
                          rischi_paragrafi=RISCHI_PARAGRAFI,
                          rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+                         duvri_id=duvri_id,
+                         current_duvri_id=duvri_id)
 
 @app.route('/emergency_recover')
 def emergency_recover():
