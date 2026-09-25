@@ -4,9 +4,9 @@
 
 Flask==2.3.3
 Werkzeug==2.3.7
-xhtml2pdf==0.2.13
+xhtml2pdf==0.2.16
 Jinja2==3.1.2
 Pillow>=10.0.1  # 10.0.1 non ha wheel per Python 3.13 (build da sorgente fallisce)
 PyPDF2>=3.0.0
 python-dotenv==1.0.0
-reportlab==4.0.9  # xhtml2pdf 0.2.13 non funziona con reportlab >= 4.1 (ImportError ShowBoundaryValue)
+reportlab==4.2.5  # xhtml2pdf 0.2.13 non funzionava con reportlab >= 4.1; 0.2.16 si (versioni in produzione)
