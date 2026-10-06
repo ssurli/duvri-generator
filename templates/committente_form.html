@@ -185,53 +185,67 @@
                     <h6 class="mb-2">🛡️ RSPP Committente (D.Lgs. 81/08 - Art. 26)</h6>
                     <p class="small mb-2">
                         Ai sensi dell'art. 26 del D.Lgs. 81/08, il RSPP aziendale è figura consultiva
-                        per la redazione del DUVRI. Seleziona il RSPP di riferimento.
+                        per la redazione del DUVRI. Seleziona il/i RSPP di riferimento.
+                        <br><strong>In caso di appalto su più zone/province è possibile selezionare entrambi
+                        gli RSPP di area.</strong>
                     </p>
+
+                    {% set rspp_nome_val = data.get('rspp_nome', '') %}
+                    {% set rspp_aree_sel = data.get('rspp_aree', []) %}
+                    {% set legacy_manual = rspp_nome_val and 'Milena Pepe' not in rspp_nome_val and 'Maria Rosaria Libone' not in rspp_nome_val %}
+                    {% set has_nord = ('nord' in rspp_aree_sel) or ('Milena Pepe' in rspp_nome_val) %}
+                    {% set has_sud = ('sud' in rspp_aree_sel) or ('Maria Rosaria Libone' in rspp_nome_val) %}
+                    {% set rspp_nome_manuale_val = data.get('rspp_nome_manuale', '') or (rspp_nome_val if legacy_manual else '') %}
+                    {% set rspp_email_manuale_val = data.get('rspp_email_manuale', '') or (data.get('rspp_email', '') if legacy_manual else '') %}
+                    {% set has_altro = ('altro' in rspp_aree_sel) or (rspp_nome_manuale_val != '') %}
+
                     <div class="row">
                         <div class="col-md-12">
-                            <label class="form-label fw-bold">Seleziona RSPP Aziendale</label>
-                            <select id="rspp_select" class="form-select" onchange="aggiornaRSPP()">
-                                <option value="">-- Nessun RSPP --</option>
-                                <option value="nord"
-                                    {{ 'selected' if data.get('rspp_nome') == 'Ing. Milena Pepe' else '' }}>
-                                    🌐 RSPP Area Nord - Ing. Milena Pepe
-                                </option>
-                                <option value="sud"
-                                    {{ 'selected' if data.get('rspp_nome') == 'Ing. Maria Rosaria Libone' else '' }}>
-                                    🌐 RSPP Area Sud - Ing. Maria Rosaria Libone
-                                </option>
-                                <option value="altro"
-                                    {{ 'selected' if data.get('rspp_nome') and data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else '' }}>
-                                    📝 Altro RSPP (inserimento manuale)
-                                </option>
-                            </select>
+                            <label class="form-label fw-bold">Seleziona RSPP Aziendale (uno o più)</label>
 
-                            <!-- Campi nascosti per inviare i dati al backend -->
-                            <input type="hidden" name="rspp_nome" id="rspp_nome" value="{{ data.get('rspp_nome', '') }}">
-                            <input type="hidden" name="rspp_email" id="rspp_email" value="{{ data.get('rspp_email', '') }}">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="rspp_aree" value="nord"
+                                       id="rspp_nord" {{ 'checked' if has_nord else '' }}>
+                                <label class="form-check-label" for="rspp_nord">
+                                    🌐 RSPP Area Nord - Ing. Milena Pepe
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="rspp_aree" value="sud"
+                                       id="rspp_sud" {{ 'checked' if has_sud else '' }}>
+                                <label class="form-check-label" for="rspp_sud">
+                                    🌐 RSPP Area Sud - Ing. Maria Rosaria Libone
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="rspp_aree" value="altro"
+                                       id="rspp_altro" {{ 'checked' if has_altro else '' }}
+                                       onchange="toggleRSPPManuale()">
+                                <label class="form-check-label" for="rspp_altro">
+                                    📝 Altro RSPP (inserimento manuale)
+                                </label>
+                            </div>
 
                             <!-- Campi manuali (visibili solo se "Altro") -->
-                            <div id="rspp_manuale_section" class="mt-3" style="display: {{ 'block' if data.get('rspp_nome') and data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else 'none' }};">
+                            <div id="rspp_manuale_section" class="mt-3" style="display: {{ 'block' if has_altro else 'none' }};">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label class="form-label">Nome e Cognome RSPP</label>
-                                        <input type="text" id="rspp_nome_manuale" class="form-control"
-                                               value="{{ data.get('rspp_nome', '') if data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else '' }}"
-                                               placeholder="es. Dott. Giovanni Bianchi"
-                                               onchange="aggiornaRSPP()">
+                                        <input type="text" name="rspp_nome_manuale" id="rspp_nome_manuale" class="form-control"
+                                               value="{{ rspp_nome_manuale_val }}"
+                                               placeholder="es. Dott. Giovanni Bianchi">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Email RSPP</label>
-                                        <input type="email" id="rspp_email_manuale" class="form-control"
-                                               value="{{ data.get('rspp_email', '') if data.get('rspp_nome') not in ['Ing. Milena Pepe', 'Ing. Maria Rosaria Libone'] else '' }}"
-                                               placeholder="rspp@azienda.it"
-                                               onchange="aggiornaRSPP()">
+                                        <input type="email" name="rspp_email_manuale" id="rspp_email_manuale" class="form-control"
+                                               value="{{ rspp_email_manuale_val }}"
+                                               placeholder="rspp@azienda.it">
                                     </div>
                                 </div>
                             </div>
 
                             <small class="text-muted d-block mt-2">
-                                ℹ️ Il RSPP selezionato riceverà il DUVRI finale per consultazione
+                                ℹ️ Il/I RSPP selezionati riceveranno il DUVRI finale per consultazione
                             </small>
                         </div>
                     </div>
@@ -392,11 +406,11 @@
                     
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Area Installazione *</label>
-                        <input type="text" name="area_installazione" class="form-control" 
+                        <input type="text" name="area_installazione" class="form-control"
                                value="{{ data.get('area_installazione', '') }}" required
                                placeholder="es. Reparto Endoscopia, 2° piano">
                     </div>
-                    
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Presenza Pazienti *</label>
                         <select name="presenza_pazienti" class="form-select" required>
@@ -413,7 +427,43 @@
                         </select>
                     </div>
                 </div>
-                
+
+                <!-- 🆕 AREA INSTALLAZIONI SU PIÙ SEDI / PROVINCE -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-light border mb-0">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="multi_sede" name="multi_sede"
+                                       {{ 'checked' if data.get('multi_sede') else '' }} onchange="toggleMultiSede()">
+                                <label class="form-check-label fw-bold" for="multi_sede">
+                                    🗺️ Il contratto prevede operatività su più sedi / province
+                                </label>
+                            </div>
+                            {% set sedi_sel = data.get('sedi_operative', []) %}
+                            <div id="sedi_operative_section" class="mt-2"
+                                 style="display: {{ 'block' if data.get('multi_sede') or sedi_sel else 'none' }};">
+                                <label class="form-label">Seleziona le province / sedi interessate:</label>
+                                <div class="row">
+                                    {% for prov in ['Lucca', 'Versilia', 'Massa', 'Pisa', 'Livorno'] %}
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" name="sedi_operative"
+                                                   value="{{ prov }}" id="sede_{{ prov|lower }}"
+                                                   {{ 'checked' if prov in sedi_sel else '' }}>
+                                            <label class="form-check-label" for="sede_{{ prov|lower }}">{{ prov }}</label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    ℹ️ Le sedi selezionate saranno riportate nel DUVRI generato. In caso di più zone,
+                                    ricordati di selezionare <strong>entrambi gli RSPP di area</strong> nella sezione soprastante.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <label class="form-label fw-bold">Orari Lavori Consentiti</label>
@@ -697,37 +747,23 @@ function toggleTipologiaAltro() {
     altroSection.style.display = select.value === 'altro' ? 'block' : 'none';
 }
 
-// Funzione per aggiornare i campi RSPP in base alla selezione
-function aggiornaRSPP() {
-    const select = document.getElementById('rspp_select');
-    const nomeHidden = document.getElementById('rspp_nome');
-    const emailHidden = document.getElementById('rspp_email');
+// Mostra/nasconde i campi manuali RSPP in base alla checkbox "Altro RSPP".
+// I nominativi degli RSPP di area vengono composti lato server dai valori
+// delle checkbox selezionate (una o entrambe le aree + eventuale manuale).
+function toggleRSPPManuale() {
+    const altro = document.getElementById('rspp_altro');
     const manualeSection = document.getElementById('rspp_manuale_section');
-    const nomeManuale = document.getElementById('rspp_nome_manuale');
-    const emailManuale = document.getElementById('rspp_email_manuale');
+    if (altro && manualeSection) {
+        manualeSection.style.display = altro.checked ? 'block' : 'none';
+    }
+}
 
-    const value = select.value;
-
-    if (value === 'nord') {
-        // RSPP Area Nord
-        nomeHidden.value = 'Ing. Milena Pepe';
-        emailHidden.value = 'milena.pepe@uslnordovest.toscana.it';
-        manualeSection.style.display = 'none';
-    } else if (value === 'sud') {
-        // RSPP Area Sud
-        nomeHidden.value = 'Ing. Maria Rosaria Libone';
-        emailHidden.value = 'mariarosaria.libone@uslnordovest.toscana.it';
-        manualeSection.style.display = 'none';
-    } else if (value === 'altro') {
-        // Inserimento manuale
-        nomeHidden.value = nomeManuale.value;
-        emailHidden.value = emailManuale.value;
-        manualeSection.style.display = 'block';
-    } else {
-        // Nessun RSPP
-        nomeHidden.value = '';
-        emailHidden.value = '';
-        manualeSection.style.display = 'none';
+// Mostra/nasconde l'elenco province quando il contratto prevede più sedi.
+function toggleMultiSede() {
+    const multi = document.getElementById('multi_sede');
+    const section = document.getElementById('sedi_operative_section');
+    if (multi && section) {
+        section.style.display = multi.checked ? 'block' : 'none';
     }
 }
 

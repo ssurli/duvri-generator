@@ -259,7 +259,8 @@ def init_db():
         ("importo_gara_base", "REAL"),
         ("costi_inclusi_gara", "INTEGER DEFAULT 0"),
         ("costi_sicurezza_gara", "REAL"),
-        ("duvri_estar_filename", "TEXT")
+        ("duvri_estar_filename", "TEXT"),
+        ("firme_digitali", "TEXT")
     ]
     
     for colonna, tipo in colonne_da_aggiungere:
@@ -349,9 +350,9 @@ def init_db():
     
     conn.close()
     print("✅ Database inizializzato")
-def get_current_duvri_data():
-    """Ottiene i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
+def get_current_duvri_data(duvri_id=None):
+    """Ottiene i dati del DUVRI corrente (o di quello indicato)"""
+    duvri_id = duvri_id or session.get('current_duvri_id')
 
     if not duvri_id:
         return {"committente": {}, "appaltatore": {}, "signatures": {}}
@@ -375,48 +376,9 @@ def get_current_duvri_data():
         print(f"❌ ERRORE get_current_duvri_data: {e}")
         return {"committente": {}, "appaltatore": {}, "signatures": {}}
 
-def save_current_duvri_data(data):
-    """Salva i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
-
-    if not duvri_id:
-        return False
-
-    try:
-        conn = get_db_connection()
-        
-        # Salva anche link_appaltatore se presente in memoria
-        link_appaltatore = None
-        if duvri_id in duvri_list:
-            link_appaltatore = duvri_list[duvri_id].get('link_appaltatore')
-        
-        conn.execute(
-            '''UPDATE duvri SET
-               committente_data = ?, appaltatore_data = ?, signatures = ?, 
-               link_appaltatore = ?, updated_at = ?
-               WHERE id = ?''',
-            (
-                json.dumps(data.get('committente', {})),
-                json.dumps(data.get('appaltatore', {})),
-                json.dumps(data.get('signatures', {})),
-                link_appaltatore,
-                datetime.now(),
-                duvri_id
-            )
-        )
-        conn.commit()
-        conn.close()
-
-        sync_db_to_memory(duvri_id)
-        return True
-
-    except Exception as e:
-        print(f"❌ ERRORE save_current_duvri_data: {e}")
-        return False
-
-def save_current_duvri_data(data):
-    """Salva i dati del DUVRI corrente"""
-    duvri_id = session.get('current_duvri_id')
+def save_current_duvri_data(data, duvri_id=None):
+    """Salva i dati del DUVRI corrente (o di quello indicato)"""
+    duvri_id = duvri_id or session.get('current_duvri_id')
 
     if not duvri_id:
         return False
@@ -453,6 +415,13 @@ def save_current_duvri_data(data):
         print(f"❌ ERRORE save_current_duvri_data: {e}")
         return False
 
+def firme_digitali_da_db(duvri_db):
+    """Legge le firme digitali salvate nel DB (dict vuoto se assenti)"""
+    try:
+        return json.loads(duvri_db['firme_digitali']) if duvri_db['firme_digitali'] else {}
+    except (IndexError, KeyError, ValueError):
+        return {}
+
 def sync_db_to_memory(duvri_id):
     """Sincronizza i dati dal database alla memoria"""
     try:
@@ -468,7 +437,10 @@ def sync_db_to_memory(duvri_id):
             duvri_list[duvri_id]['dati_committente'] = json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {}
             duvri_list[duvri_id]['dati_appaltatore'] = json.loads(duvri_db['appaltatore_data']) if duvri_db['appaltatore_data'] else {}
             duvri_list[duvri_id]['signatures'] = json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
-            duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
+            duvri_list[duvri_id]['firme_digitali'] = firme_digitali_da_db(duvri_db)
+            # Non sovrascrivere un link valido in memoria con un NULL del DB
+            if duvri_db['link_appaltatore']:
+                duvri_list[duvri_id]['link_appaltatore'] = duvri_db['link_appaltatore']
             print(f"✅ Sincronizzato DUVRI {duvri_id} da DB a memoria")
 
     except Exception as e:
@@ -488,15 +460,26 @@ def sync_all_duvri_from_db():
         for duvri_db in duvri_from_db:
             duvri_id = duvri_db['id']
             if duvri_id not in duvri_list:
+                link_appaltatore = duvri_db['link_appaltatore']
+                if not link_appaltatore:
+                    # Link mancante nel DB: generalo e persistilo subito
+                    link_appaltatore = str(uuid.uuid4())
+                    conn = get_db_connection()
+                    conn.execute('UPDATE duvri SET link_appaltatore = ? WHERE id = ?',
+                                 (link_appaltatore, duvri_id))
+                    conn.commit()
+                    conn.close()
+                    print(f"🔗 Link appaltatore mancante per {duvri_id}: generato e salvato")
                 duvri_list[duvri_id] = {
                     'id': duvri_id,
                     'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Senza Nome',
-                    'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # ✅ CARICA DA DB
+                    'link_appaltatore': link_appaltatore,
                     'stato': duvri_db['stato'] or 'bozza',
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
                     'dati_appaltatore': json.loads(duvri_db['appaltatore_data']) if duvri_db['appaltatore_data'] else {},
-                    'signatures': json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {}
+                    'signatures': json.loads(duvri_db['signatures']) if duvri_db['signatures'] else {},
+                    'firme_digitali': firme_digitali_da_db(duvri_db)
                 }
                 print(f"✅ Sincronizzato DUVRI {duvri_id} da DB a memoria")
 
@@ -520,7 +503,7 @@ def load_all_duvri_from_db():
             duvri_list[duvri_id] = {
                 'id': duvri_id,
                 'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Senza Nome',
-                'link_appaltatore': str(uuid.uuid4()),  # Nuovo link per sicurezza
+                'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # mai cambiare un link già trasmesso
                 'stato': duvri_db['stato'] or 'bozza',
                 'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -765,7 +748,8 @@ def trova_duvri_per_link(link_univoco):
                     'created_at': row['created_at'],
                     'dati_committente': json.loads(row['committente_data']) if row['committente_data'] else {},
                     'dati_appaltatore': json.loads(row['appaltatore_data']) if row['appaltatore_data'] else {},
-                    'signatures': json.loads(row['signatures']) if row['signatures'] else {}
+                    'signatures': json.loads(row['signatures']) if row['signatures'] else {},
+                    'firme_digitali': firme_digitali_da_db(row)
                 }
                 print(f"💾 DUVRI caricato in memoria")
             
@@ -782,12 +766,13 @@ def trova_duvri_per_link(link_univoco):
 
 def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     """Salva i dati dell'appaltatore in modo unificato"""
-    # Salva in memoria
-    if duvri_id in duvri_list:
-        duvri_list[duvri_id]['dati_appaltatore'] = dati_appaltatore
+    # Carica dal database il DUVRI indicato (non quello in sessione)
+    current_data = get_current_duvri_data(duvri_id)
 
-    # Salva nel database
-    current_data = get_current_duvri_data()
+    # Merge con i dati esistenti: il form non contiene i campi dei costi
+    # (costo_*, costi_modificati_manualmente, note_costi_sicurezza...),
+    # che altrimenti andrebbero persi a ogni nuovo salvataggio
+    dati_appaltatore = {**current_data.get('appaltatore', {}), **dati_appaltatore}
     current_data['appaltatore'] = dati_appaltatore
     
     # 🆕 CALCOLO AUTOMATICO COSTI SICUREZZA
@@ -827,7 +812,8 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
     if duvri_id in duvri_list:
         duvri_list[duvri_id]['dati_appaltatore'] = dati_appaltatore
     
-    save_current_duvri_data(current_data)
+    if not save_current_duvri_data(current_data, duvri_id):
+        return False
 
     # Aggiorna stato senza sovrascrivere uno stato di firma già raggiunto
     if duvri_id in duvri_list:
@@ -837,6 +823,24 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
                 duvri['stato'] = 'completato'
             else:
                 duvri['stato'] = 'in compilazione'
+            # Persisti lo stato: altrimenti al riavvio torna 'bozza'
+            try:
+                conn = get_db_connection()
+                conn.execute('UPDATE duvri SET stato = ? WHERE id = ?', (duvri['stato'], duvri_id))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"❌ Errore salvataggio stato: {e}")
+
+    return True
+
+def appaltatore_compilato(dati_appaltatore):
+    """True solo se l'appaltatore ha davvero salvato il form.
+
+    appaltatore_data può contenere solo costi calcolati o la lista allegati
+    (scritti da altre pagine): non bastano per considerarlo compilato.
+    """
+    return bool(dati_appaltatore and dati_appaltatore.get('ragione_sociale'))
 
 def valida_duvri_access(duvri_id):
     """Valida l'accesso a un DUVRI"""
@@ -1712,6 +1716,7 @@ def admin_dashboard():
                          current_duvri_id=session.get('current_duvri_id'))
 
 @app.route('/scarica_duvri_estar/<duvri_id>')
+@login_required
 def scarica_duvri_estar(duvri_id):
     """Scarica il DUVRI ESTAR allegato"""
     
@@ -1728,7 +1733,7 @@ def scarica_duvri_estar(duvri_id):
     
     if not duvri or not duvri['duvri_estar_filename']:
         flash('File non trovato', 'warning')
-        return redirect(url_for('committente_form'))
+        return redirect(url_for('compila_committente', duvri_id=duvri_id))
     
     filename = duvri['duvri_estar_filename']
     filepath = os.path.join(app.config['UPLOAD_FOLDER_DUVRI_ESTAR'], filename)
@@ -1737,9 +1742,10 @@ def scarica_duvri_estar(duvri_id):
         return send_file(filepath, as_attachment=True)
     else:
         flash('File non trovato sul server', 'danger')
-        return redirect(url_for('committente_form'))
+        return redirect(url_for('compila_committente', duvri_id=duvri_id))
         
 @app.route('/nuovo_duvri')
+@login_required
 def nuovo_duvri():
     """Crea un nuovo DUVRI con link univoco per l'appaltatore"""
     nome_progetto = request.args.get('nome', 'Nuovo Progetto')
@@ -1765,8 +1771,8 @@ def nuovo_duvri():
     try:
         conn = get_db_connection()
         conn.execute(
-            'INSERT INTO duvri (id, nome_progetto, created_at, updated_at) VALUES (?, ?, ?, ?)',
-            (duvri_id, nome_progetto, datetime.now(), datetime.now())
+            'INSERT INTO duvri (id, nome_progetto, link_appaltatore, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+            (duvri_id, nome_progetto, link_appaltatore, datetime.now(), datetime.now())
         )
         conn.commit()
         conn.close()
@@ -1795,6 +1801,30 @@ def compila_committente():
     duvri = duvri_list[duvri_id]
 
     if request.method == 'POST':
+        # 🆕 RSPP COMMITTENTE — supporto selezione multipla.
+        # Le aree possono essere selezionate singolarmente o entrambe (appalto su
+        # zone diverse). I nominativi/email vengono composti lato server per non
+        # dipendere dal JavaScript ed essere robusti anche con JS disabilitato.
+        RSPP_AREE_MAP = {
+            'nord': ('Ing. Milena Pepe', 'milena.pepe@uslnordovest.toscana.it'),
+            'sud': ('Ing. Maria Rosaria Libone', 'mariarosaria.libone@uslnordovest.toscana.it'),
+        }
+        rspp_aree = request.form.getlist('rspp_aree')
+        rspp_nomi, rspp_emails = [], []
+        for area in ('nord', 'sud'):
+            if area in rspp_aree:
+                nome_area, email_area = RSPP_AREE_MAP[area]
+                rspp_nomi.append(nome_area)
+                rspp_emails.append(email_area)
+        rspp_nome_manuale = request.form.get('rspp_nome_manuale', '').strip()
+        rspp_email_manuale = request.form.get('rspp_email_manuale', '').strip()
+        if 'altro' in rspp_aree and rspp_nome_manuale:
+            rspp_nomi.append(rspp_nome_manuale)
+            if rspp_email_manuale:
+                rspp_emails.append(rspp_email_manuale)
+        rspp_nome_finale = ' / '.join(rspp_nomi)
+        rspp_email_finale = ' / '.join(rspp_emails)
+
         # Processa il form
         dati_committente = {
             'nome': request.form.get('nome'),
@@ -1813,6 +1843,9 @@ def compila_committente():
             'tipologia_struttura': request.form.get('tipologia_struttura'),
             'tipologia_struttura_altro': request.form.get('tipologia_struttura_altro', ''),  # 🆕 Campo "Altro" manuale
             'area_installazione': request.form.get('area_installazione'),
+            # 🆕 Operatività su più sedi/province (Lucca, Versilia, Massa, Pisa, Livorno)
+            'multi_sede': 'multi_sede' in request.form,
+            'sedi_operative': request.form.getlist('sedi_operative'),
             'presenza_pazienti': request.form.get('presenza_pazienti'),
             'alimentazione_disponibile': request.form.get('alimentazione_disponibile'),
             'tipo_pavimento': request.form.get('tipo_pavimento'),
@@ -1847,9 +1880,13 @@ def compila_committente():
             'costi_inclusi_gara': 'costi_inclusi_gara' in request.form,
             'costi_sicurezza_gara': request.form.get('costi_sicurezza_gara', '0'),
 
-            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26)
-            'rspp_nome': request.form.get('rspp_nome', ''),
-            'rspp_email': request.form.get('rspp_email', '')
+            # 🆕 CAMPI RSPP (D.Lgs. 81/08 Art. 26) — composti dalle aree selezionate
+            'rspp_nome': rspp_nome_finale,
+            'rspp_email': rspp_email_finale,
+            # Campi ausiliari per ripopolare correttamente il form in modifica
+            'rspp_aree': rspp_aree,
+            'rspp_nome_manuale': rspp_nome_manuale,
+            'rspp_email_manuale': rspp_email_manuale
         }
         
         # 🆕 GESTIONE UPLOAD DUVRI ESTAR
@@ -1861,6 +1898,18 @@ def compila_committente():
                 if duvri_estar_filename:
                     dati_committente['duvri_estar_filename'] = duvri_estar_filename
                     flash('✅ DUVRI ESTAR caricato con successo', 'success')
+
+        # Nessun nuovo file: mantieni quello già caricato (prima veniva azzerato
+        # a ogni salvataggio del form committente)
+        if not duvri_estar_filename:
+            duvri_estar_filename = (duvri.get('dati_committente') or {}).get('duvri_estar_filename')
+            if not duvri_estar_filename:
+                conn = get_db_connection()
+                riga = conn.execute('SELECT duvri_estar_filename FROM duvri WHERE id = ?', (duvri_id,)).fetchone()
+                conn.close()
+                duvri_estar_filename = riga['duvri_estar_filename'] if riga else None
+            if duvri_estar_filename:
+                dati_committente['duvri_estar_filename'] = duvri_estar_filename
 
         # Salva i dati in memoria
         duvri['dati_committente'] = dati_committente
@@ -1907,7 +1956,14 @@ def compila_committente():
         save_current_duvri_data(current_data)
 
         # 🆕 RICALCOLA COSTI APPALTATORE se esiste e se modalità è cambiata
-        if current_data.get('appaltatore') and current_data['appaltatore'].get('max_addetti'):
+        # In modalità automatica i costi modificati a mano non vanno ricalcolati
+        # (stessa regola di salva_dati_appaltatore_unificato e summary)
+        costi_manuali_appaltatore = (
+            dati_committente.get('modalita_costi', 'automatico') == 'automatico'
+            and current_data.get('appaltatore', {}).get('costi_modificati_manualmente')
+        )
+        if (current_data.get('appaltatore') and current_data['appaltatore'].get('max_addetti')
+                and not costi_manuali_appaltatore):
             modalita_costi = dati_committente.get('modalita_costi', 'automatico')
             print(f"\n🔄 Committente salvato - Ricalcolo costi per modalità: {modalita_costi}")
 
@@ -1938,10 +1994,15 @@ def compila_committente():
         # Modificare i dati committente non deve mai far apparire il DUVRI come
         # "firmato": lo stato di firma si imposta solo caricando un PDF firmato.
         if duvri.get('stato') not in STATI_FIRMATI:
-            if duvri['dati_appaltatore']:
+            if appaltatore_compilato(duvri.get('dati_appaltatore')):
                 duvri['stato'] = 'completato'
             else:
                 duvri['stato'] = 'in compilazione'
+            # Persisti lo stato: altrimenti al riavvio torna 'bozza'
+            conn = get_db_connection()
+            conn.execute('UPDATE duvri SET stato = ? WHERE id = ?', (duvri['stato'], duvri_id))
+            conn.commit()
+            conn.close()
 
         flash('✅ Dati committente salvati con successo!', 'success')
 
@@ -1967,6 +2028,7 @@ def compila_committente():
                          current_duvri_id=duvri_id)
 
 @app.route('/compila_appaltatore', methods=['GET', 'POST'])
+@login_required
 def compila_appaltatore():
     """Route per admin - compila dati appaltatore"""
     duvri_id = request.args.get('duvri_id') or session.get('current_duvri_id')
@@ -1993,7 +2055,7 @@ def compila_appaltatore():
 
         # 🆕 VERIFICA DOPO IL SALVATAGGIO
         print("\n📊 VERIFICA DATI SALVATI:")
-        data_check = get_current_duvri_data()
+        data_check = get_current_duvri_data(duvri_id)
         app_check = data_check.get('appaltatore', {})
         print(f"   Costi presenti: {app_check.get('costi_presenti', False)}")
         print(f"   Costo incontri: {app_check.get('costo_incontri', 'NON PRESENTE')}")
@@ -2008,7 +2070,7 @@ def compila_appaltatore():
 
     # GET: carica dati dal database (non dalla memoria!)
     print(f"\n📖 Caricamento form appaltatore - DUVRI {duvri_id}")
-    current_data = get_current_duvri_data()
+    current_data = get_current_duvri_data(duvri_id)
     data = current_data.get('appaltatore', {})
     dati_committente = current_data.get('committente', {})
 
@@ -2054,8 +2116,14 @@ def appaltatore_form(link_univoco):
         print("📝 SALVATAGGIO APPALTATORE ESTERNO")
         print("="*80)
 
-        # ✅ 1. VALIDA i dati prima di salvare
-        errori = valida_dati_appaltatore(request.form)
+        # ✅ 1. VALIDA i dati prima di salvare.
+        # I parametri operativi (max addetti/durata) sono obbligatori solo se
+        # il committente usa il calcolo automatico dei costi; in forfettario/
+        # manuale non incidono e restano facoltativi.
+        committente_corrente = get_current_duvri_data().get('committente', {})
+        modalita_costi_committente = committente_corrente.get('modalita_costi', 'automatico')
+        richiedi_operativi = (modalita_costi_committente == 'automatico')
+        errori = valida_dati_appaltatore(request.form, richiedi_operativi=richiedi_operativi)
 
         if errori:
             # ✅ 2. In caso di errori, RIMANI sul form
@@ -2068,8 +2136,10 @@ def appaltatore_form(link_univoco):
             current_data = get_current_duvri_data()
             dati_committente = current_data.get('committente', {})
 
+            # processa_form_ restituisce un dict con 'rischi' come lista:
+            # con request.form (MultiDict) le checkbox dei rischi andrebbero perse
             return render_template('appaltatore_form.html',
-                                 data=request.form,
+                                 data=processa_form_(request),
                                  dati_committente=dati_committente,
                                  rischi_paragrafi=RISCHI_PARAGRAFI,
                                  rischi_hta=RISCHI_HTA,
@@ -2084,7 +2154,17 @@ def appaltatore_form(link_univoco):
         print(f"   Max addetti: {dati_appaltatore.get('max_addetti')}")
         print(f"   Durata giorni: {dati_appaltatore.get('durata_giorni')}")
 
-        salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore)
+        if not salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
+            print("❌ Salvataggio fallito")
+            flash('❌ Errore durante il salvataggio. Riprova o contatta il committente.', 'danger')
+            current_data = get_current_duvri_data(duvri_id)
+            return render_template('appaltatore_form.html',
+                                 data=dati_appaltatore,
+                                 dati_committente=current_data.get('committente', {}),
+                                 rischi_paragrafi=RISCHI_PARAGRAFI,
+                                 rischi_hta=RISCHI_HTA,
+                                 duvri_id=duvri_id,
+                                 current_duvri_id=duvri_id)
 
         print("✅ Dati salvati - Redirect a summary")
         print("="*80 + "\n")
@@ -2110,8 +2190,15 @@ def appaltatore_form(link_univoco):
                          duvri_id=duvri_id,
                          current_duvri_id=duvri_id)
 
-def valida_dati_appaltatore(form_data):
-    """Valida i dati obbligatori del form appaltatore"""
+def valida_dati_appaltatore(form_data, richiedi_operativi=True):
+    """Valida i dati obbligatori del form appaltatore.
+
+    richiedi_operativi: se True (committente in modalità calcolo costi
+    'automatico') max_addetti è obbligatorio perché alimenta la formula.
+    Se False (forfettario/manuale) i parametri operativi non incidono sul
+    calcolo e restano facoltativi (es. contratti pluriennali/continuativi o
+    operatività su più sedi in cui addetti/durata perdono di significato).
+    """
     errori = []
 
     # Campi obbligatori (come definito nel template con required)
@@ -2145,12 +2232,14 @@ def valida_dati_appaltatore(form_data):
     if not form_data.get('resp_appalto_nome', '').strip():
         errori.append('Il nominativo del responsabile appalto è obbligatorio')
 
-    if not form_data.get('max_addetti') or int(form_data.get('max_addetti', 0)) < 1:
-        errori.append('Il numero massimo di addetti deve essere almeno 1')
+    if richiedi_operativi:
+        if not form_data.get('max_addetti') or safe_float(form_data.get('max_addetti')) < 1:
+            errori.append('Il numero massimo di addetti deve essere almeno 1')
 
     return errori
 
 @app.route('/select_duvri/<duvri_id>')
+@login_required
 def select_duvri(duvri_id):
     """Seleziona un DUVRI come attivo"""
     if duvri_id in duvri_list:
@@ -2162,32 +2251,16 @@ def select_duvri(duvri_id):
 
 @app.route('/appaltatore/<link_univoco>', methods=['GET', 'POST'])
 def appaltatore_duvri(link_univoco):
-    """Vista per l'appaltatore - vede solo il suo DUVRI"""
-    # 🔥 FORZA SINCRONIZZAZIONE PRIMA DI CERCARE
-    sync_all_duvri_from_db()
+    """Link appaltatore copiato dalla dashboard.
 
-    duvri_trovato, duvri_id = trova_duvri_per_link(link_univoco)
-    if not duvri_trovato:
-        # 🔥 MODIFICA CRITICA: NON reindirizzare alla dashboard admin!
-        return render_template('errore_appaltatore.html',
-                             messaggio="DUVRI non trovato. Contatta il committente.")
-
-    # Imposta flag per identificare accesso appaltatore
-    session['from_appaltatore_link'] = True
-    session['current_duvri_id'] = duvri_id
-
-    # 🔥 IMPORTANTE: Sincronizza i dati dal database
-    sync_db_to_memory(duvri_id)
-
-    # Mostra direttamente il form appaltatore
-    data = duvri_trovato.get('dati_appaltatore', {})
-    return render_template('appaltatore_form.html',
-                         data=data,
-                         rischi_paragrafi=RISCHI_PARAGRAFI,
-                         rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id)
+    Delega ad appaltatore_form: il form non ha 'action' e fa POST su questo
+    stesso URL. In precedenza questa route ignorava il POST e rimostrava il
+    form vuoto, quindi i dati compilati dall'appaltatore andavano persi.
+    """
+    return appaltatore_form(link_univoco)
 
 @app.route('/emergency_recover')
+@login_required
 def emergency_recover():
     """Recupera tutti i DUVRI dal database - SOLO EMERGENZA"""
     try:
@@ -2202,7 +2275,7 @@ def emergency_recover():
                 duvri_list[duvri_id] = {
                     'id': duvri_id,
                     'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Recuperato',
-                    'link_appaltatore': str(uuid.uuid4()),  # Nuovo link per sicurezza
+                    'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # mai cambiare un link già trasmesso
                     'stato': duvri_db['stato'] or 'bozza',
                     'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                     'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -2359,6 +2432,18 @@ def summary():
     if not duvri_id:
         flash('Prima crea o seleziona un DUVRI', 'warning')
         return redirect(url_for('admin_dashboard'))
+
+    # DUVRI in sessione non più esistente (eliminato): evita errore 500 nel template
+    if duvri_id not in duvri_list:
+        sync_all_duvri_from_db()
+    if duvri_id not in duvri_list:
+        session.pop('current_duvri_id', None)
+        if session.get('from_appaltatore_link') and not session.get('logged_in'):
+            return render_template('errore_appaltatore.html',
+                                 messaggio="DUVRI non trovato. Contatta il committente.")
+        flash('❌ DUVRI non trovato', 'warning')
+        return redirect(url_for('admin_dashboard'))
+
     data = get_current_duvri_data()
     
     print("\n" + "="*80)
@@ -2392,15 +2477,20 @@ def summary():
     # Carica dati dal database
     data = get_current_duvri_data()
     
-    # Aggiungi lista allegati ai dati
-    if 'appaltatore' not in data:
-        data['appaltatore'] = {}
-    data['appaltatore']['allegati'] = get_allegati_list(duvri_id)
+    # Lista allegati: solo per la visualizzazione, non va salvata nel DB
+    allegati = get_allegati_list(duvri_id)
+
+    def salva_senza_allegati(dati):
+        dati = dict(dati)
+        dati['appaltatore'] = {k: v for k, v in dati.get('appaltatore', {}).items() if k != 'allegati'}
+        save_current_duvri_data(dati, duvri_id)
     
     # ========================================
     # CALCOLO COSTI - RISPETTA TUTTE LE MODALITÀ
     # ========================================
-    if data.get('appaltatore'):
+    # Ricalcolo/salvataggio costi SOLO se l'appaltatore ha compilato: prima
+    # la sola visita al riepilogo scriveva costi fittizi in appaltatore_data
+    if appaltatore_compilato(data.get('appaltatore')):
         committente = data.get('committente', {})
 
         # ✅ VERIFICA MODALITÀ CALCOLO COSTI
@@ -2429,14 +2519,14 @@ def summary():
 
             # Aggiorna e salva
             data['appaltatore'].update(costi_calcolati)
-            save_current_duvri_data(data)
+            salva_senza_allegati(data)
             print(f"✅ Costi aggiornati - Modalità forfettaria: {costi_calcolati.get('modalita_forfettario', False)}")
         elif usa_costi_manuali:
             print("📝 Costi manuali attivi dal committente")
             # Ricalcola per prendere i valori manuali aggiornati
             costi_calcolati = calcola_costi_sicurezza(data)
             data['appaltatore'].update(costi_calcolati)
-            save_current_duvri_data(data)
+            salva_senza_allegati(data)
         else:
             # Modalità automatica: ricalcola se necessario
             costi_mancanti = not any(
@@ -2455,7 +2545,7 @@ def summary():
 
                 # Aggiorna e salva
                 data['appaltatore'].update(costi_calcolati)
-                save_current_duvri_data(data)
+                salva_senza_allegati(data)
             else:
                 print("⚠️ Costi già presenti - nessun ricalcolo")
     
@@ -2470,8 +2560,11 @@ def summary():
             import traceback
             traceback.print_exc()
     
+    data.setdefault('appaltatore', {})['allegati'] = allegati
+
     return render_template('summary.html',
                          data=data,
+                         appaltatore_ok=appaltatore_compilato(data.get('appaltatore')),
                          confronto_costi=confronto_costi,
                          duvri_list=duvri_list,
                          current_duvri_id=duvri_id,
@@ -2527,6 +2620,7 @@ def gestione_extra_costi(duvri_id):
                          confronto=confronto,
                          extra_costo=extra_costo)
 @app.route('/valida_spp/<duvri_id>', methods=['POST'])
+@login_required
 def valida_spp(duvri_id):
     """Validazione tecnica da parte del SPP/RSPP"""
     
@@ -2579,6 +2673,7 @@ def valida_spp(duvri_id):
     
     return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
 @app.route('/approva_rup/<duvri_id>', methods=['POST'])
+@login_required
 def approva_rup(duvri_id):
     """Approvazione da parte del RUP"""
     
@@ -2625,6 +2720,7 @@ def approva_rup(duvri_id):
     
     return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
 @app.route('/registra_determina/<duvri_id>', methods=['POST'])
+@login_required
 def registra_determina(duvri_id):
     """Registrazione determina dirigenziale"""
     
@@ -2673,6 +2769,7 @@ def registra_determina(duvri_id):
 
 
 @app.route('/comunica_impresa/<duvri_id>', methods=['POST'])
+@login_required
 def comunica_impresa(duvri_id):
     """Segna come comunicato all'impresa"""
     
@@ -2704,6 +2801,7 @@ def comunica_impresa(duvri_id):
     return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
     
 @app.route('/genera_nota_tecnica/<duvri_id>')
+@login_required
 def genera_nota_tecnica(duvri_id):
     """Genera nota tecnica SPP (PLACEHOLDER)"""
     flash('🚧 Generazione nota tecnica - In sviluppo', 'info')
@@ -2711,6 +2809,7 @@ def genera_nota_tecnica(duvri_id):
 
 
 @app.route('/genera_prospetto_costi/<duvri_id>')
+@login_required
 def genera_prospetto_costi(duvri_id):
     """Genera prospetto costi analitico (PLACEHOLDER)"""
     flash('🚧 Generazione prospetto costi - In sviluppo', 'info')
@@ -2718,6 +2817,7 @@ def genera_prospetto_costi(duvri_id):
 
 
 @app.route('/genera_determina/<duvri_id>')
+@login_required
 def genera_determina(duvri_id):
     """Genera bozza determina dirigenziale (PLACEHOLDER)"""
     flash('🚧 Generazione determina - In sviluppo', 'info')
@@ -2725,6 +2825,7 @@ def genera_determina(duvri_id):
 
 
 @app.route('/genera_clausola/<duvri_id>')
+@login_required
 def genera_clausola(duvri_id):
     """Genera clausola contrattuale (PLACEHOLDER)"""
     flash('🚧 Generazione clausola - In sviluppo', 'info')
@@ -2732,6 +2833,7 @@ def genera_clausola(duvri_id):
 
 
 @app.route('/scarica_pacchetto_completo/<duvri_id>')
+@login_required
 def scarica_pacchetto_completo(duvri_id):
     """Scarica ZIP con tutti i documenti (PLACEHOLDER)"""
     flash('🚧 Generazione pacchetto ZIP - In sviluppo', 'info')
@@ -2741,12 +2843,14 @@ def scarica_pacchetto_completo(duvri_id):
 # =============================================
 
 @app.route('/gestisci_duvri/<duvri_id>')
+@login_required
 def gestisci_duvri(duvri_id):
     """Gestione DUVRI"""
     session['current_duvri_id'] = duvri_id
     return render_template('gestisci_duvri.html', duvri_id=duvri_id)
 
 @app.route('/imposta_duvri_attivo', methods=['POST'])
+@login_required
 def imposta_duvri_attivo():
     """Imposta DUVRI attivo"""
     duvri_id = request.form.get('duvri_id')
@@ -2771,6 +2875,7 @@ def select_role():
     return redirect(url_for("admin_dashboard"))
 
 @app.route('/elimina_duvri/<duvri_id>', methods=['POST'])
+@login_required
 def elimina_duvri(duvri_id):
     """
     Elimina un DUVRI e tutti i dati associati
@@ -2805,6 +2910,7 @@ def elimina_duvri(duvri_id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/duplica_duvri/<duvri_id>')
+@login_required
 def duplica_duvri(duvri_id):
     """
     Duplica un DUVRI esistente con un nuovo ID e link univoco
@@ -2862,10 +2968,11 @@ def duplica_duvri(duvri_id):
         # 2. Salva il nuovo DUVRI nel database SQLite
         conn = get_db_connection()
         conn.execute(
-            'INSERT INTO duvri (id, nome_progetto, committente_data, appaltatore_data, signatures, stato, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO duvri (id, nome_progetto, link_appaltatore, committente_data, appaltatore_data, signatures, stato, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (
                 nuovo_id,
                 nuovo_duvri['nome_progetto'],
+                nuovo_duvri['link_appaltatore'],
                 json.dumps(nuovo_duvri.get('dati_committente', {})),
                 json.dumps(nuovo_duvri.get('dati_appaltatore', {})),
                 json.dumps(nuovo_duvri.get('signatures', {})),
@@ -3136,7 +3243,7 @@ def unisci_pdf_duvri(duvri_id, pdf_base_path, output_path_completo):
 
         # 2. Cerca PDF allegati
         print(f"\n🔍 Ricerca allegati per duvri_id: {duvri_id}")
-        cartella_allegati = os.path.join(current_app.config['UPLOAD_FOLDER'], str(duvri_id))
+        cartella_allegati = os.path.join(ALLEGATI_FOLDER, f"duvri_{duvri_id}")
         print(f"📂 Percorso cartella allegati: {cartella_allegati}")
         print(f"📊 Cartella esiste: {os.path.exists(cartella_allegati)}")
 
@@ -3204,6 +3311,7 @@ def unisci_pdf_duvri(duvri_id, pdf_base_path, output_path_completo):
 # =============================================
 
 @app.route('/test_pdf_generation')
+@login_required
 def test_pdf_generation():
     """Test completo generazione PDF con diagnostica"""
     duvri_id = session.get('current_duvri_id')
@@ -3249,6 +3357,7 @@ def test_pdf_generation():
 
 
 @app.route("/reset")
+@login_required
 def reset_data():
     """Reset dei dati per nuova compilazione"""
     duvri_id = session.get('current_duvri_id')
@@ -3295,6 +3404,7 @@ def download_pdf(filename):
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/debug_pdf')
+@login_required
 def debug_pdf():
     """Pagina di debug per la generazione PDF"""
     data = get_current_duvri_data()
@@ -3324,6 +3434,7 @@ def debug_pdf():
     return render_template('debug_pdf.html', pdf_info=pdf_info)
 
 @app.route("/download_duvri_pdf/<duvri_id>")
+@login_required
 def download_duvri_pdf(duvri_id):
     """Scarica il PDF del DUVRI specifico"""
     try:
@@ -3352,7 +3463,7 @@ def download_duvri_pdf(duvri_id):
                 )
 
         # Cerca il PDF nella cartella output
-        output_dir = "output"
+        output_dir = os.path.join(BASE_DIR, "output")
         if os.path.exists(output_dir):
             for file in os.listdir(output_dir):
                 if file.startswith(f"DUVRI_{duvri_id}_"):
@@ -3464,8 +3575,10 @@ def upload_signed(tipo_firma):
                 # Aggiorna anche nel database
                 conn = get_db_connection()
                 conn.execute(
-                    'UPDATE duvri SET stato = ?, updated_at = ? WHERE id = ?',
-                    (duvri_list[duvri_id]['stato'], datetime.now(), duvri_id)
+                    'UPDATE duvri SET stato = ?, firme_digitali = ?, updated_at = ? WHERE id = ?',
+                    (duvri_list[duvri_id]['stato'],
+                     json.dumps(duvri_list[duvri_id]['firme_digitali']),
+                     datetime.now(), duvri_id)
                 )
                 conn.commit()
                 conn.close()
@@ -3502,10 +3615,11 @@ def download_per_firma(tipo_firma):
             data_oggi = datetime.now().strftime('%Y-%m-%d')
             filename_base = f"DUVRI_{nome_ditta}_{data_oggi}.pdf"
             filename_completo = f"DUVRI_{nome_ditta}_{data_oggi}_PER_FIRMA_APPALTATORE.pdf"
-            output_path_base = os.path.join("output", filename_base)
-            output_path_completo = os.path.join("output", filename_completo)
+            output_dir = os.path.join(BASE_DIR, "output")
+            output_path_base = os.path.join(output_dir, filename_base)
+            output_path_completo = os.path.join(output_dir, filename_completo)
 
-            os.makedirs("output", exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
 
             # Genera il PDF base con tutti i dati (sezione 2.6.3 inclusa)
             dati_pdf = prepara_dati_per_pdf(duvri_id, data)
@@ -3628,10 +3742,10 @@ def _genera_pdf_base(duvri_id, destinazione):
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"DUVRI_{duvri_id}_{destinazione}_{timestamp}.pdf"
-    output_path = os.path.join("output", filename)
+    output_path = os.path.join(BASE_DIR, "output", filename)
 
     # Assicurati che la cartella output esista
-    os.makedirs("output", exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "output"), exist_ok=True)
 
     if WEASYPRINT_AVAILABLE:
         HTML(string=html_content).write_pdf(output_path)
@@ -3783,6 +3897,7 @@ def download_allegato(allegato_index):
 # =============================================
 
 @app.route('/debug_save')
+@login_required
 def debug_save():
     """Debug salvataggio dati"""
     duvri_id = session.get('current_duvri_id')
@@ -3795,6 +3910,7 @@ def debug_save():
     }
 
 @app.route('/test_save')
+@login_required
 def test_save():
     """Test salvataggio"""
     test_data = {'nome': 'TEST', 'timestamp': datetime.now().isoformat()}
@@ -3804,6 +3920,7 @@ def test_save():
     return f"Salvataggio test: {'SUCCESSO' if result else 'FALLITO'}"
 
 @app.route('/test_summary')
+@login_required
 def test_summary():
     """Test della route summary"""
     duvri_id = session.get('current_duvri_id')
@@ -3818,6 +3935,7 @@ def test_summary():
     }
 
 @app.route('/recover_duvri')
+@login_required
 def recover_duvri():
     """Recupera il DUVRI corrente dalla sessione"""
     duvri_id = session.get('current_duvri_id')
@@ -3834,7 +3952,7 @@ def recover_duvri():
             duvri_list[duvri_id] = {
                 'id': duvri_id,
                 'nome_progetto': duvri_db['nome_progetto'] or 'DUVRI Recuperato',
-                'link_appaltatore': str(uuid.uuid4()),
+                'link_appaltatore': duvri_db['link_appaltatore'] or str(uuid.uuid4()),  # mai cambiare un link già trasmesso
                 'stato': duvri_db['stato'] or 'bozza',
                 'created_at': duvri_db['created_at'] or datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'dati_committente': json.loads(duvri_db['committente_data']) if duvri_db['committente_data'] else {},
@@ -3946,6 +4064,7 @@ if __name__ == "__main__":
         debug_mode = os.environ.get('FLASK_ENV') == 'development'
         app.run(debug=debug_mode, host='0.0.0.0', port=5000)
 @app.route('/debug_costi/<duvri_id>')
+@login_required
 def debug_costi(duvri_id):
     """Debug temporaneo per vedere i costi"""
     data = get_current_duvri_data()
