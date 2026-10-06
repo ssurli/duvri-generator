@@ -16,7 +16,7 @@
     </div>
 
     <!-- Alert per DUVRI non completato -->
-    {% if not data.committente or not data.appaltatore %}
+    {% if not data.committente or not appaltatore_ok %}
     <div class="alert alert-warning">
         <h4>⚠️ DUVRI Incompleto</h4>
         <p>Per generare il PDF, entrambe le parti devono compilare i propri dati.</p>
@@ -26,7 +26,7 @@
             <a href="{{ url_for('compila_committente') }}" class="btn btn-primary me-2">Compila dati committente</a>
             {% endif %}
 
-            {% if not data.appaltatore %}
+            {% if not appaltatore_ok %}
                 {% if duvri_list and current_duvri_id %}
                     {% set duvri = duvri_list[current_duvri_id] %}
                     <div class="mt-3">

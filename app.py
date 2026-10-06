@@ -834,6 +834,14 @@ def salva_dati_appaltatore_unificato(duvri_id, dati_appaltatore):
 
     return True
 
+def appaltatore_compilato(dati_appaltatore):
+    """True solo se l'appaltatore ha davvero salvato il form.
+
+    appaltatore_data può contenere solo costi calcolati o la lista allegati
+    (scritti da altre pagine): non bastano per considerarlo compilato.
+    """
+    return bool(dati_appaltatore and dati_appaltatore.get('ragione_sociale'))
+
 def valida_duvri_access(duvri_id):
     """Valida l'accesso a un DUVRI"""
     if not duvri_id or duvri_id not in duvri_list:
@@ -1965,7 +1973,7 @@ def compila_committente():
         # Modificare i dati committente non deve mai far apparire il DUVRI come
         # "firmato": lo stato di firma si imposta solo caricando un PDF firmato.
         if duvri.get('stato') not in STATI_FIRMATI:
-            if duvri['dati_appaltatore']:
+            if appaltatore_compilato(duvri.get('dati_appaltatore')):
                 duvri['stato'] = 'completato'
             else:
                 duvri['stato'] = 'in compilazione'
@@ -2395,6 +2403,18 @@ def summary():
     if not duvri_id:
         flash('Prima crea o seleziona un DUVRI', 'warning')
         return redirect(url_for('admin_dashboard'))
+
+    # DUVRI in sessione non più esistente (eliminato): evita errore 500 nel template
+    if duvri_id not in duvri_list:
+        sync_all_duvri_from_db()
+    if duvri_id not in duvri_list:
+        session.pop('current_duvri_id', None)
+        if session.get('from_appaltatore_link') and not session.get('logged_in'):
+            return render_template('errore_appaltatore.html',
+                                 messaggio="DUVRI non trovato. Contatta il committente.")
+        flash('❌ DUVRI non trovato', 'warning')
+        return redirect(url_for('admin_dashboard'))
+
     data = get_current_duvri_data()
     
     print("\n" + "="*80)
@@ -2428,15 +2448,20 @@ def summary():
     # Carica dati dal database
     data = get_current_duvri_data()
     
-    # Aggiungi lista allegati ai dati
-    if 'appaltatore' not in data:
-        data['appaltatore'] = {}
-    data['appaltatore']['allegati'] = get_allegati_list(duvri_id)
+    # Lista allegati: solo per la visualizzazione, non va salvata nel DB
+    allegati = get_allegati_list(duvri_id)
+
+    def salva_senza_allegati(dati):
+        dati = dict(dati)
+        dati['appaltatore'] = {k: v for k, v in dati.get('appaltatore', {}).items() if k != 'allegati'}
+        save_current_duvri_data(dati, duvri_id)
     
     # ========================================
     # CALCOLO COSTI - RISPETTA TUTTE LE MODALITÀ
     # ========================================
-    if data.get('appaltatore'):
+    # Ricalcolo/salvataggio costi SOLO se l'appaltatore ha compilato: prima
+    # la sola visita al riepilogo scriveva costi fittizi in appaltatore_data
+    if appaltatore_compilato(data.get('appaltatore')):
         committente = data.get('committente', {})
 
         # ✅ VERIFICA MODALITÀ CALCOLO COSTI
@@ -2465,14 +2490,14 @@ def summary():
 
             # Aggiorna e salva
             data['appaltatore'].update(costi_calcolati)
-            save_current_duvri_data(data)
+            salva_senza_allegati(data)
             print(f"✅ Costi aggiornati - Modalità forfettaria: {costi_calcolati.get('modalita_forfettario', False)}")
         elif usa_costi_manuali:
             print("📝 Costi manuali attivi dal committente")
             # Ricalcola per prendere i valori manuali aggiornati
             costi_calcolati = calcola_costi_sicurezza(data)
             data['appaltatore'].update(costi_calcolati)
-            save_current_duvri_data(data)
+            salva_senza_allegati(data)
         else:
             # Modalità automatica: ricalcola se necessario
             costi_mancanti = not any(
@@ -2491,7 +2516,7 @@ def summary():
 
                 # Aggiorna e salva
                 data['appaltatore'].update(costi_calcolati)
-                save_current_duvri_data(data)
+                salva_senza_allegati(data)
             else:
                 print("⚠️ Costi già presenti - nessun ricalcolo")
     
@@ -2506,8 +2531,11 @@ def summary():
             import traceback
             traceback.print_exc()
     
+    data.setdefault('appaltatore', {})['allegati'] = allegati
+
     return render_template('summary.html',
                          data=data,
+                         appaltatore_ok=appaltatore_compilato(data.get('appaltatore')),
                          confronto_costi=confronto_costi,
                          duvri_list=duvri_list,
                          current_duvri_id=duvri_id,
