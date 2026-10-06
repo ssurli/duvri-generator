@@ -2215,33 +2215,13 @@ def select_duvri(duvri_id):
 
 @app.route('/appaltatore/<link_univoco>', methods=['GET', 'POST'])
 def appaltatore_duvri(link_univoco):
-    """Vista per l'appaltatore - vede solo il suo DUVRI"""
-    # 🔥 FORZA SINCRONIZZAZIONE PRIMA DI CERCARE
-    sync_all_duvri_from_db()
+    """Link appaltatore copiato dalla dashboard.
 
-    duvri_trovato, duvri_id = trova_duvri_per_link(link_univoco)
-    if not duvri_trovato:
-        # 🔥 MODIFICA CRITICA: NON reindirizzare alla dashboard admin!
-        return render_template('errore_appaltatore.html',
-                             messaggio="DUVRI non trovato. Contatta il committente.")
-
-    # Imposta flag per identificare accesso appaltatore
-    session['from_appaltatore_link'] = True
-    session['current_duvri_id'] = duvri_id
-
-    # 🔥 IMPORTANTE: Sincronizza i dati dal database
-    sync_db_to_memory(duvri_id)
-
-    # Mostra direttamente il form appaltatore
-    data = duvri_trovato.get('dati_appaltatore', {})
-    dati_committente = duvri_trovato.get('dati_committente', {})
-    return render_template('appaltatore_form.html',
-                         data=data,
-                         dati_committente=dati_committente,
-                         rischi_paragrafi=RISCHI_PARAGRAFI,
-                         rischi_hta=RISCHI_HTA,
-                         duvri_id=duvri_id,
-                         current_duvri_id=duvri_id)
+    Delega ad appaltatore_form: il form non ha 'action' e fa POST su questo
+    stesso URL. In precedenza questa route ignorava il POST e rimostrava il
+    form vuoto, quindi i dati compilati dall'appaltatore andavano persi.
+    """
+    return appaltatore_form(link_univoco)
 
 @app.route('/emergency_recover')
 def emergency_recover():
