@@ -1733,7 +1733,7 @@ def scarica_duvri_estar(duvri_id):
     
     if not duvri or not duvri['duvri_estar_filename']:
         flash('File non trovato', 'warning')
-        return redirect(url_for('committente_form'))
+        return redirect(url_for('compila_committente', duvri_id=duvri_id))
     
     filename = duvri['duvri_estar_filename']
     filepath = os.path.join(app.config['UPLOAD_FOLDER_DUVRI_ESTAR'], filename)
@@ -1742,7 +1742,7 @@ def scarica_duvri_estar(duvri_id):
         return send_file(filepath, as_attachment=True)
     else:
         flash('File non trovato sul server', 'danger')
-        return redirect(url_for('committente_form'))
+        return redirect(url_for('compila_committente', duvri_id=duvri_id))
         
 @app.route('/nuovo_duvri')
 @login_required
@@ -1899,6 +1899,18 @@ def compila_committente():
                     dati_committente['duvri_estar_filename'] = duvri_estar_filename
                     flash('✅ DUVRI ESTAR caricato con successo', 'success')
 
+        # Nessun nuovo file: mantieni quello già caricato (prima veniva azzerato
+        # a ogni salvataggio del form committente)
+        if not duvri_estar_filename:
+            duvri_estar_filename = (duvri.get('dati_committente') or {}).get('duvri_estar_filename')
+            if not duvri_estar_filename:
+                conn = get_db_connection()
+                riga = conn.execute('SELECT duvri_estar_filename FROM duvri WHERE id = ?', (duvri_id,)).fetchone()
+                conn.close()
+                duvri_estar_filename = riga['duvri_estar_filename'] if riga else None
+            if duvri_estar_filename:
+                dati_committente['duvri_estar_filename'] = duvri_estar_filename
+
         # Salva i dati in memoria
         duvri['dati_committente'] = dati_committente
         current_data = get_current_duvri_data()
@@ -1944,7 +1956,14 @@ def compila_committente():
         save_current_duvri_data(current_data)
 
         # 🆕 RICALCOLA COSTI APPALTATORE se esiste e se modalità è cambiata
-        if current_data.get('appaltatore') and current_data['appaltatore'].get('max_addetti'):
+        # In modalità automatica i costi modificati a mano non vanno ricalcolati
+        # (stessa regola di salva_dati_appaltatore_unificato e summary)
+        costi_manuali_appaltatore = (
+            dati_committente.get('modalita_costi', 'automatico') == 'automatico'
+            and current_data.get('appaltatore', {}).get('costi_modificati_manualmente')
+        )
+        if (current_data.get('appaltatore') and current_data['appaltatore'].get('max_addetti')
+                and not costi_manuali_appaltatore):
             modalita_costi = dati_committente.get('modalita_costi', 'automatico')
             print(f"\n🔄 Committente salvato - Ricalcolo costi per modalità: {modalita_costi}")
 
@@ -1979,6 +1998,11 @@ def compila_committente():
                 duvri['stato'] = 'completato'
             else:
                 duvri['stato'] = 'in compilazione'
+            # Persisti lo stato: altrimenti al riavvio torna 'bozza'
+            conn = get_db_connection()
+            conn.execute('UPDATE duvri SET stato = ? WHERE id = ?', (duvri['stato'], duvri_id))
+            conn.commit()
+            conn.close()
 
         flash('✅ Dati committente salvati con successo!', 'success')
 
