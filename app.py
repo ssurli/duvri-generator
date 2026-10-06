@@ -1716,6 +1716,7 @@ def admin_dashboard():
                          current_duvri_id=session.get('current_duvri_id'))
 
 @app.route('/scarica_duvri_estar/<duvri_id>')
+@login_required
 def scarica_duvri_estar(duvri_id):
     """Scarica il DUVRI ESTAR allegato"""
     
@@ -1744,6 +1745,7 @@ def scarica_duvri_estar(duvri_id):
         return redirect(url_for('committente_form'))
         
 @app.route('/nuovo_duvri')
+@login_required
 def nuovo_duvri():
     """Crea un nuovo DUVRI con link univoco per l'appaltatore"""
     nome_progetto = request.args.get('nome', 'Nuovo Progetto')
@@ -2002,6 +2004,7 @@ def compila_committente():
                          current_duvri_id=duvri_id)
 
 @app.route('/compila_appaltatore', methods=['GET', 'POST'])
+@login_required
 def compila_appaltatore():
     """Route per admin - compila dati appaltatore"""
     duvri_id = request.args.get('duvri_id') or session.get('current_duvri_id')
@@ -2212,6 +2215,7 @@ def valida_dati_appaltatore(form_data, richiedi_operativi=True):
     return errori
 
 @app.route('/select_duvri/<duvri_id>')
+@login_required
 def select_duvri(duvri_id):
     """Seleziona un DUVRI come attivo"""
     if duvri_id in duvri_list:
@@ -2232,6 +2236,7 @@ def appaltatore_duvri(link_univoco):
     return appaltatore_form(link_univoco)
 
 @app.route('/emergency_recover')
+@login_required
 def emergency_recover():
     """Recupera tutti i DUVRI dal database - SOLO EMERGENZA"""
     try:
@@ -2591,6 +2596,7 @@ def gestione_extra_costi(duvri_id):
                          confronto=confronto,
                          extra_costo=extra_costo)
 @app.route('/valida_spp/<duvri_id>', methods=['POST'])
+@login_required
 def valida_spp(duvri_id):
     """Validazione tecnica da parte del SPP/RSPP"""
     
@@ -2643,6 +2649,7 @@ def valida_spp(duvri_id):
     
     return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
 @app.route('/approva_rup/<duvri_id>', methods=['POST'])
+@login_required
 def approva_rup(duvri_id):
     """Approvazione da parte del RUP"""
     
@@ -2689,6 +2696,7 @@ def approva_rup(duvri_id):
     
     return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
 @app.route('/registra_determina/<duvri_id>', methods=['POST'])
+@login_required
 def registra_determina(duvri_id):
     """Registrazione determina dirigenziale"""
     
@@ -2737,6 +2745,7 @@ def registra_determina(duvri_id):
 
 
 @app.route('/comunica_impresa/<duvri_id>', methods=['POST'])
+@login_required
 def comunica_impresa(duvri_id):
     """Segna come comunicato all'impresa"""
     
@@ -2768,6 +2777,7 @@ def comunica_impresa(duvri_id):
     return redirect(url_for('gestione_extra_costi', duvri_id=duvri_id))
     
 @app.route('/genera_nota_tecnica/<duvri_id>')
+@login_required
 def genera_nota_tecnica(duvri_id):
     """Genera nota tecnica SPP (PLACEHOLDER)"""
     flash('🚧 Generazione nota tecnica - In sviluppo', 'info')
@@ -2775,6 +2785,7 @@ def genera_nota_tecnica(duvri_id):
 
 
 @app.route('/genera_prospetto_costi/<duvri_id>')
+@login_required
 def genera_prospetto_costi(duvri_id):
     """Genera prospetto costi analitico (PLACEHOLDER)"""
     flash('🚧 Generazione prospetto costi - In sviluppo', 'info')
@@ -2782,6 +2793,7 @@ def genera_prospetto_costi(duvri_id):
 
 
 @app.route('/genera_determina/<duvri_id>')
+@login_required
 def genera_determina(duvri_id):
     """Genera bozza determina dirigenziale (PLACEHOLDER)"""
     flash('🚧 Generazione determina - In sviluppo', 'info')
@@ -2789,6 +2801,7 @@ def genera_determina(duvri_id):
 
 
 @app.route('/genera_clausola/<duvri_id>')
+@login_required
 def genera_clausola(duvri_id):
     """Genera clausola contrattuale (PLACEHOLDER)"""
     flash('🚧 Generazione clausola - In sviluppo', 'info')
@@ -2796,6 +2809,7 @@ def genera_clausola(duvri_id):
 
 
 @app.route('/scarica_pacchetto_completo/<duvri_id>')
+@login_required
 def scarica_pacchetto_completo(duvri_id):
     """Scarica ZIP con tutti i documenti (PLACEHOLDER)"""
     flash('🚧 Generazione pacchetto ZIP - In sviluppo', 'info')
@@ -2805,12 +2819,14 @@ def scarica_pacchetto_completo(duvri_id):
 # =============================================
 
 @app.route('/gestisci_duvri/<duvri_id>')
+@login_required
 def gestisci_duvri(duvri_id):
     """Gestione DUVRI"""
     session['current_duvri_id'] = duvri_id
     return render_template('gestisci_duvri.html', duvri_id=duvri_id)
 
 @app.route('/imposta_duvri_attivo', methods=['POST'])
+@login_required
 def imposta_duvri_attivo():
     """Imposta DUVRI attivo"""
     duvri_id = request.form.get('duvri_id')
@@ -2835,6 +2851,7 @@ def select_role():
     return redirect(url_for("admin_dashboard"))
 
 @app.route('/elimina_duvri/<duvri_id>', methods=['POST'])
+@login_required
 def elimina_duvri(duvri_id):
     """
     Elimina un DUVRI e tutti i dati associati
@@ -2869,6 +2886,7 @@ def elimina_duvri(duvri_id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/duplica_duvri/<duvri_id>')
+@login_required
 def duplica_duvri(duvri_id):
     """
     Duplica un DUVRI esistente con un nuovo ID e link univoco
@@ -3269,6 +3287,7 @@ def unisci_pdf_duvri(duvri_id, pdf_base_path, output_path_completo):
 # =============================================
 
 @app.route('/test_pdf_generation')
+@login_required
 def test_pdf_generation():
     """Test completo generazione PDF con diagnostica"""
     duvri_id = session.get('current_duvri_id')
@@ -3314,6 +3333,7 @@ def test_pdf_generation():
 
 
 @app.route("/reset")
+@login_required
 def reset_data():
     """Reset dei dati per nuova compilazione"""
     duvri_id = session.get('current_duvri_id')
@@ -3360,6 +3380,7 @@ def download_pdf(filename):
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/debug_pdf')
+@login_required
 def debug_pdf():
     """Pagina di debug per la generazione PDF"""
     data = get_current_duvri_data()
@@ -3389,6 +3410,7 @@ def debug_pdf():
     return render_template('debug_pdf.html', pdf_info=pdf_info)
 
 @app.route("/download_duvri_pdf/<duvri_id>")
+@login_required
 def download_duvri_pdf(duvri_id):
     """Scarica il PDF del DUVRI specifico"""
     try:
@@ -3851,6 +3873,7 @@ def download_allegato(allegato_index):
 # =============================================
 
 @app.route('/debug_save')
+@login_required
 def debug_save():
     """Debug salvataggio dati"""
     duvri_id = session.get('current_duvri_id')
@@ -3863,6 +3886,7 @@ def debug_save():
     }
 
 @app.route('/test_save')
+@login_required
 def test_save():
     """Test salvataggio"""
     test_data = {'nome': 'TEST', 'timestamp': datetime.now().isoformat()}
@@ -3872,6 +3896,7 @@ def test_save():
     return f"Salvataggio test: {'SUCCESSO' if result else 'FALLITO'}"
 
 @app.route('/test_summary')
+@login_required
 def test_summary():
     """Test della route summary"""
     duvri_id = session.get('current_duvri_id')
@@ -3886,6 +3911,7 @@ def test_summary():
     }
 
 @app.route('/recover_duvri')
+@login_required
 def recover_duvri():
     """Recupera il DUVRI corrente dalla sessione"""
     duvri_id = session.get('current_duvri_id')
@@ -4014,6 +4040,7 @@ if __name__ == "__main__":
         debug_mode = os.environ.get('FLASK_ENV') == 'development'
         app.run(debug=debug_mode, host='0.0.0.0', port=5000)
 @app.route('/debug_costi/<duvri_id>')
+@login_required
 def debug_costi(duvri_id):
     """Debug temporaneo per vedere i costi"""
     data = get_current_duvri_data()
