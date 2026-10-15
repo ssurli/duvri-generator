@@ -1068,6 +1068,7 @@
     </div>
     {% endif %}
     
+    {% if not costi_compresi_importo %}
     <div class="section-title">CRITERI DI CALCOLO E METODO</div>
     <div style="background-color: #fff8e1; border-left: 4px solid #ff9800; padding: 10px; margin: 10px 0; font-size: 9pt;">
         <p style="margin: 5px 0;"><strong><strong style="color: #ff9900;">[!]</strong> Nota metodologica:</strong> I costi per la sicurezza da interferenze vengono calcolati <strong>solo in presenza di rischi interferenti specifici</strong> identificati durante la valutazione congiunta committente-appaltatore.</p>
@@ -1082,6 +1083,7 @@
             <li>Rischio biologico (presenza pazienti, ambiente sanitario)</li>
         </ul>
     </div>
+    {% endif %}
 
     {% if costi_compresi_importo %}
     <!-- COSTI COMPRESI NELL'IMPORTO: nessuna tabella importi -->
