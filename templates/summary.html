@@ -263,14 +263,24 @@
             {% endif %}
 
             <!-- Dettaglio Costi per la Sicurezza -->
-            <h5 class="mt-2">💰 Dettaglio Costi per la Sicurezza</h5>
+            <h5 class="mt-2">💰 Dettaglio Costi per la Sicurezza da Interferenze</h5>
 
-            {% if data.appaltatore.modalita_forfettario %}
+            {% if data.appaltatore.modalita_forfettario and (data.appaltatore.costo_totale_forfettario or 0)|float == 0 %}
+                <!-- COSTI COMPRESI NELL'IMPORTO: nessuna tabella importi -->
+                <div class="alert alert-info">
+                    <h6><strong>💰 Costi compresi nell'importo di gara</strong></h6>
+                    <p class="mb-0">
+                        I costi della sicurezza da interferenze non sono evidenziati separatamente nei documenti
+                        di gara: sono compresi forfettariamente nell'importo complessivo dell'appalto.
+                    </p>
+                </div>
+
+            {% elif data.appaltatore.modalita_forfettario %}
                 <!-- MODALITA' FORFETTARIA: mostra solo totale -->
                 <div class="alert alert-info">
                     <h6><strong>💰 Importo Forfettario da Gara</strong></h6>
                     <p class="mb-0">
-                        L'importo dei costi di sicurezza e' stato definito forfettariamente
+                        L'importo dei costi della sicurezza da interferenze e' stato definito forfettariamente
                         nei documenti di gara e non prevede dettaglio per singole voci.
                     </p>
                 </div>
@@ -380,7 +390,7 @@
         {% else %}
             <!-- COSTI IN ATTESA: modalita' automatica senza i dati operativi dell'appaltatore -->
             <div class="alert alert-warning mb-0">
-                <h5 class="mb-2">⏳ Costi di sicurezza non ancora calcolati</h5>
+                <h5 class="mb-2">⏳ Costi della sicurezza da interferenze non ancora calcolati</h5>
                 <p class="mb-2">
                     In modalita' <strong>calcolo automatico</strong> i costi da interferenze si
                     determinano dai dati dell'appaltatore. Per il calcolo servono:
@@ -393,7 +403,7 @@
                 <small class="text-muted">
                     Il calcolo comparira' automaticamente dopo la compilazione dell'appaltatore.
                     In alternativa imposta la modalita' <em>Forfettario</em> o <em>Manuale</em> nel
-                    form committente per definire subito l'importo dei costi di sicurezza.
+                    form committente per definire subito l'importo dei costi della sicurezza da interferenze.
                 </small>
             </div>
         {% endif %}

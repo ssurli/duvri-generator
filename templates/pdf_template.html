@@ -362,7 +362,7 @@
         <p style="margin-left: 20px;">2.4.1 Misure generali di tutela dai rischi interferenti</p>
         <p style="margin-left: 20px;">2.4.2 Misure specifiche di tutela dai rischi interferenti</p>
         <p style="margin-left: 20px;">2.4.3 Rischi interferenti identificati dall'appaltatore</p>
-        <p style="margin-left: 10px;">2.5 Costi per la sicurezza</p>
+        <p style="margin-left: 10px;">2.5 Costi per la sicurezza da interferenze</p>
 		<p style="margin-left: 10px;">2.6 Extra-Costi da Interferenze e Integrazione Contrattuale</p>
 		<p style="margin-left: 10px;">2.6.1 Riepilogo Comparativo</p>
 		<p style="margin-left: 10px;">2.6 2 Motivazioni degli Extra-Costi</p>
@@ -572,14 +572,16 @@
     </tr>
     {% endif %}
     
+    {# Costi inclusi in gara ma non evidenziati (importo 0) = compensati forfettariamente nell'importo complessivo #}
+    {% set costi_compensati = data.committente.get('costi_inclusi_gara') and (data.committente.get('costi_sicurezza_gara') or 0)|float == 0 %}
     {% if data.committente.get('costi_inclusi_gara') %}
     <tr>
-        <th>Costi Sicurezza in Gara</th>
+        <th>Costi Sicurezza Interferenti in Gara</th>
         <td>
-            {% if data.committente.get('costi_sicurezza_gara') and data.committente.costi_sicurezza_gara|float > 0 %}
-                <strong style="color: #00cc00;">[✓]</strong> Previsti: € {{ "{:,.2f}".format(data.committente.costi_sicurezza_gara|float) }}
+            {% if costi_compensati %}
+                Compresi forfettariamente nell'importo complessivo dell'appalto
             {% else %}
-                <strong style="color: #ff9900;">[!]</strong> Non previsti in gara
+                <strong style="color: #00cc00;">[✓]</strong> Previsti: € {{ "{:,.2f}".format(data.committente.costi_sicurezza_gara|float) }}
             {% endif %}
         </td>
     </tr>
@@ -588,7 +590,13 @@
     {% if data.committente.get('percentuale_costo_base') %}
     <tr>
         <th>Parametro Costo Base</th>
-        <td>{{ data.committente.percentuale_costo_base }}% dell'importo appalto</td>
+        <td>
+            {% if costi_compensati %}
+                Non applicabile
+            {% else %}
+                {{ data.committente.percentuale_costo_base }}% dell'importo appalto
+            {% endif %}
+        </td>
     </tr>
     {% endif %}
     
@@ -989,15 +997,19 @@
 
     <div class="page-break"></div>
 
-<h3>2.5 Costi per la sicurezza</h3>
+<h3>2.5 Costi per la sicurezza da interferenze</h3>
+    {# Forfettario con importo 0 = costi compresi nell'importo complessivo: nessun importo esposto #}
+    {% set costi_compresi_importo = data and data.appaltatore and data.appaltatore.get('modalita_forfettario') and (data.appaltatore.get('costo_totale_forfettario', 0) or 0)|float == 0 %}
     
     <!-- Box Riepilogo Totale Costi -->
     {% if data and data.appaltatore and data.appaltatore.get('costi_presenti') %}
     <div style="background-color: #e8f5e9; border: 2px solid #4caf50; padding: 15px; margin: 15px 0; text-align: center; border-radius: 5px;">
-        <h4 style="margin: 0 0 10px 0; color: #2e7d32; font-size: 12pt;">TOTALE COSTI SICUREZZA DA INTERFERENZE</h4>
+        <h4 style="margin: 0 0 10px 0; color: #2e7d32; font-size: 12pt;">{{ 'COSTI SICUREZZA DA INTERFERENZE' if costi_compresi_importo else 'TOTALE COSTI SICUREZZA DA INTERFERENZE' }}</h4>
         <p style="font-size: 18pt; font-weight: bold; margin: 5px 0; color: #1b5e20;">
             {% if data and data.appaltatore %}
-                {% if data.appaltatore.get('modalita_forfettario') %}
+                {% if costi_compresi_importo %}
+                    <span style="font-size: 12pt;">Compresi forfettariamente nell'importo complessivo dell'appalto</span>
+                {% elif data.appaltatore.get('modalita_forfettario') %}
                     € {{ "{:,.2f}".format(data.appaltatore.get('costo_totale_forfettario', 0)|float) }}
                 {% else %}
                     € {{ "{:,.2f}".format(
@@ -1018,11 +1030,20 @@
     </div>
     {% endif %}
     
-    {% if data and data.appaltatore and data.appaltatore.get('modalita_forfettario') %}
+    {% if costi_compresi_importo %}
+    <div class="info-highlight" style="background-color: #e1f5fe; border-left: 4px solid #0288d1; padding: 10px; margin: 10px 0;">
+        <strong><strong style="color: #0066cc;">[INFO]</strong> Modalità:</strong> Costi compresi nell'importo di gara
+        <p style="margin: 5px 0 0 0; font-size: 9pt;">
+            I costi della sicurezza da interferenze non sono evidenziati separatamente nei documenti di gara:
+            sono compresi forfettariamente nell'importo complessivo dell'appalto e non vengono pertanto
+            esposti come voce autonoma.
+        </p>
+    </div>
+    {% elif data and data.appaltatore and data.appaltatore.get('modalita_forfettario') %}
     <div class="info-highlight" style="background-color: #e1f5fe; border-left: 4px solid #0288d1; padding: 10px; margin: 10px 0;">
         <strong><strong style="color: #0066cc;">[INFO]</strong> Modalità calcolo:</strong> Importo forfettario da documenti di gara
         <p style="margin: 5px 0 0 0; font-size: 9pt;">
-            L'importo dei costi di sicurezza è stato definito forfettariamente nei documenti di gara
+            L'importo dei costi della sicurezza da interferenze è stato definito forfettariamente nei documenti di gara
             e non prevede dettaglio per singole voci di spesa.
         </p>
     </div>
@@ -1047,6 +1068,7 @@
     </div>
     {% endif %}
     
+    {% if not costi_compresi_importo %}
     <div class="section-title">CRITERI DI CALCOLO E METODO</div>
     <div style="background-color: #fff8e1; border-left: 4px solid #ff9800; padding: 10px; margin: 10px 0; font-size: 9pt;">
         <p style="margin: 5px 0;"><strong><strong style="color: #ff9900;">[!]</strong> Nota metodologica:</strong> I costi per la sicurezza da interferenze vengono calcolati <strong>solo in presenza di rischi interferenti specifici</strong> identificati durante la valutazione congiunta committente-appaltatore.</p>
@@ -1061,8 +1083,11 @@
             <li>Rischio biologico (presenza pazienti, ambiente sanitario)</li>
         </ul>
     </div>
+    {% endif %}
 
-    {% if data and data.appaltatore and data.appaltatore.get('modalita_forfettario') %}
+    {% if costi_compresi_importo %}
+    <!-- COSTI COMPRESI NELL'IMPORTO: nessuna tabella importi -->
+    {% elif data and data.appaltatore and data.appaltatore.get('modalita_forfettario') %}
     <!-- MODALITÀ FORFETTARIA: Tabella semplificata con solo totale -->
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-size: 9pt; margin-top: 10px;">
         <tr>
@@ -1146,7 +1171,11 @@
     
     <!-- Badge stato costi -->
     <div style="margin-top: 10px; text-align: center;">
-        {% if data and data.appaltatore and data.appaltatore.get('modalita_forfettario') %}
+        {% if costi_compresi_importo %}
+        <span style="display: inline-block; background-color: #0288d1; color: white; padding: 6px 12px; border-radius: 4px; font-size: 9pt; font-weight: bold;">
+            💰 COSTI COMPRESI NELL'IMPORTO DI GARA
+        </span>
+        {% elif data and data.appaltatore and data.appaltatore.get('modalita_forfettario') %}
         <span style="display: inline-block; background-color: #0288d1; color: white; padding: 6px 12px; border-radius: 4px; font-size: 9pt; font-weight: bold;">
             💰 IMPORTO FORFETTARIO DA DOCUMENTI DI GARA
         </span>
@@ -1185,11 +1214,11 @@
         <th style="border: 1px solid #000; padding: 8px; text-align: right;">Importo (€)</th>
     </tr>
     <tr>
-        <td style="border: 1px solid #000; padding: 8px;">Costi sicurezza previsti in gara</td>
-        <td style="border: 1px solid #000; padding: 8px; text-align: right;">{{ "{:,.2f}".format(confronto_costi.costi_gara) }}</td>
+        <td style="border: 1px solid #000; padding: 8px;">Costi sicurezza interferenti previsti in gara</td>
+        <td style="border: 1px solid #000; padding: 8px; text-align: right;">{% if (confronto_costi.costi_gara or 0)|float == 0 %}Compresi forfettariamente nell'importo complessivo{% else %}{{ "{:,.2f}".format(confronto_costi.costi_gara) }}{% endif %}</td>
     </tr>
     <tr>
-        <td style="border: 1px solid #000; padding: 8px;">Costi sicurezza operativi effettivi</td>
+        <td style="border: 1px solid #000; padding: 8px;">Costi sicurezza interferenti operativi effettivi</td>
         <td style="border: 1px solid #000; padding: 8px; text-align: right;">{{ "{:,.2f}".format(confronto_costi.totale_operativo) }}</td>
     </tr>
     <tr style="background-color: #ffebee; font-weight: bold;">
