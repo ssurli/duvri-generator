@@ -8,7 +8,7 @@
     <div class="alert alert-info">
         <h5>ℹ️ Tipologie di DUVRI</h5>
         <ul class="mb-0">
-            <li><strong>Ricognitivo:</strong> Per documenti di gara (stima preliminare costi sicurezza)</li>
+            <li><strong>Ricognitivo:</strong> Per documenti di gara (stima preliminare costi sicurezza interferenti)</li>
             <li><strong>Operativo:</strong> Per esecuzione contratto (valutazione interferenze reali)</li>
         </ul>
     </div>
@@ -260,7 +260,7 @@
         
         <div class="card mb-4">
             <div class="card-header bg-warning text-dark">
-                <h4>3️⃣ Importi Appalto e Costi Sicurezza da Gara</h4>
+                <h4>3️⃣ Importi Appalto e Costi Sicurezza Interferenti da Gara</h4>
             </div>
             <div class="card-body">
                 
@@ -273,8 +273,8 @@
                         <p class="mb-2">
                             <strong>✅ Scenario A - Costi già inclusi ed evidenziati:</strong><br>
                             <small>
-                                ☑️ Spunta "Costi sicurezza inclusi"<br>
-                                📝 Compila "Importo costi sicurezza" = importo dichiarato nei documenti<br>
+                                ☑️ Spunta "Costi sicurezza interferenti inclusi"<br>
+                                📝 Compila "Importo costi sicurezza interferenti" = importo dichiarato nei documenti<br>
                                 💡 <em>Sistema calcolerà delta e gestirà atto aggiuntivo se necessario (art. 120)</em>
                             </small>
                         </p>
@@ -282,8 +282,8 @@
                         <p class="mb-2">
                             <strong>⚖️ Scenario B - Costi inclusi ma compensati (non evidenziati):</strong><br>
                             <small>
-                                ☑️ Spunta "Costi sicurezza inclusi"<br>
-                                📝 <strong>LASCIA VUOTO</strong> "Importo costi sicurezza" o imposta 0€<br>
+                                ☑️ Spunta "Costi sicurezza interferenti inclusi"<br>
+                                📝 <strong>LASCIA VUOTO</strong> "Importo costi sicurezza interferenti" o imposta 0€<br>
                                 💡 <em>Sistema applicherà compensazione interna con verbale coordinamento</em>
                             </small>
                         </p>
@@ -291,7 +291,7 @@
                         <p class="mb-0">
                             <strong>❌ Scenario C - Costi NON inclusi in gara:</strong><br>
                             <small>
-                                ☐ NON spuntare "Costi sicurezza inclusi"<br>
+                                ☐ NON spuntare "Costi sicurezza interferenti inclusi"<br>
                                 💡 <em>Tutti i costi operativi saranno extra-costi → atto aggiuntivo necessario (art. 120)</em>
                             </small>
                         </p>
@@ -320,7 +320,7 @@
                                 Costi sicurezza da interferenze già inclusi nei documenti di gara
                             </label>
                             <small class="d-block text-muted mt-1">
-                                Selezionare se ESTAR (o altra centrale) ha già incluso costi sicurezza
+                                Selezionare se ESTAR (o altra centrale) ha già incluso costi sicurezza interferenti
                             </small>
                         </div>
                     </div>
@@ -337,7 +337,7 @@
                             </ul>
                         </div>
                         
-                        <label class="form-label fw-bold">Importo Costi Sicurezza da Gara (€)</label>
+                        <label class="form-label fw-bold">Importo Costi Sicurezza Interferenti da Gara (€)</label>
                         <input type="number" step="0.01" name="costi_sicurezza_gara" 
                                class="form-control" 
                                value="{{ data.get('costi_sicurezza_gara', '0') }}"
@@ -684,7 +684,7 @@
                         <h6><strong>📋 Modalità Importo Forfettario</strong></h6>
                         <p class="mb-2">
                             In questa modalità verrà utilizzato l'<strong>importo totale</strong> inserito nella sezione
-                            <strong>3️⃣ Importi Appalto e Costi Sicurezza da Gara</strong>.
+                            <strong>3️⃣ Importi Appalto e Costi Sicurezza Interferenti da Gara</strong>.
                         </p>
                         <p class="mb-0">
                             <small>
@@ -698,7 +698,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-md-8">
-                                    <strong>Importo costi sicurezza da utilizzare:</strong>
+                                    <strong>Importo costi sicurezza interferenti da utilizzare:</strong>
                                 </div>
                                 <div class="col-md-4 text-end">
                                     <span class="badge bg-primary fs-5">
