@@ -6,7 +6,7 @@
     <h6 class="mb-2">🧑‍🔬 Ulteriori figure della sicurezza (solo se pertinenti)</h6>
     <p class="small mb-2">
         Da indicare solo in presenza di rischi specifici (es. radiazioni ionizzanti, risonanza magnetica, laser).
-        Selezionare una o più figure e indicarne il nominativo.
+        Selezionare una o più figure; nominativo ed email sono facoltativi.
     </p>
     {% for codice, ruolo in FIGURE_SICUREZZA_EXTRA %}
     {% set _f = _fig_sel.get(codice) %}
@@ -19,8 +19,7 @@
     <div id="figura_{{ codice }}_dati" class="row g-2 ms-3 mb-2" style="display: {{ 'flex' if _f else 'none' }};">
         <div class="col-md-6">
             <input type="text" name="figura_{{ codice }}_nome" class="form-control form-control-sm"
-                   value="{{ _f.nome if _f else '' }}" placeholder="Nome e Cognome"
-                   {{ 'required' if _f else '' }}>
+                   value="{{ _f.nome if _f else '' }}" placeholder="Nome e Cognome (opzionale)">
         </div>
         <div class="col-md-6">
             <input type="email" name="figura_{{ codice }}_email" class="form-control form-control-sm"
@@ -34,7 +33,5 @@ function toggleFiguraSicurezza(cb) {
     const box = document.getElementById(cb.dataset.target);
     if (!box) return;
     box.style.display = cb.checked ? 'flex' : 'none';
-    const nome = box.querySelector('input[type="text"]');
-    if (nome) nome.required = cb.checked;
 }
 </script>

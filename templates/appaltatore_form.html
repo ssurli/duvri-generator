@@ -31,16 +31,22 @@
     <!-- 🆕 LINK INFORMATIVE DI SICUREZZA (pagina pubblica ESTAR, accessibile dall'esterno) -->
     <div class="alert alert-primary d-flex align-items-center justify-content-between flex-wrap">
         <div class="me-3">
-            <strong>📎 Informative di sicurezza delle Aziende Sanitarie</strong>
+            <strong>📎 Documenti di riferimento</strong>
             <div class="small mb-0">
-                Documenti di riferimento sui rischi presenti nelle strutture dell'Azienda USL Toscana Nord Ovest,
-                pubblicati sul sito ESTAR, da consultare prima di compilare i dati.
+                DUVRI statico dell'Azienda USL Toscana Nord Ovest e informative di sicurezza delle Aziende
+                Sanitarie pubblicate sul sito ESTAR, da consultare prima di compilare i dati.
             </div>
         </div>
-        <a href="https://www.estar.toscana.it/index.php/portale/tecnico-amministrativo/informative-di-sicurezza-aziende-sanitarie/"
-           target="_blank" rel="noopener" class="btn btn-primary mt-2 mt-md-0">
-            🔗 Apri pagina ESTAR
-        </a>
+        <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+            <a href="{{ url_for('download_pdf', filename='duvri_statico') }}" target="_blank" rel="noopener"
+               class="btn btn-primary">
+                ⬇️ Scarica DUVRI Statico (PDF)
+            </a>
+            <a href="https://www.estar.toscana.it/index.php/portale/tecnico-amministrativo/informative-di-sicurezza-aziende-sanitarie/"
+               target="_blank" rel="noopener" class="btn btn-outline-primary">
+                🔗 Informative di sicurezza ESTAR
+            </a>
+        </div>
     </div>
 
     <form method="POST">

@@ -676,20 +676,18 @@ app.jinja_env.globals['FIGURE_SICUREZZA_EXTRA'] = FIGURE_SICUREZZA_EXTRA
 def processa_figure_sicurezza(form):
     """Restituisce la lista delle ulteriori figure della sicurezza selezionate.
 
-    Una figura spuntata senza nominativo viene ignorata.
+    I campi nominativo/email sono facoltativi: una figura spuntata viene
+    registrata anche senza nominativo (da comunicare successivamente).
     """
     selezionate = form.getlist('figure_sicurezza')
     figure = []
     for codice, ruolo in FIGURE_SICUREZZA_EXTRA:
         if codice not in selezionate:
             continue
-        nome = form.get(f'figura_{codice}_nome', '').strip()
-        if not nome:
-            continue
         figure.append({
             'codice': codice,
             'ruolo': ruolo,
-            'nome': nome,
+            'nome': form.get(f'figura_{codice}_nome', '').strip(),
             'email': form.get(f'figura_{codice}_email', '').strip(),
         })
     return figure
@@ -3421,16 +3419,17 @@ def download_pdf(filename):
             "duvri_statico": "DUVRI_STATICO_rev_1_0.pdf"
         }
 
+        # Route pubblica (usata dal form appaltatore esterno): in caso di errore
+        # niente redirect alla dashboard, che porterebbe al login amministratori
         if filename not in allowed_files:
-            flash("File non autorizzato")
-            return redirect(url_for('admin_dashboard'))  # ← CAMBIA QUI
+            return "File non autorizzato", 404
 
         real_filename = allowed_files[filename]
         pdf_path = os.path.join(BASE_DIR, "documents", real_filename)
 
         if not os.path.exists(pdf_path):
-            flash("File non trovato")
-            return redirect(url_for('admin_dashboard'))  # ← CAMBIA QUI
+            print(f"❌ Documento non trovato sul server: {pdf_path}")
+            return "Documento non disponibile sul server. Contattare il committente.", 404
 
         return send_file(
             pdf_path,
@@ -3438,8 +3437,8 @@ def download_pdf(filename):
             download_name=real_filename
         )
     except Exception as e:
-        flash(f"Errore: {str(e)}")
-        return redirect(url_for('admin_dashboard'))
+        print(f"❌ Errore download documento {filename}: {e}")
+        return "Errore nel recupero del documento. Contattare il committente.", 500
 
 @app.route('/debug_pdf')
 @login_required
