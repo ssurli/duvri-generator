@@ -572,14 +572,16 @@
     </tr>
     {% endif %}
     
+    {# Costi inclusi in gara ma non evidenziati (importo 0) = compensati forfettariamente nell'importo complessivo #}
+    {% set costi_compensati = data.committente.get('costi_inclusi_gara') and (data.committente.get('costi_sicurezza_gara') or 0)|float == 0 %}
     {% if data.committente.get('costi_inclusi_gara') %}
     <tr>
         <th>Costi Sicurezza in Gara</th>
         <td>
-            {% if data.committente.get('costi_sicurezza_gara') and data.committente.costi_sicurezza_gara|float > 0 %}
-                <strong style="color: #00cc00;">[✓]</strong> Previsti: € {{ "{:,.2f}".format(data.committente.costi_sicurezza_gara|float) }}
+            {% if costi_compensati %}
+                Compresi forfettariamente nell'importo complessivo dell'appalto
             {% else %}
-                <strong style="color: #ff9900;">[!]</strong> Non previsti in gara
+                <strong style="color: #00cc00;">[✓]</strong> Previsti: € {{ "{:,.2f}".format(data.committente.costi_sicurezza_gara|float) }}
             {% endif %}
         </td>
     </tr>
@@ -588,7 +590,13 @@
     {% if data.committente.get('percentuale_costo_base') %}
     <tr>
         <th>Parametro Costo Base</th>
-        <td>{{ data.committente.percentuale_costo_base }}% dell'importo appalto</td>
+        <td>
+            {% if costi_compensati %}
+                Non applicabile
+            {% else %}
+                {{ data.committente.percentuale_costo_base }}% dell'importo appalto
+            {% endif %}
+        </td>
     </tr>
     {% endif %}
     
