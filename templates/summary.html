@@ -265,7 +265,17 @@
             <!-- Dettaglio Costi per la Sicurezza -->
             <h5 class="mt-2">💰 Dettaglio Costi per la Sicurezza da Interferenze</h5>
 
-            {% if data.appaltatore.modalita_forfettario %}
+            {% if data.appaltatore.modalita_forfettario and (data.appaltatore.costo_totale_forfettario or 0)|float == 0 %}
+                <!-- COSTI COMPRESI NELL'IMPORTO: nessuna tabella importi -->
+                <div class="alert alert-info">
+                    <h6><strong>💰 Costi compresi nell'importo di gara</strong></h6>
+                    <p class="mb-0">
+                        I costi della sicurezza da interferenze non sono evidenziati separatamente nei documenti
+                        di gara: sono compresi forfettariamente nell'importo complessivo dell'appalto.
+                    </p>
+                </div>
+
+            {% elif data.appaltatore.modalita_forfettario %}
                 <!-- MODALITA' FORFETTARIA: mostra solo totale -->
                 <div class="alert alert-info">
                     <h6><strong>💰 Importo Forfettario da Gara</strong></h6>
@@ -286,11 +296,7 @@
                         <tr class="table-warning fw-bold">
                             <td>Costi Sicurezza da Interferenze (Importo Forfettario)</td>
                             <td class="text-end">
-                                {% if (data.appaltatore.costo_totale_forfettario or 0)|float == 0 %}
-                                    Compresi forfettariamente nell'importo complessivo dell'appalto
-                                {% else %}
-                                    € {{ "{:,.2f}".format(data.appaltatore.costo_totale_forfettario or 0) }}
-                                {% endif %}
+                                € {{ "{:,.2f}".format(data.appaltatore.costo_totale_forfettario or 0) }}
                             </td>
                         </tr>
                     </tbody>
