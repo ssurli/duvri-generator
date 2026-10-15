@@ -455,6 +455,13 @@
                                         <td>Dr.ssa Lucia Banchini</td>
                                         <td>Lucia.banchini@uslnordovest.toscana.it</td>
                                     </tr>
+                                    {% for f in ((data.committente.get('figure_sicurezza') if data and data.committente else None) or []) %}
+                                    <tr>
+                                        <td>{{ f.ruolo }}</td>
+                                        <td>{{ f.nome }}</td>
+                                        <td>{{ f.email }}</td>
+                                    </tr>
+                                    {% endfor %}
                                     <tr>
                                         <td>Addetti alle emergenze</td>
                                         <td colspan="2">I nominativi degli addetti alle gestione delle emergenze e al primo soccorso, considerata la complessità dell'organizzazione, possono essere richiesti ai responsabili di macrostruttura al momento dell'aggiudicazione dell'appalto.</td>
@@ -648,6 +655,15 @@
             {% endif %}
         </td>
     </tr>
+    {% for f in (data.appaltatore.get('figure_sicurezza') or []) %}
+    <tr>
+        <th>{{ f.ruolo }}</th>
+        <td>
+            {{ f.nome }}
+            {% if f.email %}<br><small>Email: {{ f.email }}</small>{% endif %}
+        </td>
+    </tr>
+    {% endfor %}
     <tr>
         <th>Responsabile Appalto</th>
         <td>
@@ -720,7 +736,7 @@
 
     <div class="checkbox-container">
         <div class="checkbox-icon"></div>
-        <div class="checkbox-content"><strong style="color: #00cc00;">[✓]</strong>Aver preso conoscenza che i propri lavoratori potrebbero accedere ad ambienti con presenza di radiazioni ionizzanti e non, ma non avendo nominato un proprio Esperto Qualificato, si assume la responsabilità di inviare lavoratori informati sul divieto di accesso a zone controllate e/o sorvegliate o con apparecchi portatili RX in funzione;</div>
+        <div class="checkbox-content"><strong style="color: #00cc00;">[✓]</strong>Aver preso conoscenza che i propri lavoratori potrebbero accedere ad ambienti con presenza di radiazioni ionizzanti e non, nel caso di non aver nominato un proprio Esperto di Radioprotezione, si assume la responsabilità di inviare lavoratori informati sul divieto di accesso a zone controllate e/o sorvegliate o con apparecchi portatili RX in funzione;</div>
     </div>
 
     <div class="checkbox-container checkbox-checked">

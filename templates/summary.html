@@ -141,6 +141,9 @@
                     <p><strong>Riferimenti Datore:</strong> {{ data.appaltatore.datore_lavoro_rif }}</p>
                     <p><strong>RSPP:</strong> {{ data.appaltatore.rspp_nome }}</p>
                     <p><strong>Riferimenti RSPP:</strong> {{ data.appaltatore.rspp_rif }}</p>
+                    {% for f in (data.appaltatore.figure_sicurezza or []) %}
+                    <p><strong>{{ f.ruolo }}:</strong> {{ f.nome }}{% if f.email %} ({{ f.email }}){% endif %}</p>
+                    {% endfor %}
                     <p><strong>Responsabile Appalto:</strong> {{ data.appaltatore.resp_appalto_nome }}</p>
                     <p><strong>Riferimenti Resp. Appalto:</strong> {{ data.appaltatore.resp_appalto_rif }}</p>
                     <p><strong>Max Addetti:</strong> {{ data.appaltatore.max_addetti }}</p>

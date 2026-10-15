@@ -661,6 +661,40 @@ def invia_notifica_semplice(duvri_id, dati_committente, dati_appaltatore):
 # FUNZIONI AUSILIARIE UNIFICATE
 # =============================================
 
+# 🆕 ULTERIORI FIGURE DELLA SICUREZZA (oltre al RSPP), presenti solo in casi
+# specifici: radiazioni ionizzanti (D.Lgs. 101/2020), risonanza magnetica
+# (DM 14/01/2021), laser. Usate sia dal form committente sia da quello appaltatore.
+FIGURE_SICUREZZA_EXTRA = [
+    ('edr', 'Esperto di Radioprotezione (EdR)'),
+    ('er_rm', 'Esperto Responsabile della Sicurezza in Risonanza Magnetica (ER)'),
+    ('mr_rm', "Medico Responsabile dell'impianto di Risonanza Magnetica (MR)"),
+    ('asl', 'Addetto Sicurezza Laser (ASL)'),
+]
+app.jinja_env.globals['FIGURE_SICUREZZA_EXTRA'] = FIGURE_SICUREZZA_EXTRA
+
+
+def processa_figure_sicurezza(form):
+    """Restituisce la lista delle ulteriori figure della sicurezza selezionate.
+
+    Una figura spuntata senza nominativo viene ignorata.
+    """
+    selezionate = form.getlist('figure_sicurezza')
+    figure = []
+    for codice, ruolo in FIGURE_SICUREZZA_EXTRA:
+        if codice not in selezionate:
+            continue
+        nome = form.get(f'figura_{codice}_nome', '').strip()
+        if not nome:
+            continue
+        figure.append({
+            'codice': codice,
+            'ruolo': ruolo,
+            'nome': nome,
+            'email': form.get(f'figura_{codice}_email', '').strip(),
+        })
+    return figure
+
+
 def processa_form_(request):
     """Elabora i dati del form dell'appaltatore"""
     return {
@@ -676,6 +710,7 @@ def processa_form_(request):
         'datore_lavoro_nome': request.form.get('datore_lavoro_nome'),
         'rspp_nome': request.form.get('rspp_nome'),  # 🆕 Campo esistente
         'rspp_email': request.form.get('rspp_email', ''),  # 🆕 RSPP email (D.Lgs. 81/08)
+        'figure_sicurezza': processa_figure_sicurezza(request.form),  # 🆕 EdR, ER/MR RM, ASL
         'resp_appalto_nome': request.form.get('resp_appalto_nome'),  # 🆕 Campo esistente
         'max_addetti': request.form.get('max_addetti'),
         'orario_lavoro': request.form.get('orario_lavoro'),
@@ -1886,7 +1921,10 @@ def compila_committente():
             # Campi ausiliari per ripopolare correttamente il form in modifica
             'rspp_aree': rspp_aree,
             'rspp_nome_manuale': rspp_nome_manuale,
-            'rspp_email_manuale': rspp_email_manuale
+            'rspp_email_manuale': rspp_email_manuale,
+
+            # 🆕 ULTERIORI FIGURE DELLA SICUREZZA (EdR, ER/MR RM, ASL)
+            'figure_sicurezza': processa_figure_sicurezza(request.form)
         }
         
         # 🆕 GESTIONE UPLOAD DUVRI ESTAR

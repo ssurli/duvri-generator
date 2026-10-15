@@ -1,0 +1,40 @@
+{# Ulteriori figure della sicurezza (oltre al RSPP), incluso nei form committente e appaltatore.
+   Richiede nel contesto: data (dict del form) e FIGURE_SICUREZZA_EXTRA (globale Jinja). #}
+{% set _fig_sel = {} %}
+{% for f in (data.get('figure_sicurezza') or []) %}{% if _fig_sel.update({f.codice: f}) %}{% endif %}{% endfor %}
+<div class="alert alert-light border mt-3">
+    <h6 class="mb-2">🧑‍🔬 Ulteriori figure della sicurezza (solo se pertinenti)</h6>
+    <p class="small mb-2">
+        Da indicare solo in presenza di rischi specifici (es. radiazioni ionizzanti, risonanza magnetica, laser).
+        Selezionare una o più figure e indicarne il nominativo.
+    </p>
+    {% for codice, ruolo in FIGURE_SICUREZZA_EXTRA %}
+    {% set _f = _fig_sel.get(codice) %}
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="figure_sicurezza" value="{{ codice }}"
+               id="figura_{{ codice }}" data-target="figura_{{ codice }}_dati"
+               {{ 'checked' if _f else '' }} onchange="toggleFiguraSicurezza(this)">
+        <label class="form-check-label" for="figura_{{ codice }}">{{ ruolo }}</label>
+    </div>
+    <div id="figura_{{ codice }}_dati" class="row g-2 ms-3 mb-2" style="display: {{ 'flex' if _f else 'none' }};">
+        <div class="col-md-6">
+            <input type="text" name="figura_{{ codice }}_nome" class="form-control form-control-sm"
+                   value="{{ _f.nome if _f else '' }}" placeholder="Nome e Cognome"
+                   {{ 'required' if _f else '' }}>
+        </div>
+        <div class="col-md-6">
+            <input type="email" name="figura_{{ codice }}_email" class="form-control form-control-sm"
+                   value="{{ _f.email if _f else '' }}" placeholder="Email (opzionale)">
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<script>
+function toggleFiguraSicurezza(cb) {
+    const box = document.getElementById(cb.dataset.target);
+    if (!box) return;
+    box.style.display = cb.checked ? 'flex' : 'none';
+    const nome = box.querySelector('input[type="text"]');
+    if (nome) nome.required = cb.checked;
+}
+</script>
